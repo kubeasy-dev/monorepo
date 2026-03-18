@@ -11,8 +11,13 @@ const app = new Hono();
 app.use(
   "/api/*",
   cors({
-    origin: ["http://localhost:3000", "https://kubeasy.dev"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://kubeasy.dev",
+      "https://api.kubeasy.dev",
+    ],
+    allowHeaders: ["Content-Type", "Authorization", "User-Agent"],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
   }),
