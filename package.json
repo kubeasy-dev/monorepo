@@ -1,5 +1,5 @@
 {
-  "name": "kubeasy",
+  "name": "kubeasy-monorepo",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,11 +12,15 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "dev": "next dev --turbo",
+    "dev:infra": "docker compose up -d",
     "preview": "next build && next start",
     "start": "next start",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
+    "turbo:build": "turbo run build",
+    "turbo:lint": "turbo run lint",
+    "turbo:typecheck": "turbo run typecheck",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "knip": "dotenv -e .env.local -- knip",
@@ -99,6 +103,7 @@
     "prettier": "3.8.1",
     "tailwindcss": "4.2.1",
     "tsx": "4.21.0",
+    "turbo": "^2.8.17",
     "typescript": "5.9.3",
     "vitest": "4.1.0"
   },
