@@ -18,8 +18,8 @@ Scope : migration feature-parity complète vers le monorepo. Aucune nouvelle fon
 
 ### Packages Partagés
 
-- [ ] **PKG-01**: Le package `@kubeasy/api-schemas` (JIT, pas de build step) exporte les schémas Zod de toutes les requêtes et réponses API — consommable par `apps/api`, `apps/web` et le CLI Go
-- [ ] **PKG-02**: `@kubeasy/api-schemas` couvre 100% des endpoints : challenges (liste, détail), themes, user progress, XP, soumissions, authentification
+- [x] **PKG-01**: Le package `@kubeasy/api-schemas` (JIT, pas de build step) exporte les schémas Zod de toutes les requêtes et réponses API — consommable par `apps/api`, `apps/web` et le CLI Go
+- [x] **PKG-02**: `@kubeasy/api-schemas` couvre 100% des endpoints : challenges (liste, détail), themes, user progress, XP, soumissions, authentification
 - [ ] **PKG-03**: Le package `@kubeasy/jobs` (JIT) exporte les noms de queues BullMQ, les types de payloads de jobs (`JobPayload`), et une factory `createQueue(name, redis)` — sans implémenter de `Worker` (consommé par l'API pour dispatcher, par un futur worker pour consommer)
 - [ ] **PKG-04**: `@kubeasy/jobs` ne dépend d'aucun package `apps/` — dépendance unidirectionnelle stricte
 
@@ -119,8 +119,8 @@ Deferred — architecture préparée mais hors scope v1.
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Pending |
-| PKG-01 | Phase 1 | Pending |
-| PKG-02 | Phase 1 | Pending |
+| PKG-01 | Phase 1 | Complete |
+| PKG-02 | Phase 1 | Complete |
 | PKG-03 | Phase 1 | Pending |
 | PKG-04 | Phase 1 | Pending |
 | API-01 | Phase 2 | Pending |

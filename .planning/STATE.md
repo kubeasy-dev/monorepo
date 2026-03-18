@@ -26,28 +26,28 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 1 of 7 (Monorepo Scaffold)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-03-18 — Completed plan 01-01: Monorepo scaffold with turbo.json and typescript-config
+Last activity: 2026-03-18 — Completed plan 01-02: @kubeasy/api-schemas package with challenges, themes, and submissions schemas
 
-Progress: [░░░░░░░░░░] 4%
+Progress: [░░░░░░░░░░] 8%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 3 min
-- Total execution time: 0.05 hours
+- Total plans completed: 2
+- Average duration: 2.5 min
+- Total execution time: 0.08 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-monorepo-scaffold | 1 | 3 min | 3 min |
+| 01-monorepo-scaffold | 2 | 5 min | 2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min
-- Trend: —
+- Last 5 plans: 3 min, 2 min
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -63,6 +63,8 @@ Recent decisions affecting current work:
 - [Auth]: Better Auth `crossSubdomainCookies: { enabled: true, domain: ".kubeasy.dev" }` required — validate cross-domain cookie flow on staging before declaring Phase 3 complete.
 - [SSE]: Dedicated ioredis subscriber per SSE connection (never shared). Abort signal cleanup + 30s heartbeat both required.
 - [OTel]: `--import ./dist/instrumentation.js` flag mandatory — never import `@kubeasy/*` inside `instrumentation.ts`.
+- [api-schemas]: All 6 domain exports declared upfront in package.json exports map; progress/xp/auth file stubs added in Plan 03 to avoid consumer import churn.
+- [api-schemas]: peerDependencies for zod to avoid duplicate installs across workspace.
 
 ### Pending Todos
 
@@ -77,6 +79,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T10:44:54Z
-Stopped at: Completed 01-01-PLAN.md
-Resume file: .planning/phases/01-monorepo-scaffold/01-02-PLAN.md
+Last session: 2026-03-18T10:51:44Z
+Stopped at: Completed 01-02-PLAN.md
+Resume file: .planning/phases/01-monorepo-scaffold/01-03-PLAN.md

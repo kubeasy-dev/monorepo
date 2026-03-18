@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `docker compose up` starts PostgreSQL, Redis, and OTel Collector — all three services are reachable on their expected ports
   4. `@kubeasy/api-schemas` exports Zod schemas covering all existing tRPC procedure shapes (challenges, themes, progress, XP, submissions, auth) and `@kubeasy/jobs` exports queue names and `JobPayload` types without importing from any `apps/` package
   5. `turbo build --dry-run --summarize` shows declared env vars (`DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`) in the cache key inputs
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 
 Plans:
 - [ ] 01-01-PLAN.md — Turborepo + pnpm workspace scaffold and packages/typescript-config
@@ -152,7 +152,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Monorepo Scaffold | 1/4 | In Progress|  |
+| 1. Monorepo Scaffold | 2/4 | In Progress|  |
 | 2. Hono API Migration | 0/4 | Not started | - |
 | 3. Authentication | 0/4 | Not started | - |
 | 4. Web Migration | 0/4 | Not started | - |
