@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `docker compose up` starts PostgreSQL, Redis, and OTel Collector — all three services are reachable on their expected ports
   4. `@kubeasy/api-schemas` exports Zod schemas covering all existing tRPC procedure shapes (challenges, themes, progress, XP, submissions, auth) and `@kubeasy/jobs` exports queue names and `JobPayload` types without importing from any `apps/` package
   5. `turbo build --dry-run --summarize` shows declared env vars (`DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`) in the cache key inputs
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
 - [ ] 01-01: Turborepo + pnpm workspace scaffold (root package.json, turbo.json, pnpm-workspace.yaml, biome.json)
