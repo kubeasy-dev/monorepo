@@ -13,7 +13,7 @@ Migration from a Next.js 15 + tRPC monolith on Vercel to a Turborepo monorepo wi
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Monorepo Scaffold** - Turborepo workspace, shared packages, docker-compose infra (completed 2026-03-18)
-- [ ] **Phase 2: Hono API Migration** - All tRPC routes ported to REST, Drizzle switched to postgres.js
+- [x] **Phase 2: Hono API Migration** - All tRPC routes ported to REST, Drizzle switched to postgres.js (completed 2026-03-18)
 - [ ] **Phase 3: Authentication** - Better Auth on Hono, OAuth providers, API keys for CLI
 - [ ] **Phase 4: Web Migration** - TanStack Start replacing Next.js, all pages with TanStack Query
 - [ ] **Phase 5: Realtime SSE** - SSE endpoint on Hono, Redis pub/sub, BullMQ job definitions
@@ -50,7 +50,7 @@ Plans:
   3. `pnpm why @neondatabase/serverless` from the repo root returns empty — the Neon serverless driver is fully removed
   4. Rate limiting on the CLI submission endpoint returns HTTP 429 after threshold is exceeded — verified with a script sending 100 requests in 10 seconds
   5. The Go CLI can call `POST /api/challenges/:slug/submit` with its existing payload structure and receive a valid response — CLI contract is preserved
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 - [ ] 02-00-PLAN.md — vitest setup and test stubs (Wave 0)
@@ -154,7 +154,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Monorepo Scaffold | 4/4 | Complete   | 2026-03-18 |
-| 2. Hono API Migration | 4/5 | In Progress|  |
+| 2. Hono API Migration | 5/5 | Complete   | 2026-03-18 |
 | 3. Authentication | 0/4 | Not started | - |
 | 4. Web Migration | 0/4 | Not started | - |
 | 5. Realtime SSE | 0/4 | Not started | - |
