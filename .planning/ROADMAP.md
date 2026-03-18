@@ -12,7 +12,7 @@ Migration from a Next.js 15 + tRPC monolith on Vercel to a Turborepo monorepo wi
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Monorepo Scaffold** - Turborepo workspace, shared packages, docker-compose infra
+- [x] **Phase 1: Monorepo Scaffold** - Turborepo workspace, shared packages, docker-compose infra (completed 2026-03-18)
 - [ ] **Phase 2: Hono API Migration** - All tRPC routes ported to REST, Drizzle switched to postgres.js
 - [ ] **Phase 3: Authentication** - Better Auth on Hono, OAuth providers, API keys for CLI
 - [ ] **Phase 4: Web Migration** - TanStack Start replacing Next.js, all pages with TanStack Query
@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `docker compose up` starts PostgreSQL, Redis, and OTel Collector — all three services are reachable on their expected ports
   4. `@kubeasy/api-schemas` exports Zod schemas covering all existing tRPC procedure shapes (challenges, themes, progress, XP, submissions, auth) and `@kubeasy/jobs` exports queue names and `JobPayload` types without importing from any `apps/` package
   5. `turbo build --dry-run --summarize` shows declared env vars (`DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`) in the cache key inputs
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] 01-01-PLAN.md — Turborepo + pnpm workspace scaffold and packages/typescript-config
@@ -152,7 +152,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Monorepo Scaffold | 3/4 | In Progress|  |
+| 1. Monorepo Scaffold | 4/4 | Complete   | 2026-03-18 |
 | 2. Hono API Migration | 0/4 | Not started | - |
 | 3. Authentication | 0/4 | Not started | - |
 | 4. Web Migration | 0/4 | Not started | - |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-03-18T10:54:56.695Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-03-18T11:01:20.877Z"
 last_activity: "2026-03-18 — Completed plan 01-02: @kubeasy/api-schemas package with challenges, themes, and submissions schemas"
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 8
 ---
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 8%
 
 *Updated after each plan completion*
 | Phase 01-monorepo-scaffold P04 | 2 | 1 tasks | 2 files |
+| Phase 01-monorepo-scaffold P03 | 3 | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Recent decisions affecting current work:
 - [api-schemas]: All 6 domain exports declared upfront in package.json exports map; progress/xp/auth file stubs added in Plan 03 to avoid consumer import churn.
 - [api-schemas]: peerDependencies for zod to avoid duplicate installs across workspace.
 - [Phase 01-monorepo-scaffold]: OTel Collector uses contrib image for zpages support; Redis uses noeviction policy for BullMQ; debug exporter only in Phase 1
+- [Phase 01-monorepo-scaffold]: Use bullmq ConnectionOptions in factory.ts instead of IORedis import to avoid ioredis version conflict
+- [Phase 01-monorepo-scaffold]: api-schemas vitest.config.ts added as standalone package-level config to avoid root setup file dependency
 
 ### Pending Todos
 
@@ -81,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T10:54:56.693Z
-Stopped at: Completed 01-04-PLAN.md
+Last session: 2026-03-18T11:01:20.875Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
