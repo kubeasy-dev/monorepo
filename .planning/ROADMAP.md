@@ -50,7 +50,7 @@ Plans:
   3. `pnpm why @neondatabase/serverless` from the repo root returns empty — the Neon serverless driver is fully removed
   4. Rate limiting on the CLI submission endpoint returns HTTP 429 after threshold is exceeded — verified with a script sending 100 requests in 10 seconds
   5. The Go CLI can call `POST /api/challenges/:slug/submit` with its existing payload structure and receive a valid response — CLI contract is preserved
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 - [ ] 02-00-PLAN.md — vitest setup and test stubs (Wave 0)
@@ -154,7 +154,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Monorepo Scaffold | 4/4 | Complete   | 2026-03-18 |
-| 2. Hono API Migration | 0/4 | Not started | - |
+| 2. Hono API Migration | 1/5 | In Progress|  |
 | 3. Authentication | 0/4 | Not started | - |
 | 4. Web Migration | 0/4 | Not started | - |
 | 5. Realtime SSE | 0/4 | Not started | - |

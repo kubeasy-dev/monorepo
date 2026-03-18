@@ -25,7 +25,7 @@ Scope : migration feature-parity complète vers le monorepo. Aucune nouvelle fon
 
 ### API Hono (`apps/api`)
 
-- [ ] **API-01**: L'app `apps/api` tourne avec Hono 4.x + `@hono/node-server` (Node.js long-lived, pas serverless) et démarre avec une seule commande en local via docker-compose
+- [x] **API-01**: L'app `apps/api` tourne avec Hono 4.x + `@hono/node-server` (Node.js long-lived, pas serverless) et démarre avec une seule commande en local via docker-compose
 - [ ] **API-02**: Tous les endpoints challenges sont portés depuis tRPC vers REST : liste avec filtres (difficulté, thème, type), détail par slug, liste des thèmes
 - [ ] **API-03**: Tous les endpoints user progress sont portés : statut de progression, historique des soumissions, dernier statut de validation par challenge
 - [ ] **API-04**: Tous les endpoints XP sont portés : solde XP utilisateur, historique des transactions XP
@@ -123,7 +123,7 @@ Deferred — architecture préparée mais hors scope v1.
 | PKG-02 | Phase 1 | Complete |
 | PKG-03 | Phase 1 | Complete |
 | PKG-04 | Phase 1 | Complete |
-| API-01 | Phase 2 | Pending |
+| API-01 | Phase 2 | Complete |
 | API-02 | Phase 2 | Pending |
 | API-03 | Phase 2 | Pending |
 | API-04 | Phase 2 | Pending |
