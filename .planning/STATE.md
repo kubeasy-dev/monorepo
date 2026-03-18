@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-00-PLAN.md
-last_updated: "2026-03-18T16:38:52.739Z"
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-03-18T16:42:03.877Z"
 last_activity: "2026-03-18 — Completed plan 01-02: @kubeasy/api-schemas package with challenges, themes, and submissions schemas"
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 8
 ---
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 8%
 | Phase 02-hono-api-migration P02 | 5 | 2 tasks | 4 files |
 | Phase 02-hono-api-migration P04 | 2 | 1 tasks | 2 files |
 | Phase 03-authentication P00 | 3 | 2 tasks | 4 files |
+| Phase 03-authentication P01 | 1 | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,10 @@ Recent decisions affecting current work:
 - [Phase 02-hono-api-migration]: Rate limit key is user-scoped only (submit:{userId}) since requireAuth blocks unauthenticated requests before rate limiter runs — no IP fallback needed
 - [Phase 02-hono-api-migration]: CLI alias at /api/cli/challenges/:slug/submit inherits rate limiting via shared submit Hono router — no changes to cli/index.ts required
 - [Phase 03-authentication]: Test stub pattern mirrors existing middleware.test.ts: import { describe, it } from vitest, describe blocks, it.todo() placeholders
+- [Phase 03-authentication]: BullMQ queue initialized as module-level singleton using redis.options directly (ioredis RedisOptions equals BullMQ ConnectionOptions)
+- [Phase 03-authentication]: oAuthProxy plugin dropped — Railway deployment, not Vercel; no need for OAuth preview proxying
+- [Phase 03-authentication]: databaseHooks user.create.after fire-and-forget BullMQ dispatch; errors caught and logged, never thrown
+- [Phase 03-authentication]: trustedOrigins and CORS origin list kept in sync: localhost:3000/3001, kubeasy.dev, api.kubeasy.dev; no vercel.app wildcard
 
 ### Pending Todos
 
@@ -100,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T16:38:52.737Z
-Stopped at: Completed 03-00-PLAN.md
+Last session: 2026-03-18T16:42:03.874Z
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None
