@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-18T17:00:07.933Z"
+stopped_at: Completed 04-01-PLAN.md — apps/web TanStack Start scaffold
+last_updated: "2026-03-18T17:48:20.565Z"
 last_activity: "2026-03-18 — Completed plan 01-02: @kubeasy/api-schemas package with challenges, themes, and submissions schemas"
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 16
+  completed_plans: 13
   percent: 8
 ---
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 8%
 | Phase 03-authentication P00 | 3 | 2 tasks | 4 files |
 | Phase 03-authentication P01 | 1 | 3 tasks | 6 files |
 | Phase 03-authentication P02 | 2 | 2 tasks | 2 files |
+| Phase 04-web-migration P01 | 14 | 2 tasks | 36 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Recent decisions affecting current work:
 - [Phase 03-authentication]: trustedOrigins and CORS origin list kept in sync: localhost:3000/3001, kubeasy.dev, api.kubeasy.dev; no vercel.app wildcard
 - [Phase 03-authentication]: Use result.key.referenceId (not userId) for better-auth 1.5+ API key user lookup
 - [Phase 03-authentication]: AUTH-06 (apps/web Better Auth client) deferred to Phase 4 — apps/web does not exist yet
+- [Phase 04-web-migration]: StartClient takes no router prop in TanStack Start v1.166.14 — auto-hydrates via Vite plugin; setupRouterSsrQueryIntegration absent from react-query@5.91.0 — SSR handled by framework automatically
+- [Phase 04-web-migration]: apps/web routeTree.gen.ts manually written for scaffold — router-generator@1.166.13 conflict detection bug with pathless layouts and sibling routes; Vite plugin regenerates at dev/build time
 
 ### Pending Todos
 
@@ -108,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T17:00:07.930Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-web-migration/04-CONTEXT.md
+Last session: 2026-03-18T17:48:20.561Z
+Stopped at: Completed 04-01-PLAN.md — apps/web TanStack Start scaffold
+Resume file: None
