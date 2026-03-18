@@ -12,6 +12,7 @@ import db from "@/server/db";
 import { getChallengeBySlug, getThemeBySlug } from "@/server/db/queries";
 import {
   challenge,
+  challengeDifficultyEnum,
   challengeObjective,
   challengeTheme,
   challengeType,
@@ -134,7 +135,7 @@ export const challengeRouter = createTRPCRouter({
         title: z.string().min(1),
         description: z.string().min(1),
         theme: z.string().min(1),
-        difficulty: z.enum(["easy", "medium", "hard"]),
+        difficulty: z.enum(challengeDifficultyEnum.enumValues),
         estimatedTime: z.number().int().positive(),
         initialSituation: z.string().min(1),
         ofTheWeek: z.boolean().default(false),

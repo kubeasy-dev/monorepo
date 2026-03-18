@@ -1,6 +1,10 @@
 import "zod-openapi";
 import { z } from "zod";
-import { challengeDifficultyEnum } from "@/server/db/schema/challenge";
+import {
+  challengeDifficultyEnum,
+  challengeStatusEnum,
+  objectiveCategoryEnum,
+} from "@/server/db/schema/challenge";
 
 // ---------- Shared ----------
 
@@ -58,7 +62,7 @@ export const challengeResponseSchema = z
 
 export const challengeStartResponseSchema = z
   .object({
-    status: z.enum(["in_progress", "completed"]),
+    status: z.enum(challengeStatusEnum.enumValues).exclude(["not_started"]),
     startedAt: z.string().meta({ description: "ISO 8601 date string" }),
     message: z.string().optional(),
   })
@@ -66,7 +70,7 @@ export const challengeStartResponseSchema = z
 
 export const challengeStatusResponseSchema = z
   .object({
-    status: z.enum(["not_started", "in_progress", "completed"]),
+    status: z.enum(challengeStatusEnum.enumValues),
     startedAt: z
       .string()
       .optional()
@@ -80,14 +84,7 @@ export const challengeStatusResponseSchema = z
 
 // ---------- Submit ----------
 
-export const objectiveCategorySchema = z.enum([
-  "status",
-  "log",
-  "event",
-  "metrics",
-  "rbac",
-  "connectivity",
-]);
+export const objectiveCategorySchema = z.enum(objectiveCategoryEnum.enumValues);
 
 export const objectiveResultSchema = z
   .object({

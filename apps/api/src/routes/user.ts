@@ -1,5 +1,7 @@
+import { zValidator } from "@hono/zod-validator";
 import { eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
+import { z } from "zod";
 import { db } from "../db/index.js";
 import { user } from "../db/schema/auth.js";
 import {
@@ -9,6 +11,11 @@ import {
 } from "../db/schema/challenge.js";
 import { requireAuth } from "../middleware/session.js";
 import { calculateLevel, calculateStreak } from "../services/xp/index.js";
+
+const updateNameSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().optional(),
+});
 
 const userRouter = new Hono();
 
@@ -51,24 +58,22 @@ userRouter.get("/streak", requireAuth, async (c) => {
 });
 
 // PATCH /user/name -- update user name
-userRouter.patch("/name", requireAuth, async (c) => {
-  const sessionUser = c.get("user");
-  const userId = sessionUser.id;
+userRouter.patch(
+  "/name",
+  requireAuth,
+  zValidator("json", updateNameSchema),
+  async (c) => {
+    const sessionUser = c.get("user");
+    const userId = sessionUser.id;
+    const { firstName, lastName } = c.req.valid("json");
 
-  const body = await c.req.json();
-  const firstName: string = body.firstName;
-  const lastName: string | undefined = body.lastName;
+    const fullName = lastName ? `${firstName} ${lastName}` : firstName;
 
-  if (!firstName || typeof firstName !== "string") {
-    return c.json({ error: "First name is required" }, 400);
-  }
+    await db.update(user).set({ name: fullName }).where(eq(user.id, userId));
 
-  const fullName = lastName ? `${firstName} ${lastName}` : firstName;
-
-  await db.update(user).set({ name: fullName }).where(eq(user.id, userId));
-
-  return c.json({ success: true, name: fullName });
-});
+    return c.json({ success: true, name: fullName });
+  },
+);
 
 // DELETE /user/progress -- delete ALL user progress, XP, and transactions
 userRouter.delete("/progress", requireAuth, async (c) => {

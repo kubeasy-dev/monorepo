@@ -1,6 +1,8 @@
+import { zValidator } from "@hono/zod-validator";
 import { and, count, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
+import { z } from "zod";
 import { db } from "../db/index.js";
 import {
   challenge,
@@ -13,83 +15,101 @@ import { requireAuth } from "../middleware/session.js";
 
 const progress = new Hono();
 
-// GET /progress/completion -- get completion percentage (global or by theme)
-progress.get("/completion", requireAuth, async (c) => {
-  const user = c.get("user");
-  const userId = user.id;
-  const splitByTheme = c.req.query("splitByTheme") === "true";
-  const themeSlug = c.req.query("themeSlug");
+const completionQuerySchema = z.object({
+  splitByTheme: z
+    .string()
+    .optional()
+    .transform((v) => v === "true")
+    .pipe(z.boolean()),
+  themeSlug: z.string().optional(),
+});
 
-  if (splitByTheme) {
-    // Single optimized query: get total and completed counts by theme
-    const byTheme = await db
-      .select({
-        themeSlug: challenge.theme,
-        totalCount: count(challenge.id),
-        completedCount: sql<number>`CAST(COUNT(CASE WHEN ${userProgress.userId} = ${userId} AND ${userProgress.status} = 'completed' THEN 1 END) AS INTEGER)`,
-      })
+// GET /progress/completion -- get completion percentage (global or by theme)
+progress.get(
+  "/completion",
+  requireAuth,
+  zValidator("query", completionQuerySchema),
+  async (c) => {
+    const user = c.get("user");
+    const userId = user.id;
+    const { splitByTheme, themeSlug } = c.req.valid("query");
+
+    if (splitByTheme) {
+      // Single optimized query: get total and completed counts by theme
+      const byTheme = await db
+        .select({
+          themeSlug: challenge.theme,
+          totalCount: count(challenge.id),
+          completedCount: sql<number>`CAST(COUNT(CASE WHEN ${userProgress.userId} = ${userId} AND ${userProgress.status} = 'completed' THEN 1 END) AS INTEGER)`,
+        })
+        .from(challenge)
+        .leftJoin(userProgress, eq(challenge.id, userProgress.challengeId))
+        .groupBy(challenge.theme)
+        .then((results) =>
+          results.map((theme) => ({
+            themeSlug: theme.themeSlug,
+            completedCount: theme.completedCount,
+            totalCount: theme.totalCount,
+            percentageCompleted:
+              theme.totalCount > 0
+                ? Math.round((theme.completedCount / theme.totalCount) * 100)
+                : 0,
+          })),
+        );
+
+      // Calculate global stats from theme stats
+      const totalCount = byTheme.reduce(
+        (sum, theme) => sum + theme.totalCount,
+        0,
+      );
+      const completedCount = byTheme.reduce(
+        (sum, theme) => sum + theme.completedCount,
+        0,
+      );
+      const percentageCompleted =
+        totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+      return c.json({
+        byTheme,
+        completedCount,
+        totalCount,
+        percentageCompleted,
+      });
+    }
+
+    // Standard mode: single theme or all themes
+    const themeFilter = themeSlug ? eq(challenge.theme, themeSlug) : undefined;
+
+    // Get total challenges (optionally filtered by theme)
+    const [totalResult] = await db
+      .select({ count: count() })
       .from(challenge)
-      .leftJoin(userProgress, eq(challenge.id, userProgress.challengeId))
-      .groupBy(challenge.theme)
-      .then((results) =>
-        results.map((theme) => ({
-          themeSlug: theme.themeSlug,
-          completedCount: theme.completedCount,
-          totalCount: theme.totalCount,
-          percentageCompleted:
-            theme.totalCount > 0
-              ? Math.round((theme.completedCount / theme.totalCount) * 100)
-              : 0,
-        })),
+      .where(themeFilter);
+
+    // Get completed challenges (optionally filtered by theme)
+    const [completedResult] = await db
+      .select({ count: count() })
+      .from(userProgress)
+      .innerJoin(challenge, eq(userProgress.challengeId, challenge.id))
+      .where(
+        and(
+          eq(userProgress.userId, userId),
+          eq(userProgress.status, "completed"),
+          themeFilter,
+        ),
       );
 
-    // Calculate global stats from theme stats
-    const totalCount = byTheme.reduce(
-      (sum, theme) => sum + theme.totalCount,
-      0,
-    );
-    const completedCount = byTheme.reduce(
-      (sum, theme) => sum + theme.completedCount,
-      0,
-    );
-    const percentageCompleted =
-      totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    const totalCount = totalResult?.count ?? 0;
+    const completedCount = completedResult?.count ?? 0;
 
-    return c.json({ byTheme, completedCount, totalCount, percentageCompleted });
-  }
-
-  // Standard mode: single theme or all themes
-  const themeFilter = themeSlug ? eq(challenge.theme, themeSlug) : undefined;
-
-  // Get total challenges (optionally filtered by theme)
-  const [totalResult] = await db
-    .select({ count: count() })
-    .from(challenge)
-    .where(themeFilter);
-
-  // Get completed challenges (optionally filtered by theme)
-  const [completedResult] = await db
-    .select({ count: count() })
-    .from(userProgress)
-    .innerJoin(challenge, eq(userProgress.challengeId, challenge.id))
-    .where(
-      and(
-        eq(userProgress.userId, userId),
-        eq(userProgress.status, "completed"),
-        themeFilter,
-      ),
-    );
-
-  const totalCount = totalResult?.count ?? 0;
-  const completedCount = completedResult?.count ?? 0;
-
-  return c.json({
-    completedCount,
-    totalCount,
-    percentageCompleted:
-      totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
-  });
-});
+    return c.json({
+      completedCount,
+      totalCount,
+      percentageCompleted:
+        totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
+    });
+  },
+);
 
 // GET /progress/:slug -- get challenge status for authenticated user
 progress.get("/:slug", requireAuth, async (c) => {

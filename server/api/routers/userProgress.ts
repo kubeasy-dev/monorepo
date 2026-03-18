@@ -23,6 +23,7 @@ import {
   calculateStreak,
   calculateXPGain,
 } from "@/server/services/xp";
+import type { Objective } from "@/types/cli-api";
 
 export const userProgressRouter = createTRPCRouter({
   // Get completion percentage
@@ -968,14 +969,7 @@ export const userProgressRouter = createTRPCRouter({
         };
       }
 
-      const objectives = latestSubmission.objectives as Array<{
-        id: string;
-        name: string;
-        description?: string;
-        passed: boolean;
-        category: string;
-        message: string;
-      }> | null;
+      const objectives = latestSubmission.objectives as Objective[] | null;
 
       return {
         hasSubmission: true,
