@@ -6,6 +6,31 @@ import type {
   ChallengeListInput,
   ChallengeListOutput,
 } from "@kubeasy/api-schemas/challenges";
+
+export interface ChallengeTypeItem {
+  slug: string;
+  name: string;
+  description: string;
+  logo: string | null;
+  challengeCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SubmissionItem {
+  id: number;
+  userId: string;
+  challengeId: number;
+  validated: boolean;
+  objectives: unknown;
+  timestamp: string | null;
+  validatedAt?: string | null;
+}
+
+export interface SubmissionsOutput {
+  submissions: SubmissionItem[];
+}
+
 import type {
   CompletionPercentageOutput,
   GetStatusOutput,
@@ -71,8 +96,8 @@ export const api = {
   },
 
   types: {
-    list: () => apiFetch<unknown>("/types"),
-    getBySlug: (slug: string) => apiFetch<unknown>(`/types/${slug}`),
+    list: () => apiFetch<ChallengeTypeItem[]>("/types"),
+    getBySlug: (slug: string) => apiFetch<ChallengeTypeItem>(`/types/${slug}`),
   },
 
   progress: {
@@ -121,7 +146,8 @@ export const api = {
      * GET /api/submissions/:slug
      * Returns all submissions for a challenge by the current user
      */
-    getBySlug: (slug: string) => apiFetch<unknown>(`/submissions/${slug}`),
+    getBySlug: (slug: string) =>
+      apiFetch<SubmissionsOutput>(`/submissions/${slug}`),
 
     /**
      * GET /api/submissions/:slug/latest

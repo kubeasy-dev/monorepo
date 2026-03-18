@@ -50,6 +50,26 @@ export function typeListOptions() {
   });
 }
 
+export function typeDetailOptions(slug: string) {
+  return queryOptions({
+    queryKey: ["types", "detail", slug],
+    queryFn: () => api.types.getBySlug(slug),
+  });
+}
+
+// --- User stats (auth-required) ---
+
+export function userStatsOptions() {
+  return queryOptions({
+    queryKey: ["user", "stats"],
+    queryFn: () =>
+      Promise.all([api.user.xp(), api.user.streak()]).then(([xp, streak]) => ({
+        xp,
+        streak,
+      })),
+  });
+}
+
 // --- Progress (auth-required) ---
 
 export function completionOptions(params?: {

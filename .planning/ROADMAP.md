@@ -86,7 +86,7 @@ Plans:
   3. Landing page and blog articles are statically pre-rendered at build time — confirmed by inspecting build output for pre-rendered HTML files
   4. Challenge detail pages load without a network waterfall — route loaders prefetch data server-side and hydrate TanStack Query on the client
   5. The web app sends `credentials: "include"` on all API calls and authenticated routes correctly redirect unauthenticated users to login
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [ ] 04-01-PLAN.md — apps/web scaffold (TanStack Start + TanStack Router, root layout, QueryClient, Better Auth client, shadcn v4)
@@ -155,7 +155,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 1. Monorepo Scaffold | 4/4 | Complete   | 2026-03-18 |
 | 2. Hono API Migration | 5/5 | Complete   | 2026-03-18 |
 | 3. Authentication | 3/3 | Complete   | 2026-03-18 |
-| 4. Web Migration | 2/4 | In Progress|  |
+| 4. Web Migration | 3/4 | In Progress|  |
 | 5. Realtime SSE | 0/4 | Not started | - |
 | 6. Observability | 0/4 | Not started | - |
 | 7. Railway Deployment | 0/4 | Not started | - |

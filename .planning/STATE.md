@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-02-PLAN.md — typed API client layer and query option factories
+stopped_at: Completed 04-03-PLAN.md — landing page, blog SSG routes, and login page migration
 last_updated: "2026-03-18T17:53:50.502Z"
 last_activity: "2026-03-18 — Completed plan 01-02: @kubeasy/api-schemas package with challenges, themes, and submissions schemas"
 progress:
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 1 of 7 (Monorepo Scaffold)
-Plan: 2 of 3 in current phase
+Plan: 3 of 3 in current phase (04-web-migration)
 Status: In progress
-Last activity: 2026-03-18 — Completed plan 01-02: @kubeasy/api-schemas package with challenges, themes, and submissions schemas
+Last activity: 2026-03-18 — Completed plan 04-03: landing page, blog SSG routes, and login page migration
 
 Progress: [░░░░░░░░░░] 8%
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 8%
 | Phase 03-authentication P02 | 2 | 2 tasks | 2 files |
 | Phase 04-web-migration P01 | 14 | 2 tasks | 36 files |
 | Phase 04-web-migration P02 | 167 | 2 tasks | 4 files |
+| Phase 04-web-migration P03 | 5 | 2 tasks | 21 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,9 @@ Recent decisions affecting current work:
 - [Phase 03-authentication]: AUTH-06 (apps/web Better Auth client) deferred to Phase 4 — apps/web does not exist yet
 - [Phase 04-web-migration]: StartClient takes no router prop in TanStack Start v1.166.14 — auto-hydrates via Vite plugin; setupRouterSsrQueryIntegration absent from react-query@5.91.0 — SSR handled by framework automatically
 - [Phase 04-web-migration]: apps/web routeTree.gen.ts manually written for scaffold — router-generator@1.166.13 conflict detection bug with pathless layouts and sibling routes; Vite plugin regenerates at dev/build time
+- [Phase 04-web-migration]: Notion client ported to apps/web using process.env directly — typed @/env module and captureServerException (PostHog) not available in TanStack Start app
+- [Phase 04-web-migration]: Blog SSG uses crawlLinks: true — listing page Link tags discovered by vite-plugin-ssr at build time for article pages
+- [Phase 04-web-migration]: Button asChild not supported in @base-ui/react — all asChild patterns replaced with plain <a> elements with appropriate styles
 - [Phase 04-web-migration]: Progress routes use /:slug pattern (GET /progress/:slug, POST /progress/:slug/start, DELETE /progress/:slug/reset); latest validation at GET /submissions/:slug/latest; xp endpoint is /xp/history; user name update uses PATCH
 
 ### Pending Todos
@@ -113,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T17:53:50.500Z
-Stopped at: Completed 04-02-PLAN.md — typed API client layer and query option factories
+Last session: 2026-03-18T18:00:00.000Z
+Stopped at: Completed 04-03-PLAN.md — landing page, blog SSG routes, and login page migration
 Resume file: None
