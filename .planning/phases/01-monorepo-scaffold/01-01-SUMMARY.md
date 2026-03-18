@@ -99,3 +99,13 @@ None - plan executed exactly as written.
 - `packages/typescript-config/` has all 4 files: package.json, base.json, node.json, react.json
 - `pnpm install` completed successfully (turbo 2.8.17 installed)
 - TypeScript check passes (pre-commit hook verified)
+
+## Self-Check: PASSED
+
+- turbo.json: FOUND
+- packages/typescript-config/package.json: FOUND
+- packages/typescript-config/base.json: FOUND
+- packages/typescript-config/node.json: FOUND
+- packages/typescript-config/react.json: FOUND
+- commit e66845c1a: FOUND (chore(01-01): add turbo.json...)
+- commit 6741b1f59: FOUND (feat(01-01): add packages/typescript-config...)
