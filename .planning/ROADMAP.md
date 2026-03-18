@@ -69,13 +69,11 @@ Plans:
   3. A CLI user can create an API key via the web interface, use it in `Authorization: Bearer <key>` on the submission endpoint, and have the associated user injected into the Hono context
   4. The Vercel wildcard `*.vercel.app` is removed from `trustedOrigins` — only `kubeasy.dev` and local dev origins are trusted
   5. CORS preflight for requests including the `User-Agent` header succeeds — no 403 from missing `allowHeaders` configuration
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 03-01: Better Auth on Hono (auth handler at `/api/auth/**`, Drizzle adapter, `basePath` config, CORS middleware before auth mount)
-- [ ] 03-02: OAuth providers (GitHub, Google, Microsoft) + `crossSubdomainCookies` config + `trustedOrigins` cleanup
-- [ ] 03-03: API key plugin (`apiKey()`) + Hono middleware for CLI Bearer token validation
-- [ ] 03-04: `apps/web` Better Auth client (`createAuthClient` pointing to API URL, `credentials: "include"` on all fetches)
+- [ ] 03-01-PLAN.md — OAuth providers, cross-subdomain cookies, apiKey plugin, BullMQ user lifecycle hook, CORS update
+- [ ] 03-02-PLAN.md — API key middleware for CLI Bearer token validation + CLI route wiring (AUTH-06 deferred to Phase 4)
 
 ### Phase 4: Web Migration
 **Goal**: The TanStack Start web app replaces Next.js for all existing pages — landing, blog, challenges, dashboard — with correct SSG/SSR rendering modes and TanStack Query replacing all tRPC hooks
@@ -155,7 +153,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 1. Monorepo Scaffold | 4/4 | Complete   | 2026-03-18 |
 | 2. Hono API Migration | 5/5 | Complete   | 2026-03-18 |
-| 3. Authentication | 0/4 | Not started | - |
+| 3. Authentication | 0/2 | Not started | - |
 | 4. Web Migration | 0/4 | Not started | - |
 | 5. Realtime SSE | 0/4 | Not started | - |
 | 6. Observability | 0/4 | Not started | - |
