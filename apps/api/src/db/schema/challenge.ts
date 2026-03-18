@@ -182,7 +182,7 @@ export const userXp = pgTable(
 // Objective category enum matching the validation types from Zod schema
 // Inlined from schemas/challengeObjectives.ts ObjectiveTypeSchema
 // Original values: ["status", "condition", "log", "event", "connectivity"]
-const objectiveCategoryValues = [
+export const objectiveCategoryValues = [
   "status",
   "condition",
   "log",

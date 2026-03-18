@@ -1,16 +1,16 @@
 import { z } from "zod";
+import {
+  challengeDifficultyEnum,
+  objectiveCategoryValues,
+} from "../db/schema/challenge.js";
 
-// ---- Enums ----
+// ---- Enums (derived from DB schema — single source of truth) ----
 
-export const objectiveCategorySchema = z.enum([
-  "status",
-  "condition",
-  "log",
-  "event",
-  "connectivity",
-]);
+export const objectiveCategorySchema = z.enum(objectiveCategoryValues);
 
-export const challengeDifficultySchema = z.enum(["easy", "medium", "hard"]);
+export const challengeDifficultySchema = z.enum(
+  challengeDifficultyEnum.enumValues,
+);
 
 // ---- CLI submission ----
 
