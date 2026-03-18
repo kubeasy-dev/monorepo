@@ -86,13 +86,13 @@ Plans:
   3. Landing page and blog articles are statically pre-rendered at build time — confirmed by inspecting build output for pre-rendered HTML files
   4. Challenge detail pages load without a network waterfall — route loaders prefetch data server-side and hydrate TanStack Query on the client
   5. The web app sends `credentials: "include"` on all API calls and authenticated routes correctly redirect unauthenticated users to login
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 04-01: `apps/web` scaffold (TanStack Start + TanStack Router, file-based routes, root layout, TanStack Query provider, Better Auth client wired)
-- [ ] 04-02: Typed API client (`lib/api-client.ts` with `fetch` wrappers typed against `@kubeasy/api-schemas`)
-- [ ] 04-03: Landing, blog (SSG routes), and auth pages migrated from Next.js
-- [ ] 04-04: Challenges listing, challenge detail, and dashboard pages migrated (SSR routes with loader prefetch)
+- [ ] 04-01-PLAN.md — apps/web scaffold (TanStack Start + TanStack Router, root layout, QueryClient, Better Auth client, shadcn v4)
+- [ ] 04-02-PLAN.md — Typed API client (lib/api-client.ts with fetch wrappers) + TanStack Query option factories
+- [ ] 04-03-PLAN.md — Landing, blog (SSG routes), login page migrated from Next.js
+- [ ] 04-04-PLAN.md — Challenges, dashboard, profile, admin, themes, types pages migrated (SSR routes with loader prefetch)
 
 ### Phase 5: Realtime SSE
 **Goal**: Validation status updates appear in real-time in the browser after a CLI submission — via SSE on Hono and Redis pub/sub — with no subscriber connection leaks
