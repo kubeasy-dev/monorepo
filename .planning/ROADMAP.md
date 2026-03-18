@@ -1,0 +1,160 @@
+# Roadmap: Kubeasy Monorepo Refactoring
+
+## Overview
+
+Migration from a Next.js 15 + tRPC monolith on Vercel to a Turborepo monorepo with a Hono REST API (`apps/api`) and TanStack Start frontend (`apps/web`), deployed on Railway. The migration follows a strict dependency order: monorepo scaffold and shared packages first, then the Hono API (the source of truth), then authentication, then the web frontend, then realtime SSE, then observability, and finally Railway deployment. Feature parity is the goal — same user experience, new architecture.
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: Monorepo Scaffold** - Turborepo workspace, shared packages, docker-compose infra
+- [ ] **Phase 2: Hono API Migration** - All tRPC routes ported to REST, Drizzle switched to postgres.js
+- [ ] **Phase 3: Authentication** - Better Auth on Hono, OAuth providers, API keys for CLI
+- [ ] **Phase 4: Web Migration** - TanStack Start replacing Next.js, all pages with TanStack Query
+- [ ] **Phase 5: Realtime SSE** - SSE endpoint on Hono, Redis pub/sub, BullMQ job definitions
+- [ ] **Phase 6: Observability** - OTel SDK in both apps, Collector config, PostHog OTLP removed
+- [ ] **Phase 7: Railway Deployment** - Multi-stage Dockerfiles, per-service config, production infra
+
+## Phase Details
+
+### Phase 1: Monorepo Scaffold
+**Goal**: The monorepo structure, shared packages, and local development infrastructure are in place so that all subsequent app development can begin with the correct foundation
+**Depends on**: Nothing (first phase)
+**Requirements**: INFRA-01, INFRA-02, INFRA-03, INFRA-04, PKG-01, PKG-02, PKG-03, PKG-04
+**Success Criteria** (what must be TRUE):
+  1. Running `turbo run build` from the repo root builds all packages in dependency order without errors — packages compile before the apps that import them
+  2. Running `pnpm typecheck` in `packages/api-schemas` and `packages/jobs` independently passes — JIT package strategy confirmed working with no path alias issues
+  3. `docker compose up` starts PostgreSQL, Redis, and OTel Collector — all three services are reachable on their expected ports
+  4. `@kubeasy/api-schemas` exports Zod schemas covering all existing tRPC procedure shapes (challenges, themes, progress, XP, submissions, auth) and `@kubeasy/jobs` exports queue names and `JobPayload` types without importing from any `apps/` package
+  5. `turbo build --dry-run --summarize` shows declared env vars (`DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`) in the cache key inputs
+**Plans**: TBD
+
+Plans:
+- [ ] 01-01: Turborepo + pnpm workspace scaffold (root package.json, turbo.json, pnpm-workspace.yaml, biome.json)
+- [ ] 01-02: Shared packages (`packages/typescript-config`, `packages/api-schemas`, `packages/jobs`)
+- [ ] 01-03: docker-compose with PostgreSQL, Redis, OTel Collector
+
+### Phase 2: Hono API Migration
+**Goal**: The Hono API runs as a long-lived Node.js process, all tRPC business logic is ported to REST endpoints validated by `@kubeasy/api-schemas`, and the Neon serverless driver is replaced by postgres.js
+**Depends on**: Phase 1
+**Requirements**: API-01, API-02, API-03, API-04, API-05, API-06, API-07, API-08
+**Success Criteria** (what must be TRUE):
+  1. `apps/api` starts with a single command locally (`pnpm dev` from the API app directory) and responds to `GET /api/challenges` with the correct JSON shape validated against `@kubeasy/api-schemas`
+  2. The CLI submission endpoint (`POST /api/challenges/:slug/submit`) correctly validates that all registered objectives are present, enriches results, stores them in DB, and distributes XP — verified against the existing `submitChallenge` tRPC logic
+  3. `pnpm why @neondatabase/serverless` from the repo root returns empty — the Neon serverless driver is fully removed
+  4. Rate limiting on the CLI submission endpoint returns HTTP 429 after threshold is exceeded — verified with a script sending 100 requests in 10 seconds
+  5. The Go CLI can call `POST /api/challenges/:slug/submit` with its existing payload structure and receive a valid response — CLI contract is preserved
+**Plans**: TBD
+
+Plans:
+- [ ] 02-01: `apps/api` scaffold (Hono + `@hono/node-server`, entry point, route module structure, Drizzle + postgres.js, DB schema migration from `server/db/`)
+- [ ] 02-02: Challenge and theme REST endpoints (`GET /api/challenges`, `GET /api/challenges/:slug`, `GET /api/themes`)
+- [ ] 02-03: User progress, XP, and submission endpoints (progress, XP balance/history, `POST /api/challenges/:slug/submit` with objective enrichment)
+- [ ] 02-04: Rate limiting middleware on CLI submission endpoint (ioredis sliding window, replaces Upstash rate limit)
+
+### Phase 3: Authentication
+**Goal**: Users can authenticate via OAuth on the new cross-origin API/web split, the CLI can authenticate via API keys, and session cookies work correctly across subdomains
+**Depends on**: Phase 2
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06
+**Success Criteria** (what must be TRUE):
+  1. A user can log in with GitHub, Google, or Microsoft OAuth from the web app — the OAuth callback completes, a session cookie is set by the API, and subsequent authenticated requests from the web succeed (session is not null)
+  2. The session cookie is correctly scoped to `.kubeasy.dev` and sent with cross-origin requests — verified end-to-end on the staging environment with `credentials: "include"` on all web fetch calls
+  3. A CLI user can create an API key via the web interface, use it in `Authorization: Bearer <key>` on the submission endpoint, and have the associated user injected into the Hono context
+  4. The Vercel wildcard `*.vercel.app` is removed from `trustedOrigins` — only `kubeasy.dev` and local dev origins are trusted
+  5. CORS preflight for requests including the `User-Agent` header succeeds — no 403 from missing `allowHeaders` configuration
+**Plans**: TBD
+
+Plans:
+- [ ] 03-01: Better Auth on Hono (auth handler at `/api/auth/**`, Drizzle adapter, `basePath` config, CORS middleware before auth mount)
+- [ ] 03-02: OAuth providers (GitHub, Google, Microsoft) + `crossSubdomainCookies` config + `trustedOrigins` cleanup
+- [ ] 03-03: API key plugin (`apiKey()`) + Hono middleware for CLI Bearer token validation
+- [ ] 03-04: `apps/web` Better Auth client (`createAuthClient` pointing to API URL, `credentials: "include"` on all fetches)
+
+### Phase 4: Web Migration
+**Goal**: The TanStack Start web app replaces Next.js for all existing pages — landing, blog, challenges, dashboard — with correct SSG/SSR rendering modes and TanStack Query replacing all tRPC hooks
+**Depends on**: Phase 3
+**Requirements**: WEB-01, WEB-02, WEB-03, WEB-04, WEB-05, WEB-06, WEB-07
+**Success Criteria** (what must be TRUE):
+  1. All existing pages are accessible in the new TanStack Start app: landing (SSG), blog listing and articles (SSG), challenge listing (SSR), challenge detail (SSR), dashboard (SSR, auth-gated)
+  2. `tRPC` has zero imports in `apps/web` — all data fetching goes through typed `fetch` wrappers using `z.infer<>` from `@kubeasy/api-schemas`, orchestrated by TanStack Query
+  3. Landing page and blog articles are statically pre-rendered at build time — confirmed by inspecting build output for pre-rendered HTML files
+  4. Challenge detail pages load without a network waterfall — route loaders prefetch data server-side and hydrate TanStack Query on the client
+  5. The web app sends `credentials: "include"` on all API calls and authenticated routes correctly redirect unauthenticated users to login
+**Plans**: TBD
+
+Plans:
+- [ ] 04-01: `apps/web` scaffold (TanStack Start + TanStack Router, file-based routes, root layout, TanStack Query provider, Better Auth client wired)
+- [ ] 04-02: Typed API client (`lib/api-client.ts` with `fetch` wrappers typed against `@kubeasy/api-schemas`)
+- [ ] 04-03: Landing, blog (SSG routes), and auth pages migrated from Next.js
+- [ ] 04-04: Challenges listing, challenge detail, and dashboard pages migrated (SSR routes with loader prefetch)
+
+### Phase 5: Realtime SSE
+**Goal**: Validation status updates appear in real-time in the browser after a CLI submission — via SSE on Hono and Redis pub/sub — with no subscriber connection leaks
+**Depends on**: Phase 4
+**Requirements**: REAL-01, REAL-02, REAL-03, REAL-04
+**Success Criteria** (what must be TRUE):
+  1. After a CLI submission, the challenge detail page in the browser updates validation status automatically within 2 seconds — no manual refresh required
+  2. Redis `CLIENT LIST` returns to baseline subscriber count after 10 SSE clients connect and disconnect — no subscriber instances are leaked
+  3. Redis is configured with `maxmemory-policy noeviction` in docker-compose and the Railway Redis plugin — BullMQ queue keys cannot be silently evicted
+  4. `@kubeasy/jobs` has populated BullMQ queue definitions and `JobPayload` types — the `apps/api` SIGTERM handler awaits `worker.close()` before process exit, verified by sending `SIGTERM` mid-job and confirming clean shutdown
+**Plans**: TBD
+
+Plans:
+- [ ] 05-01: SSE endpoint on Hono (`GET /api/sse/validation/:challengeSlug` with `streamSSE`, dedicated ioredis subscriber per connection, abort signal cleanup, 30s heartbeat)
+- [ ] 05-02: Redis pub/sub integration in submission endpoint (`PUBLISH validation:{userId}:{slug}` after enrichment and DB write)
+- [ ] 05-03: `EventSource` consumer in `apps/web` + `queryClient.invalidateQueries` on `validation-update` event
+- [ ] 05-04: BullMQ job definitions in `@kubeasy/jobs` + SIGTERM handler in `apps/api` + Redis `noeviction` config
+
+### Phase 6: Observability
+**Goal**: All HTTP requests, database spans, and structured logs from `apps/api` and `apps/web` (SSR) flow through the OTel Collector — with PostHog OTLP export removed and a DB span smoke test confirming correct SDK initialization order
+**Depends on**: Phase 5
+**Requirements**: OBS-01, OBS-02, OBS-03, OBS-04, OBS-05
+**Success Criteria** (what must be TRUE):
+  1. After making one authenticated API request locally, the OTel Collector debug exporter output shows both an HTTP span AND a child DB query span — confirming `--import` flag initialization order is correct and pg auto-instrumentation is active
+  2. `apps/api` and `apps/web` (SSR) export traces, metrics, and logs via OTLP HTTP to the local Collector — no signals go directly to PostHog
+  3. PostHog is retained only for product analytics events (user actions) — the PostHog OTLP exporter from the current stack is removed
+  4. The OTel Collector admin/debug port (55679) is not exposed on Railway's public network — only OTLP receiver ports 4317 and 4318 are accessible
+**Plans**: TBD
+
+Plans:
+- [ ] 06-01: OTel Collector config (`otel-collector-config.yaml` with debug exporter for local, configurable OTLP exporter for production, admin port binding)
+- [ ] 06-02: `apps/api` OTel SDK (`instrumentation.ts` initialized via `--import` flag, `@opentelemetry/sdk-node`, auto-instrumentations for pg/ioredis/http, OTLP HTTP exporters)
+- [ ] 06-03: `apps/web` OTel SDK (server-side SSR instrumentation, traces and logs exported to Collector)
+- [ ] 06-04: PostHog OTLP export removal + smoke test verification (DB span visible in Collector logs)
+
+### Phase 7: Railway Deployment
+**Goal**: Both services deploy independently on Railway with correct per-service watch paths, PostgreSQL and Redis Railway plugins replace local infra, and the OTel Collector runs as a Railway service
+**Depends on**: Phase 6
+**Requirements**: DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04
+**Success Criteria** (what must be TRUE):
+  1. Pushing a change to `apps/web` only triggers redeployment of the `web` Railway service and NOT the `api` service — per-service watch paths are working
+  2. Both `apps/api` and `apps/web` Docker images build successfully using `turbo prune --scope=<app> --docker` multi-stage Dockerfiles — images are minimal with only production deps
+  3. The production Railway environment uses PostgreSQL and Redis Railway plugins — `pnpm why @neondatabase/serverless` and `pnpm why upstash` return empty in both apps
+  4. OTel Collector runs as a Railway service and receives OTLP from deployed `apps/api` — traces are visible in the configured backend (or Collector logs for staging)
+**Plans**: TBD
+
+Plans:
+- [ ] 07-01: Multi-stage Dockerfiles for `apps/api` and `apps/web` using `turbo prune --scope --docker`
+- [ ] 07-02: Railway service configuration (`Root Directory` + `Watch Paths` per service, `railway.json` per app, `NIXPACKS_TURBO_APP_NAME` NOT used)
+- [ ] 07-03: Railway PostgreSQL + Redis plugins + environment variable parity with docker-compose
+- [ ] 07-04: Railway OTel Collector service + final end-to-end smoke test (login, challenge view, CLI submit, SSE update all working in production)
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Monorepo Scaffold | 0/3 | Not started | - |
+| 2. Hono API Migration | 0/4 | Not started | - |
+| 3. Authentication | 0/4 | Not started | - |
+| 4. Web Migration | 0/4 | Not started | - |
+| 5. Realtime SSE | 0/4 | Not started | - |
+| 6. Observability | 0/4 | Not started | - |
+| 7. Railway Deployment | 0/4 | Not started | - |
