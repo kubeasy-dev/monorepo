@@ -14,7 +14,7 @@ Scope : migration feature-parity complète vers le monorepo. Aucune nouvelle fon
 - [x] **INFRA-01**: Le repo est restructuré en monorepo Turborepo + pnpm workspaces avec `apps/`, `packages/` et un `turbo.json` configurant les pipelines `build`, `typecheck`, `dev`, `lint`
 - [x] **INFRA-02**: Un `packages/typescript-config` fournit les configurations TypeScript partagées (base, node, react) consommées par toutes les apps et packages
 - [x] **INFRA-03**: Le pipeline Turborepo respecte le graphe de dépendances (`dependsOn: ["^build"]`) — packages compilés avant les apps qui les consomment
-- [ ] **INFRA-04**: Un `docker-compose.yml` démarre l'environnement de développement local complet : PostgreSQL, Redis, OTel Collector
+- [x] **INFRA-04**: Un `docker-compose.yml` démarre l'environnement de développement local complet : PostgreSQL, Redis, OTel Collector
 
 ### Packages Partagés
 
@@ -118,7 +118,7 @@ Deferred — architecture préparée mais hors scope v1.
 | INFRA-01 | Phase 1 | Complete |
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 1 | Complete |
-| INFRA-04 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Complete |
 | PKG-01 | Phase 1 | Complete |
 | PKG-02 | Phase 1 | Complete |
 | PKG-03 | Phase 1 | Pending |
