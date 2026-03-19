@@ -222,7 +222,7 @@ function BlogArticlePage() {
         {/* Back link */}
         <div className="mb-6 sm:mb-8">
           <Link
-            to="/blog/"
+            to="/blog"
             className="inline-flex items-center gap-2 font-bold text-muted-foreground hover:text-foreground transition-colors text-sm sm:text-base"
           >
             <ChevronLeft className="h-4 w-4" />

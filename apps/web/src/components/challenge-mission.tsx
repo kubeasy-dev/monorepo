@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useValidationSSE } from "@/hooks/use-validation-sse";
+import { useInvalidateCacheSSE } from "@/hooks/use-invalidate-cache-sse";
 import type { SubmissionsOutput } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -94,7 +94,7 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
   });
 
   const status = statusData?.status ?? "not_started";
-  useValidationSSE(slug, status === "in_progress");
+  useInvalidateCacheSSE(status === "in_progress");
   const isLoading =
     isLoadingObjectives ||
     isSessionLoading ||
@@ -309,17 +309,15 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
           {/* History button */}
           {submissions.length > 0 && (
             <Dialog open={showHistory} onOpenChange={setShowHistory}>
-              <DialogTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="neo-border font-bold"
-                  />
-                }
-              >
-                <Clock className="h-4 w-4 mr-2" />
-                View History ({submissions.length})
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="neo-border font-bold"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  View History ({submissions.length})
+                </Button>
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto neo-border-thick">
                 <DialogHeader>
