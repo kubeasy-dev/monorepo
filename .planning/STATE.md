@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-04-PLAN.md
-last_updated: "2026-03-19T21:58:18.498Z"
+stopped_at: Completed 05.1-05-PLAN.md
+last_updated: "2026-03-19T22:01:52.282Z"
 last_activity: "2026-03-18 — Completed plan 04-03: landing page, blog SSG routes, and login page migration"
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 24
-  completed_plans: 23
+  completed_plans: 24
   percent: 8
 ---
 
@@ -71,6 +71,7 @@ Progress: [░░░░░░░░░░] 8%
 | Phase 05.1-repair-workers-features P02 | 2 | 2 tasks | 3 files |
 | Phase 05.1-repair-workers-features P03 | 2 | 2 tasks | 4 files |
 | Phase 05.1-repair-workers-features P04 | 3 | 2 tasks | 5 files |
+| Phase 05.1-repair-workers-features P05 | 5 | 1 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -128,6 +129,7 @@ Recent decisions affecting current work:
 - [Phase 05.1-repair-workers-features]: user-lifecycle.worker.ts kept as filename; function renamed to createUserSigninWorker — index.ts updated accordingly
 - [Phase 05.1-repair-workers-features]: Resend contact creation wrapped in try/catch inside better-all block — failure logs and returns null, does not block identify/trackSignup
 - [Phase 05.1-repair-workers-features]: CliEnv type declared locally in cli/index.ts as { Variables: { user: SessionUser; session: null } } — matches apiKeyMiddleware injection, avoids null-check burden from AppEnv
+- [Phase 05.1-repair-workers-features]: useInvalidateCacheSSE takes only enabled: boolean (no slug) — SSE channel is user-scoped; server publishes specific queryKey to invalidate
 
 ### Roadmap Evolution
 
@@ -146,6 +148,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T21:58:18.495Z
-Stopped at: Completed 05.1-04-PLAN.md
+Last session: 2026-03-19T22:01:52.277Z
+Stopped at: Completed 05.1-05-PLAN.md
 Resume file: None

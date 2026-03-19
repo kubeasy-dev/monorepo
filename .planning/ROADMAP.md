@@ -115,7 +115,7 @@ Plans:
 **Goal:** BullMQ workers have real business logic (XP calculation, analytics, Resend contacts), the submit route is refactored to dispatch async jobs instead of inline XP, the validation-specific SSE is replaced with a generic cache-invalidation SSE channel, and the onboarding API has feature parity with the original Next.js app
 **Requirements**: None (inserted phase, no formal requirement IDs)
 **Depends on:** Phase 5
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 - [ ] 05.1-01-PLAN.md — Package updates (@kubeasy/jobs queue names + payloads, @kubeasy/api-schemas query keys, onboarding schema fix, migration, better-all)
