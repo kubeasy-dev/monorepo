@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useValidationSSE } from "@/hooks/use-validation-sse";
 import type { SubmissionsOutput } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -93,6 +94,7 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
   });
 
   const status = statusData?.status ?? "not_started";
+  useValidationSSE(slug, status === "in_progress");
   const isLoading =
     isLoadingObjectives ||
     isSessionLoading ||
