@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.2-02-PLAN.md
-last_updated: "2026-03-19T22:48:19.154Z"
+stopped_at: Completed 05.2-03-PLAN.md
+last_updated: "2026-03-19T23:06:09.812Z"
 last_activity: "2026-03-18 — Completed plan 04-03: landing page, blog SSG routes, and login page migration"
 progress:
   total_phases: 9
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 27
-  completed_plans: 26
+  completed_plans: 27
   percent: 8
 ---
 
@@ -74,6 +74,7 @@ Progress: [░░░░░░░░░░] 8%
 | Phase 05.1-repair-workers-features P05 | 5 | 1 tasks | 4 files |
 | Phase 05.2-missing-dashboard-profile-features P01 | 2 | 2 tasks | 4 files |
 | Phase 05.2-missing-dashboard-profile-features P02 | 3 | 2 tasks | 5 files |
+| Phase 05.2-missing-dashboard-profile-features P03 | 10 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -136,6 +137,8 @@ Recent decisions affecting current work:
 - [Phase 05.2-missing-dashboard-profile-features]: xpTransactionsOptions removed from loader — DashboardRecentActivity fetches its own data, avoiding double prefetch
 - [Phase 05.2-missing-dashboard-profile-features]: authClient.apiKey.list() returns { apiKeys: [...], total, limit, offset } not an array — must extract .apiKeys via unknown cast
 - [Phase 05.2-missing-dashboard-profile-features]: ProfileApiTokens uses useSuspenseQuery wrapped in Suspense in profile route for loading skeleton
+- [Phase 05.2-missing-dashboard-profile-features]: inputValidator() is the correct API for createServerFn POST with typed data in TanStack Start 1.166.x (not .validator())
+- [Phase 05.2-missing-dashboard-profile-features]: Lazy singleton Pool pattern for pg connection from web server — module-level _pool variable initialized once, reused across requests
 
 ### Roadmap Evolution
 
@@ -155,6 +158,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:48:19.151Z
-Stopped at: Completed 05.2-02-PLAN.md
+Last session: 2026-03-19T23:06:09.809Z
+Stopped at: Completed 05.2-03-PLAN.md
 Resume file: None

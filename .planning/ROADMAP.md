@@ -129,7 +129,7 @@ Plans:
 **Goal:** Dashboard page has a recharts radar chart ("Skills by Themes") and full-fidelity recent activity section (4-item preview + grouped-by-month dialog). Profile page has edit name, API token management (create/copy/delete), email subscription management via Resend, and danger zone (reset progress + delete account).
 **Requirements**: None (inserted phase, no formal requirement IDs)
 **Depends on:** Phase 5.1
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 05.2-01-PLAN.md — Dashboard radar chart (recharts) + recent activity with grouped-by-month dialog
