@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.2-01-PLAN.md
-last_updated: "2026-03-19T22:43:52.420Z"
+stopped_at: Completed 05.2-02-PLAN.md
+last_updated: "2026-03-19T22:48:19.154Z"
 last_activity: "2026-03-18 — Completed plan 04-03: landing page, blog SSG routes, and login page migration"
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 27
-  completed_plans: 25
+  completed_plans: 26
   percent: 8
 ---
 
@@ -73,6 +73,7 @@ Progress: [░░░░░░░░░░] 8%
 | Phase 05.1-repair-workers-features P04 | 3 | 2 tasks | 5 files |
 | Phase 05.1-repair-workers-features P05 | 5 | 1 tasks | 4 files |
 | Phase 05.2-missing-dashboard-profile-features P01 | 2 | 2 tasks | 4 files |
+| Phase 05.2-missing-dashboard-profile-features P02 | 3 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -133,6 +134,8 @@ Recent decisions affecting current work:
 - [Phase 05.1-repair-workers-features]: useInvalidateCacheSSE takes only enabled: boolean (no slug) — SSE channel is user-scoped; server publishes specific queryKey to invalidate
 - [Phase 05.2-missing-dashboard-profile-features]: ThemeListOutput is Theme[] array, not { themes: Theme[] } object - plan interface was wrong; fixed at build time
 - [Phase 05.2-missing-dashboard-profile-features]: xpTransactionsOptions removed from loader — DashboardRecentActivity fetches its own data, avoiding double prefetch
+- [Phase 05.2-missing-dashboard-profile-features]: authClient.apiKey.list() returns { apiKeys: [...], total, limit, offset } not an array — must extract .apiKeys via unknown cast
+- [Phase 05.2-missing-dashboard-profile-features]: ProfileApiTokens uses useSuspenseQuery wrapped in Suspense in profile route for loading skeleton
 
 ### Roadmap Evolution
 
@@ -152,6 +155,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:43:52.418Z
-Stopped at: Completed 05.2-01-PLAN.md
+Last session: 2026-03-19T22:48:19.151Z
+Stopped at: Completed 05.2-02-PLAN.md
 Resume file: None
