@@ -110,6 +110,20 @@ Plans:
 - [ ] 05-02-PLAN.md — BullMQ workers for all queues + SIGTERM graceful shutdown
 - [ ] 05-03-PLAN.md — useValidationSSE hook in apps/web + ChallengeMission integration
 
+### Phase 05.1: repair workers features (INSERTED)
+
+**Goal:** BullMQ workers have real business logic (XP calculation, analytics, Resend contacts), the submit route is refactored to dispatch async jobs instead of inline XP, the validation-specific SSE is replaced with a generic cache-invalidation SSE channel, and the onboarding API has feature parity with the original Next.js app
+**Requirements**: None (inserted phase, no formal requirement IDs)
+**Depends on:** Phase 5
+**Plans:** 5 plans
+
+Plans:
+- [ ] 05.1-01-PLAN.md — Package updates (@kubeasy/jobs queue names + payloads, @kubeasy/api-schemas query keys, onboarding schema fix, migration, better-all)
+- [ ] 05.1-02-PLAN.md — Submit route refactor (remove inline XP, dispatch BullMQ job) + generic SSE endpoint + auth USER_SIGNIN rename
+- [ ] 05.1-03-PLAN.md — BullMQ workers rewrite (challenge-submission XP orchestrator, xp-award DB + SSE, user-signin parallel flow)
+- [ ] 05.1-04-PLAN.md — Onboarding API routes + CLI routes (POST /user, POST /track/setup) + challenge start analytics
+- [ ] 05.1-05-PLAN.md — Web useInvalidateCacheSSE hook replacing useValidationSSE + ChallengeMission update
+
 ### Phase 6: Observability
 **Goal**: All HTTP requests, database spans, and structured logs from `apps/api` and `apps/web` (SSR) flow through the OTel Collector — with PostHog OTLP export removed and a DB span smoke test confirming correct SDK initialization order
 **Depends on**: Phase 5
@@ -147,7 +161,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 5.1 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -156,5 +170,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 3. Authentication | 3/3 | Complete   | 2026-03-18 |
 | 4. Web Migration | 4/4 | Complete   | 2026-03-18 |
 | 5. Realtime SSE | 1/3 | In Progress|  |
+| 5.1 Repair Workers | 0/5 | Not started | - |
 | 6. Observability | 0/4 | Not started | - |
 | 7. Railway Deployment | 0/4 | Not started | - |
