@@ -1,8 +1,8 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Suspense } from "react";
 import { ProfileApiTokens } from "@/components/profile-api-tokens";
 import { ProfileDangerZone } from "@/components/profile-danger-zone";
+import { ProfileEmailPreferences } from "@/components/profile-email-preferences";
 import { ProfileSettings } from "@/components/profile-settings";
 import { userXpOptions } from "@/lib/query-options";
 
@@ -41,15 +41,9 @@ function ProfilePage() {
             initialLastName={lastName ?? ""}
           />
 
-          <Suspense
-            fallback={
-              <div className="bg-secondary neo-border neo-shadow p-6 animate-pulse h-48" />
-            }
-          >
-            <ProfileApiTokens />
-          </Suspense>
+          <ProfileApiTokens />
 
-          {/* Email Preferences — added in Plan 03 */}
+          <ProfileEmailPreferences />
 
           <ProfileDangerZone />
         </div>
