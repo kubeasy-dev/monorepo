@@ -1,5 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
-import { and, count, eq, ne, sql } from "drizzle-orm";
+import { createQueue, QUEUE_NAMES } from "@kubeasy/jobs";
+import { queryKeys } from "@kubeasy/api-schemas/query-keys";
+import { and, eq, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
 import { db } from "../db/index.js";
@@ -8,18 +10,16 @@ import {
   challengeObjective,
   userProgress,
   userSubmission,
-  userXp,
-  userXpTransaction,
 } from "../db/schema/index.js";
 import { redis } from "../lib/redis.js";
 import { slidingWindowRateLimit } from "../middleware/rate-limit.js";
 import { requireAuth } from "../middleware/session.js";
 import { submitBodySchema } from "../schemas/index.js";
-import {
-  calculateLevel,
-  calculateStreak,
-  calculateXPGain,
-} from "../services/xp/index.js";
+
+const challengeSubmissionQueue = createQueue(
+  QUEUE_NAMES.CHALLENGE_SUBMISSION,
+  redis.options,
+);
 
 const submit = new Hono();
 
@@ -29,7 +29,7 @@ const submitRateLimit = slidingWindowRateLimit(redis, {
   keyFn: (c) => `submit:${c.get("user").id}`,
 });
 
-// POST /challenges/:slug/submit -- validate objectives, enrich results, store submission, distribute XP on success
+// POST /challenges/:slug/submit -- validate objectives, enrich results, store submission, dispatch BullMQ job
 submit.post(
   "/:slug/submit",
   requireAuth,
@@ -144,12 +144,10 @@ submit.post(
       objectives,
     });
 
-    // 7.5 Publish SSE event (fire-and-forget — both validated and not-validated paths)
-    const sseChannel = `validation:${userId}:${challengeSlug}`;
+    // 7.5 Publish generic cache-invalidation SSE event (fire-and-forget — both validated and not-validated paths)
+    const sseChannel = `invalidate-cache:${userId}`;
     const ssePayload = JSON.stringify({
-      validated,
-      objectives,
-      timestamp: new Date().toISOString(),
+      queryKey: queryKeys.submissions.latest(challengeSlug),
     });
     redis.publish(sseChannel, ssePayload).catch((err) => {
       console.error("Failed to publish SSE event", {
@@ -160,11 +158,10 @@ submit.post(
 
     // 8. If validation failed, return failure response
     if (!validated) {
-      const failedObjectives = objectives.filter((obj) => !obj.passed);
       return c.json({
         success: false,
-        message: "Validation failed",
-        failedObjectives: failedObjectives.map((obj) => ({
+        objectives,
+        failedObjectives: objectives.filter((obj) => !obj.passed).map((obj) => ({
           id: obj.id,
           name: obj.name,
           message: obj.message,
@@ -207,100 +204,25 @@ submit.post(
       progressUpdated = inserted.length > 0;
     }
 
-    // 10. If race was lost, return early (no XP, no double analytics)
+    // 10. If race was lost, return early
     if (!progressUpdated) {
-      return c.json({
-        success: true,
-        xpAwarded: 0,
-        totalXp: 0,
-        rank: null,
-        rankUp: false,
-        firstChallenge: false,
-        streakBonus: 0,
-        currentStreak: 0,
-      });
+      return c.json({ success: true, objectives });
     }
 
-    // 11. isFirstChallenge from xpTransaction count (read AFTER atomic write)
-    const [completedTransactions] = await db
-      .select({ count: count() })
-      .from(userXpTransaction)
-      .where(
-        and(
-          eq(userXpTransaction.userId, userId),
-          eq(userXpTransaction.action, "challenge_completed"),
-        ),
-      );
-    const isFirstChallenge = (completedTransactions?.count ?? 0) === 0;
-
-    // 12. Calculate streak and XP
-    const currentStreak = await calculateStreak(userId);
-    const xpGain = calculateXPGain({
-      difficulty: challengeData.difficulty,
-      isFirstChallenge,
-      currentStreak,
-    });
-
-    // 13. Get old rank before XP update
-    const oldRankInfo = await calculateLevel(userId);
-
-    // 14. Atomic userXp UPSERT
-    const [updatedXp] = await db
-      .insert(userXp)
-      .values({ userId, totalXp: xpGain.total })
-      .onConflictDoUpdate({
-        target: userXp.userId,
-        set: {
-          totalXp: sql`${userXp.totalXp} + ${xpGain.total}`,
-          updatedAt: new Date(),
-        },
+    // 11. Dispatch CHALLENGE_SUBMISSION BullMQ job (fire-and-forget)
+    challengeSubmissionQueue
+      .add("challenge-completed", {
+        userId,
+        challengeSlug,
+        challengeId: challengeData.id,
+        difficulty: challengeData.difficulty,
       })
-      .returning({ totalXp: userXp.totalXp });
-    const newXp = updatedXp?.totalXp ?? xpGain.total;
-
-    // 15. Record XP transactions (1-3 rows)
-    await db.insert(userXpTransaction).values({
-      userId,
-      action: "challenge_completed",
-      xpAmount: xpGain.baseXP,
-      challengeId: challengeData.id,
-      description: `Completed ${challengeData.difficulty} challenge`,
-    });
-
-    if (xpGain.firstChallengeBonus > 0) {
-      await db.insert(userXpTransaction).values({
-        userId,
-        action: "first_challenge",
-        xpAmount: xpGain.firstChallengeBonus,
-        challengeId: challengeData.id,
-        description: "First challenge bonus",
+      .catch((err) => {
+        console.error("[submit] challenge-submission job dispatch failed", err);
       });
-    }
 
-    if (xpGain.streakBonus > 0) {
-      await db.insert(userXpTransaction).values({
-        userId,
-        action: "daily_streak",
-        xpAmount: xpGain.streakBonus,
-        challengeId: challengeData.id,
-        description: `${currentStreak} day streak bonus`,
-      });
-    }
-
-    // 16. Get new rank after XP update
-    const newRankInfo = await calculateLevel(userId);
-
-    // 17. Return success response
-    return c.json({
-      success: true,
-      xpAwarded: xpGain.total,
-      totalXp: newXp,
-      rank: newRankInfo.name,
-      rankUp: oldRankInfo.name !== newRankInfo.name,
-      firstChallenge: isFirstChallenge,
-      streakBonus: xpGain.streakBonus,
-      currentStreak,
-    });
+    // 12. Return success response
+    return c.json({ success: true, objectives });
   },
 );
 
