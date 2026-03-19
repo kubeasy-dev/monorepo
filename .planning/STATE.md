@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 05-03: useValidationSSE hook and ChallengeMission SSE integration"
-last_updated: "2026-03-19T12:34:42.843Z"
+stopped_at: Phase 05.1 context gathered
+last_updated: "2026-03-19T21:10:47.221Z"
 last_activity: "2026-03-18 — Completed plan 04-03: landing page, blog SSG routes, and login page migration"
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 5
   total_plans: 19
   completed_plans: 19
@@ -116,6 +116,10 @@ Recent decisions affecting current work:
 - [Phase 05-realtime-sse]: useValidationSSE enabled only when status === in_progress — no SSE connection for not_started or completed challenges
 - [Phase 05-realtime-sse]: SSE update is silent/background — validation-update event only calls invalidateQueries, no SSE-specific UI state
 
+### Roadmap Evolution
+
+- Phase 05.1 inserted after Phase 5: repair workers features (URGENT)
+
 ### Pending Todos
 
 None yet.
@@ -129,6 +133,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T08:19:58.973Z
-Stopped at: Completed 05-03: useValidationSSE hook and ChallengeMission SSE integration
-Resume file: None
+Last session: 2026-03-19T21:10:47.215Z
+Stopped at: Phase 05.1 context gathered
+Resume file: .planning/phases/05.1-repair-workers-features/05.1-CONTEXT.md
