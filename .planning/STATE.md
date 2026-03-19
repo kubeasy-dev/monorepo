@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-18T23:09:59.084Z"
+stopped_at: "Completed 05-01: SSE endpoint and Redis publish"
+last_updated: "2026-03-19T08:13:25.408Z"
 last_activity: "2026-03-18 — Completed plan 04-03: landing page, blog SSG routes, and login page migration"
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 16
-  completed_plans: 16
+  total_plans: 19
+  completed_plans: 17
   percent: 8
 ---
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 8%
 | Phase 04-web-migration P02 | 167 | 2 tasks | 4 files |
 | Phase 04-web-migration P03 | 5 | 2 tasks | 21 files |
 | Phase 04-web-migration P04 | 35 | 2 tasks | 27 files |
+| Phase 05-realtime-sse P01 | 1 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -106,6 +107,8 @@ Recent decisions affecting current work:
 - [Phase 04-web-migration]: Progress routes use /:slug pattern (GET /progress/:slug, POST /progress/:slug/start, DELETE /progress/:slug/reset); latest validation at GET /submissions/:slug/latest; xp endpoint is /xp/history; user name update uses PATCH
 - [Phase 04-web-migration]: Hybrid rendering on challenge detail: loader prefetches base data for SSR; latestValidationOptions is client-only (useQuery) because it requires auth session unavailable at SSR time
 - [Phase 04-web-migration]: Admin role guard per-route via beforeLoad — TanStack Router pathless layout bug prevents shared admin layout; LucideIcon uses static icons map from lucide-react (no next/dynamic in TanStack Start)
+- [Phase 05-realtime-sse]: Fresh new Redis(url) per SSE connection (never redis.duplicate()) — independent subscriber that can be cleanly quit on disconnect without affecting the shared singleton
+- [Phase 05-realtime-sse]: Publish fires on BOTH validated:true and validated:false — browser always receives the latest submission state
 
 ### Pending Todos
 
@@ -120,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T23:09:59.079Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-realtime-sse/05-CONTEXT.md
+Last session: 2026-03-19T08:13:25.406Z
+Stopped at: Completed 05-01: SSE endpoint and Redis publish
+Resume file: None

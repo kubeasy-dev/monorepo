@@ -55,9 +55,9 @@ Scope : migration feature-parity complète vers le monorepo. Aucune nouvelle fon
 
 ### Realtime SSE
 
-- [ ] **REAL-01**: L'endpoint SSE Hono (`GET /api/sse/validation/:challengeSlug`) ouvre un flux SSE par connexion client, s'abonne au canal Redis `validation:{userId}:{challengeSlug}`, et pousse les événements reçus
-- [ ] **REAL-02**: L'endpoint de soumission CLI publie (`REDIS PUBLISH`) sur le canal `validation:{userId}:{challengeSlug}` après enrichissement et stockage — le SSE endpoint reçoit et forward au browser
-- [ ] **REAL-03**: Chaque connexion SSE utilise une connexion ioredis subscriber dédiée (non partagée) et nettoie la subscription Redis à la déconnexion du client (abort signal)
+- [x] **REAL-01**: L'endpoint SSE Hono (`GET /api/sse/validation/:challengeSlug`) ouvre un flux SSE par connexion client, s'abonne au canal Redis `validation:{userId}:{challengeSlug}`, et pousse les événements reçus
+- [x] **REAL-02**: L'endpoint de soumission CLI publie (`REDIS PUBLISH`) sur le canal `validation:{userId}:{challengeSlug}` après enrichissement et stockage — le SSE endpoint reçoit et forward au browser
+- [x] **REAL-03**: Chaque connexion SSE utilise une connexion ioredis subscriber dédiée (non partagée) et nettoie la subscription Redis à la déconnexion du client (abort signal)
 - [ ] **REAL-04**: Redis est configuré avec `maxmemory-policy noeviction` dans docker-compose et Railway pour garantir la fiabilité de BullMQ et du pub/sub
 
 ### Observabilité OpenTelemetry
@@ -144,9 +144,9 @@ Deferred — architecture préparée mais hors scope v1.
 | WEB-05 | Phase 4 | Complete |
 | WEB-06 | Phase 4 | Complete |
 | WEB-07 | Phase 4 | Complete |
-| REAL-01 | Phase 5 | Pending |
-| REAL-02 | Phase 5 | Pending |
-| REAL-03 | Phase 5 | Pending |
+| REAL-01 | Phase 5 | Complete |
+| REAL-02 | Phase 5 | Complete |
+| REAL-03 | Phase 5 | Complete |
 | REAL-04 | Phase 5 | Pending |
 | OBS-01 | Phase 6 | Pending |
 | OBS-02 | Phase 6 | Pending |
