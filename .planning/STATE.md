@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 7 context gathered
-last_updated: "2026-03-21T17:54:13.726Z"
+stopped_at: Completed 07-01-PLAN.md (Docker multi-stage builds for api and web)
+last_updated: "2026-03-21T18:47:47.212Z"
 last_activity: "2026-03-18 — Completed plan 04-03: landing page, blog SSG routes, and login page migration"
 progress:
   total_phases: 9
   completed_phases: 8
-  total_plans: 31
-  completed_plans: 31
+  total_plans: 34
+  completed_plans: 32
   percent: 8
 ---
 
@@ -79,6 +79,7 @@ Progress: [░░░░░░░░░░] 8%
 | Phase 06-observability P02 | 2 | 2 tasks | 5 files |
 | Phase 06-observability P03 | 4 | 2 tasks | 4 files |
 | Phase 06-observability P04 | 1 | 2 tasks | 3 files |
+| Phase 07-railway-deployment P01 | 16 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -150,6 +151,10 @@ Recent decisions affecting current work:
 - [Phase 06-observability]: createStartHandler takes callback directly (not {createRouter}) — actual v1.166.x API; research doc had stale pattern
 - [Phase 06-observability]: apps/web instrumentation omits PgInstrumentation and IORedisInstrumentation — those connections only exist in apps/api
 - [Phase 06-observability]: zpages binds to localhost:55679 inside OTel Collector container — Railway cannot expose it publicly even with port mapping; OTLP receivers remain on 0.0.0.0 for app access
+- [Phase 07-railway-deployment]: Vinxi/TanStack Start outputs to dist/ not .output/ — plan had stale path; CMD uses node dist/server/server.js
+- [Phase 07-railway-deployment]: apps/api tsconfig.json must override noEmit:false — base.json inherits noEmit:true preventing tsc emit
+- [Phase 07-railway-deployment]: apps/web prerender restricted to crawlLinks:false, autoStaticPathsDiscovery:false — API-dependent routes crash during Docker build-time prerender
+- [Phase 07-railway-deployment]: getSessionFn wraps authClient.getSession in try-catch — auth service unavailable during prerender must return null safely
 
 ### Roadmap Evolution
 
@@ -169,6 +174,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T17:54:13.720Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-railway-deployment/07-CONTEXT.md
+Last session: 2026-03-21T18:47:47.210Z
+Stopped at: Completed 07-01-PLAN.md (Docker multi-stage builds for api and web)
+Resume file: None
