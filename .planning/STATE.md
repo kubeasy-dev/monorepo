@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 6 context gathered
-last_updated: "2026-03-21T13:32:28.134Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-21T13:56:43.567Z"
 last_activity: "2026-03-18 — Completed plan 04-03: landing page, blog SSG routes, and login page migration"
 progress:
   total_phases: 9
   completed_phases: 7
-  total_plans: 27
-  completed_plans: 27
+  total_plans: 31
+  completed_plans: 28
   percent: 8
 ---
 
@@ -75,6 +75,7 @@ Progress: [░░░░░░░░░░] 8%
 | Phase 05.2-missing-dashboard-profile-features P01 | 2 | 2 tasks | 4 files |
 | Phase 05.2-missing-dashboard-profile-features P02 | 3 | 2 tasks | 5 files |
 | Phase 05.2-missing-dashboard-profile-features P03 | 10 | 2 tasks | 4 files |
+| Phase 06-observability P01 | 15 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -139,6 +140,9 @@ Recent decisions affecting current work:
 - [Phase 05.2-missing-dashboard-profile-features]: ProfileApiTokens uses useSuspenseQuery wrapped in Suspense in profile route for loading skeleton
 - [Phase 05.2-missing-dashboard-profile-features]: inputValidator() is the correct API for createServerFn POST with typed data in TanStack Start 1.166.x (not .validator())
 - [Phase 05.2-missing-dashboard-profile-features]: Lazy singleton Pool pattern for pg connection from web server — module-level _pool variable initialized once, reused across requests
+- [Phase 06-observability]: pg Pool replaces postgres.js in apps/api — enables OTel auto-instrumentation via @opentelemetry/instrumentation-pg; postgres.js has no OTel instrumentation support
+- [Phase 06-observability]: pino logger wrapped in (message, attributes?) adapter functions — preserves existing logger API contract without requiring callers to swap argument order to pino's native (obj, message) format
+- [Phase 06-observability]: pino-pretty capped at ^13.0.0 — plan specified ^14.0.0 which does not exist on npm (latest is 13.1.3)
 
 ### Roadmap Evolution
 
@@ -158,6 +162,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T13:32:28.128Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-observability/06-CONTEXT.md
+Last session: 2026-03-21T13:56:43.564Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: None

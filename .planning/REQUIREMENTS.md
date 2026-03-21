@@ -63,9 +63,9 @@ Scope : migration feature-parity complète vers le monorepo. Aucune nouvelle fon
 ### Observabilité OpenTelemetry
 
 - [ ] **OBS-01**: Le `docker-compose.yml` inclut un service OpenTelemetry Collector configuré pour recevoir OTLP (grpc + http) et exporter vers une destination externe (config exporters, destination TBD)
-- [ ] **OBS-02**: `apps/api` initialise le SDK OTel (`@opentelemetry/sdk-node`) avant tout import de package interne — traces HTTP, spans DB (Drizzle), logs structurés exportés en OTLP
+- [x] **OBS-02**: `apps/api` initialise le SDK OTel (`@opentelemetry/sdk-node`) avant tout import de package interne — traces HTTP, spans DB (Drizzle), logs structurés exportés en OTLP
 - [ ] **OBS-03**: `apps/web` initialise le SDK OTel côté serveur (SSR/loader) — traces de navigation, erreurs capturées, logs exportés en OTLP
-- [ ] **OBS-04**: PostHog est conservé pour les analytics produit (événements utilisateur) mais les logs et traces passent par OTel Collector uniquement
+- [x] **OBS-04**: PostHog est conservé pour les analytics produit (événements utilisateur) mais les logs et traces passent par OTel Collector uniquement
 - [ ] **OBS-05**: Un test de fumée (DB span visible dans le collector) valide l'ordre d'initialisation OTel avant de considérer la phase complète
 
 ### Déploiement Railway
@@ -149,9 +149,9 @@ Deferred — architecture préparée mais hors scope v1.
 | REAL-03 | Phase 5 | Complete |
 | REAL-04 | Phase 5 | Complete |
 | OBS-01 | Phase 6 | Pending |
-| OBS-02 | Phase 6 | Pending |
+| OBS-02 | Phase 6 | Complete |
 | OBS-03 | Phase 6 | Pending |
-| OBS-04 | Phase 6 | Pending |
+| OBS-04 | Phase 6 | Complete |
 | OBS-05 | Phase 6 | Pending |
 | DEPLOY-01 | Phase 7 | Pending |
 | DEPLOY-02 | Phase 7 | Pending |

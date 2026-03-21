@@ -145,7 +145,7 @@ Plans:
   2. `apps/api` and `apps/web` (SSR) export traces, metrics, and logs via OTLP HTTP to the local Collector — no signals go directly to PostHog
   3. PostHog is retained only for product analytics events (user actions) — the PostHog OTLP exporter from the current stack is removed
   4. The OTel Collector admin/debug port (55679) is not exposed on Railway's public network — only OTLP receiver ports 4317 and 4318 are accessible
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
 - [ ] 06-01-PLAN.md — pg driver migration (postgres.js to node-postgres) + @kubeasy/logger workspace package with pino
@@ -184,5 +184,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 5.1 -> 5.2 -> 6 -> 7
 | 5. Realtime SSE | 1/3 | In Progress|  |
 | 5.1 Repair Workers | 5/5 | Complete | 2026-03-19 |
 | 5.2 Dashboard & Profile | 1/3 | In Progress|  |
-| 6. Observability | 0/4 | Not started | - |
+| 6. Observability | 1/4 | In Progress|  |
 | 7. Railway Deployment | 0/4 | Not started | - |
