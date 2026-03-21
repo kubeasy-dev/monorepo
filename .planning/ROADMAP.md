@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Authentication** - Better Auth on Hono, OAuth providers, API keys for CLI (completed 2026-03-18)
 - [x] **Phase 4: Web Migration** - TanStack Start replacing Next.js, all pages with TanStack Query (completed 2026-03-18)
 - [ ] **Phase 5: Realtime SSE** - SSE endpoint on Hono, Redis pub/sub, BullMQ job definitions
-- [ ] **Phase 6: Observability** - OTel SDK in both apps, Collector config, PostHog OTLP removed
+- [x] **Phase 6: Observability** - OTel SDK in both apps, Collector config, PostHog OTLP removed (completed 2026-03-21)
 - [ ] **Phase 7: Railway Deployment** - Multi-stage Dockerfiles, per-service config, production infra
 
 ## Phase Details
@@ -145,7 +145,7 @@ Plans:
   2. `apps/api` and `apps/web` (SSR) export traces, metrics, and logs via OTLP HTTP to the local Collector — no signals go directly to PostHog
   3. PostHog is retained only for product analytics events (user actions) — the PostHog OTLP exporter from the current stack is removed
   4. The OTel Collector admin/debug port (55679) is not exposed on Railway's public network — only OTLP receiver ports 4317 and 4318 are accessible
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] 06-01-PLAN.md — pg driver migration (postgres.js to node-postgres) + @kubeasy/logger workspace package with pino
@@ -184,5 +184,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 5.1 -> 5.2 -> 6 -> 7
 | 5. Realtime SSE | 1/3 | In Progress|  |
 | 5.1 Repair Workers | 5/5 | Complete | 2026-03-19 |
 | 5.2 Dashboard & Profile | 1/3 | In Progress|  |
-| 6. Observability | 3/4 | In Progress|  |
+| 6. Observability | 4/4 | Complete   | 2026-03-21 |
 | 7. Railway Deployment | 0/4 | Not started | - |
