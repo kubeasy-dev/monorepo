@@ -145,13 +145,13 @@ Plans:
   2. `apps/api` and `apps/web` (SSR) export traces, metrics, and logs via OTLP HTTP to the local Collector — no signals go directly to PostHog
   3. PostHog is retained only for product analytics events (user actions) — the PostHog OTLP exporter from the current stack is removed
   4. The OTel Collector admin/debug port (55679) is not exposed on Railway's public network — only OTLP receiver ports 4317 and 4318 are accessible
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 06-01: OTel Collector config (`otel-collector-config.yaml` with debug exporter for local, configurable OTLP exporter for production, admin port binding)
-- [ ] 06-02: `apps/api` OTel SDK (`instrumentation.ts` initialized via `--import` flag, `@opentelemetry/sdk-node`, auto-instrumentations for pg/ioredis/http, OTLP HTTP exporters)
-- [ ] 06-03: `apps/web` OTel SDK (server-side SSR instrumentation, traces and logs exported to Collector)
-- [ ] 06-04: PostHog OTLP export removal + smoke test verification (DB span visible in Collector logs)
+- [ ] 06-01-PLAN.md — pg driver migration (postgres.js to node-postgres) + @kubeasy/logger workspace package with pino
+- [ ] 06-02-PLAN.md — apps/api OTel SDK (instrumentation.ts via --import flag, pg/ioredis/http/pino auto-instrumentations, PostHog OTLP removal, logger migration)
+- [ ] 06-03-PLAN.md — apps/web SSR OTel SDK (server.tsx entry, http/pino instrumentations, OTLP export)
+- [ ] 06-04-PLAN.md — OTel Collector config update (zpages localhost binding) + DB span smoke test verification
 
 ### Phase 7: Railway Deployment
 **Goal**: Both services deploy independently on Railway with correct per-service watch paths, PostgreSQL and Redis Railway plugins replace local infra, and the OTel Collector runs as a Railway service
