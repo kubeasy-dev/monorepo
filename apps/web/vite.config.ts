@@ -14,8 +14,8 @@ export default defineConfig({
       router: { entry: "./lib/router" },
       prerender: {
         enabled: true,
-        crawlLinks: true,
-        autoStaticPathsDiscovery: true,
+        crawlLinks: false,
+        autoStaticPathsDiscovery: false,
         concurrency: 4,
       },
     }),
