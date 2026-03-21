@@ -154,21 +154,20 @@ Plans:
 - [ ] 06-04-PLAN.md — OTel Collector config update (zpages localhost binding) + DB span smoke test verification
 
 ### Phase 7: Railway Deployment
-**Goal**: Both services deploy independently on Railway with correct per-service watch paths, PostgreSQL and Redis Railway plugins replace local infra, and the OTel Collector runs as a Railway service
+**Goal**: Both services deploy independently on Railway with correct per-service watch paths, PostgreSQL and Redis Railway plugins replace local infra, and SigNoz receives OTLP directly from both apps (no OTel Collector on Railway)
 **Depends on**: Phase 6
 **Requirements**: DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04
 **Success Criteria** (what must be TRUE):
   1. Pushing a change to `apps/web` only triggers redeployment of the `web` Railway service and NOT the `api` service — per-service watch paths are working
-  2. Both `apps/api` and `apps/web` Docker images build successfully using `turbo prune --scope=<app> --docker` multi-stage Dockerfiles — images are minimal with only production deps
+  2. Both `apps/api` and `apps/web` Docker images build successfully using `turbo prune @kubeasy/<app> --docker` multi-stage Dockerfiles — images are minimal with only production deps
   3. The production Railway environment uses PostgreSQL and Redis Railway plugins — `pnpm why @neondatabase/serverless` and `pnpm why upstash` return empty in both apps
-  4. OTel Collector runs as a Railway service and receives OTLP from deployed `apps/api` — traces are visible in the configured backend (or Collector logs for staging)
-**Plans**: TBD
+  4. SigNoz receives OTLP from deployed `apps/api` and `apps/web` — traces are visible in the SigNoz UI
+**Plans:** 3 plans
 
 Plans:
-- [ ] 07-01: Multi-stage Dockerfiles for `apps/api` and `apps/web` using `turbo prune --scope --docker`
-- [ ] 07-02: Railway service configuration (`Root Directory` + `Watch Paths` per service, `railway.json` per app, `NIXPACKS_TURBO_APP_NAME` NOT used)
-- [ ] 07-03: Railway PostgreSQL + Redis plugins + environment variable parity with docker-compose
-- [ ] 07-04: Railway OTel Collector service + final end-to-end smoke test (login, challenge view, CLI submit, SSE update all working in production)
+- [ ] 07-01-PLAN.md — Multi-stage Dockerfiles for `apps/api` and `apps/web` using `turbo prune --docker`
+- [ ] 07-02-PLAN.md — Railway service configuration (`railway.json` per app with watch paths and Dockerfile builder)
+- [ ] 07-03-PLAN.md — Railway project setup (PostgreSQL + Redis plugins, SigNoz template, env vars) + end-to-end smoke test
 
 ## Progress
 
@@ -185,4 +184,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 5.1 -> 5.2 -> 6 -> 7
 | 5.1 Repair Workers | 5/5 | Complete | 2026-03-19 |
 | 5.2 Dashboard & Profile | 1/3 | In Progress|  |
 | 6. Observability | 4/4 | Complete   | 2026-03-21 |
-| 7. Railway Deployment | 0/4 | Not started | - |
+| 7. Railway Deployment | 0/3 | Not started | - |
