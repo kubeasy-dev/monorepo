@@ -71,7 +71,7 @@ Scope : migration feature-parity complète vers le monorepo. Aucune nouvelle fon
 ### Déploiement Railway
 
 - [x] **DEPLOY-01**: Chaque service (`apps/api`, `apps/web`) a un Dockerfile multi-stage utilisant `turbo prune --scope=<app> --docker` pour produire une image minimale
-- [ ] **DEPLOY-02**: Les services Railway ont leurs `Root Directory` et `Watch Paths` correctement configurés — un changement dans `packages/` déclenche le redéploiement des apps qui en dépendent
+- [x] **DEPLOY-02**: Les services Railway ont leurs `Root Directory` et `Watch Paths` correctement configurés — un changement dans `packages/` déclenche le redéploiement des apps qui en dépendent
 - [ ] **DEPLOY-03**: Railway utilise les plugins PostgreSQL et Redis natifs en production — configuration ISO avec docker-compose local (même variables d'environnement)
 - [ ] **DEPLOY-04**: Un service Railway OTel Collector est configuré pour les environnements preview et production, recevant OTLP des apps déployées
 
@@ -154,7 +154,7 @@ Deferred — architecture préparée mais hors scope v1.
 | OBS-04 | Phase 6 | Complete |
 | OBS-05 | Phase 6 | Complete |
 | DEPLOY-01 | Phase 7 | Complete |
-| DEPLOY-02 | Phase 7 | Pending |
+| DEPLOY-02 | Phase 7 | Complete |
 | DEPLOY-03 | Phase 7 | Pending |
 | DEPLOY-04 | Phase 7 | Pending |
 
