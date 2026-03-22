@@ -5,6 +5,7 @@
     "watchPatterns": ["apps/web/**", "packages/**"]
   },
   "deploy": {
+    "startCommand": "node apps/web/dist/server/server.js",
     "healthcheckPath": "/",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",

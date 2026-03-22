@@ -5,6 +5,7 @@
     "watchPatterns": ["apps/api/**", "packages/**"]
   },
   "deploy": {
+    "startCommand": "node apps/api/dist/index.js",
     "preStartCommand": "node_modules/.bin/drizzle-kit migrate",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
