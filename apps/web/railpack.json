@@ -4,8 +4,5 @@
     "build": {
       "commands": ["pnpm exec turbo run build --filter=@kubeasy/web"]
     }
-  },
-  "deploy": {
-    "startCommand": "node apps/web/dist/server/server.js"
   }
 }

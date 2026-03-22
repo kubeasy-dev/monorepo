@@ -6,11 +6,11 @@ import {
 } from "@kubeasy/jobs";
 import { Worker } from "bullmq";
 import { and, count, eq } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { userXpTransaction } from "../db/schema/index.js";
-import { trackChallengeCompletedServer } from "../lib/analytics-server.js";
-import { calculateStreak, calculateXPGain } from "../services/xp/index.js";
-import type { ChallengeDifficulty } from "../services/xp/types.js";
+import { db } from "../db/index";
+import { userXpTransaction } from "../db/schema/index";
+import { trackChallengeCompletedServer } from "../lib/analytics-server";
+import { calculateStreak, calculateXPGain } from "../services/xp/index";
+import type { ChallengeDifficulty } from "../services/xp/types";
 
 export function createChallengeSubmissionWorker() {
   const redisUrl = new URL(process.env.REDIS_URL ?? "redis://localhost:6379");

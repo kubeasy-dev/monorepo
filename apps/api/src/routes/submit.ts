@@ -1,20 +1,20 @@
 import { zValidator } from "@hono/zod-validator";
-import { createQueue, QUEUE_NAMES } from "@kubeasy/jobs";
 import { queryKeys } from "@kubeasy/api-schemas/query-keys";
+import { createQueue, QUEUE_NAMES } from "@kubeasy/jobs";
 import { and, eq, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
-import { db } from "../db/index.js";
+import { db } from "../db/index";
 import {
   challenge,
   challengeObjective,
   userProgress,
   userSubmission,
-} from "../db/schema/index.js";
-import { redis } from "../lib/redis.js";
-import { slidingWindowRateLimit } from "../middleware/rate-limit.js";
-import { requireAuth } from "../middleware/session.js";
-import { submitBodySchema } from "../schemas/index.js";
+} from "../db/schema/index";
+import { redis } from "../lib/redis";
+import { slidingWindowRateLimit } from "../middleware/rate-limit";
+import { requireAuth } from "../middleware/session";
+import { submitBodySchema } from "../schemas/index";
 
 const challengeSubmissionQueue = createQueue(
   QUEUE_NAMES.CHALLENGE_SUBMISSION,
@@ -161,11 +161,13 @@ submit.post(
       return c.json({
         success: false,
         objectives,
-        failedObjectives: objectives.filter((obj) => !obj.passed).map((obj) => ({
-          id: obj.id,
-          name: obj.name,
-          message: obj.message,
-        })),
+        failedObjectives: objectives
+          .filter((obj) => !obj.passed)
+          .map((obj) => ({
+            id: obj.id,
+            name: obj.name,
+            message: obj.message,
+          })),
       });
     }
 

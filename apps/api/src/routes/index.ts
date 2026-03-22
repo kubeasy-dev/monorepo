@@ -1,16 +1,16 @@
 import { Hono } from "hono";
-import { admin } from "./admin/index.js";
-import { challenges } from "./challenges.js";
-import { cli } from "./cli/index.js";
-import { onboarding } from "./onboarding.js";
-import { progress } from "./progress.js";
-import { sse } from "./sse.js";
-import { submissions } from "./submissions.js";
-import { submit } from "./submit.js";
-import { themes } from "./themes.js";
-import { types } from "./types.js";
-import { user } from "./user.js";
-import { xp } from "./xp.js";
+import { admin } from "./admin/index";
+import { challenges } from "./challenges";
+import { cli } from "./cli/index";
+import { onboarding } from "./onboarding";
+import { progress } from "./progress";
+import { sse } from "./sse";
+import { submissions } from "./submissions";
+import { submit } from "./submit";
+import { themes } from "./themes";
+import { types } from "./types";
+import { user } from "./user";
+import { xp } from "./xp";
 
 const routes = new Hono();
 

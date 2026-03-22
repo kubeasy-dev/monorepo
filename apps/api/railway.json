@@ -6,7 +6,6 @@
   },
   "deploy": {
     "preStartCommand": "node_modules/.bin/drizzle-kit migrate",
-    "startCommand": "node --import ./dist/instrumentation.js dist/index.js",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",

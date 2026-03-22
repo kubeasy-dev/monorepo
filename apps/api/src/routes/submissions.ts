@@ -1,9 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { db } from "../db/index.js";
-import { challenge, userSubmission } from "../db/schema/index.js";
-import { requireAuth } from "../middleware/session.js";
-import type { Objective } from "../schemas/index.js";
+import { db } from "../db/index";
+import { challenge, userSubmission } from "../db/schema/index";
+import { requireAuth } from "../middleware/session";
+import type { Objective } from "../schemas/index";
 
 const submissions = new Hono();
 

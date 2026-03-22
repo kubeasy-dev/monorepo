@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { challenges } from "../challenges.js";
-import { progress } from "../progress.js";
-import { submit } from "../submit.js";
+import { challenges } from "../challenges";
+import { progress } from "../progress";
+import { submit } from "../submit";
 
 /**
  * Legacy CLI route aliases — maps old singular /challenge/:slug/* paths

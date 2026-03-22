@@ -4,14 +4,14 @@ import { ObjectiveSchema } from "@kubeasy/api-schemas/objectives";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { db } from "../../db/index.js";
+import { db } from "../../db/index";
 import {
   challenge,
   challengeObjective,
   challengeTheme,
   challengeType,
-} from "../../db/schema/index.js";
-import { captureServerException } from "../../lib/analytics-server.js";
+} from "../../db/schema/index";
+import { captureServerException } from "../../lib/analytics-server";
 
 // Schema for a single challenge in the sync request
 const challengeSyncSchema = z.object({

@@ -2,18 +2,18 @@ import { zValidator } from "@hono/zod-validator";
 import { queryKeys } from "@kubeasy/api-schemas/query-keys";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { db } from "../../db/index.js";
-import { userOnboarding } from "../../db/schema/onboarding.js";
+import { db } from "../../db/index";
+import { userOnboarding } from "../../db/schema/onboarding";
 import {
   trackCliLoginServer,
   trackCliSetupServer,
-} from "../../lib/analytics-server.js";
-import { redis } from "../../lib/redis.js";
-import { apiKeyMiddleware } from "../../middleware/api-key.js";
-import type { SessionUser } from "../../middleware/session.js";
-import { cliMetadataSchema } from "../../schemas/index.js";
-import { submit } from "../submit.js";
-import { legacyCli } from "./legacy.js";
+} from "../../lib/analytics-server";
+import { redis } from "../../lib/redis";
+import { apiKeyMiddleware } from "../../middleware/api-key";
+import type { SessionUser } from "../../middleware/session";
+import { cliMetadataSchema } from "../../schemas/index";
+import { submit } from "../submit";
+import { legacyCli } from "./legacy";
 
 type CliEnv = { Variables: { user: SessionUser; session: null } };
 

@@ -5,10 +5,10 @@
  */
 
 import { eq, sql } from "drizzle-orm";
-import { db } from "../../db/index.js";
-import { userXpTransaction } from "../../db/schema/index.js";
-import { RANK_THRESHOLDS } from "./constants.js";
-import type { RankInfo } from "./types.js";
+import { db } from "../../db/index";
+import { userXpTransaction } from "../../db/schema/index";
+import { RANK_THRESHOLDS } from "./constants";
+import type { RankInfo } from "./types";
 
 /**
  * Calculate the current rank for a user based on their total XP

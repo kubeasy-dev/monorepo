@@ -3,15 +3,15 @@ import { eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { Resend } from "resend";
 import { z } from "zod";
-import { db } from "../db/index.js";
-import { user } from "../db/schema/auth.js";
+import { db } from "../db/index";
+import { user } from "../db/schema/auth";
 import {
   userProgress,
   userXp,
   userXpTransaction,
-} from "../db/schema/challenge.js";
-import { requireAuth } from "../middleware/session.js";
-import { calculateLevel, calculateStreak } from "../services/xp/index.js";
+} from "../db/schema/challenge";
+import { requireAuth } from "../middleware/session";
+import { calculateLevel, calculateStreak } from "../services/xp/index";
 
 const updateNameSchema = z.object({
   firstName: z.string().min(1),

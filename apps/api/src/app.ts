@@ -2,9 +2,9 @@ import { httpInstrumentationMiddleware } from "@hono/otel";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { auth } from "./lib/auth.js";
-import { sessionMiddleware } from "./middleware/session.js";
-import { routes } from "./routes/index.js";
+import { auth } from "./lib/auth";
+import { sessionMiddleware } from "./middleware/session";
+import { routes } from "./routes/index";
 
 const app = new Hono();
 

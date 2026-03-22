@@ -1,8 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { db } from "../db/index.js";
-import { challenge, userXpTransaction } from "../db/schema/index.js";
-import { requireAuth } from "../middleware/session.js";
+import { db } from "../db/index";
+import { challenge, userXpTransaction } from "../db/schema/index";
+import { requireAuth } from "../middleware/session";
 
 const xp = new Hono();
 

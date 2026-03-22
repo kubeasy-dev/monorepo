@@ -1,16 +1,16 @@
 import { zValidator } from "@hono/zod-validator";
 import { and, eq, ilike, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { db } from "../db/index.js";
+import { db } from "../db/index";
 import {
   challenge,
   challengeObjective,
   challengeTheme,
   challengeType,
   userProgress,
-} from "../db/schema/index.js";
-import type { AppEnv } from "../middleware/session.js";
-import { challengeFiltersSchema } from "../schemas/index.js";
+} from "../db/schema/index";
+import type { AppEnv } from "../middleware/session";
+import { challengeFiltersSchema } from "../schemas/index";
 
 const challenges = new Hono<AppEnv>();
 

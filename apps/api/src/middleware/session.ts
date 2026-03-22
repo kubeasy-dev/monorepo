@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import { auth } from "../lib/auth.js";
+import { auth } from "../lib/auth";
 
 export type SessionUser = typeof auth.$Infer.Session.user;
 export type SessionData = typeof auth.$Infer.Session.session;

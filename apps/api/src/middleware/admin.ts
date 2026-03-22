@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import type { SessionUser } from "./session.js";
+import type { SessionUser } from "./session";
 
 /**
  * Middleware that enforces admin role.

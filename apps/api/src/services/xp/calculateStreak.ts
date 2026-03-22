@@ -5,9 +5,9 @@
  */
 
 import { and, eq, gte } from "drizzle-orm";
-import { db } from "../../db/index.js";
-import { userXpTransaction } from "../../db/schema/index.js";
-import { MAX_STREAK_WINDOW_DAYS } from "./constants.js";
+import { db } from "../../db/index";
+import { userXpTransaction } from "../../db/schema/index";
+import { MAX_STREAK_WINDOW_DAYS } from "./constants";
 
 /**
  * Normalize a date to UTC midnight (start of day in UTC)

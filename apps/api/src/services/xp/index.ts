@@ -9,10 +9,10 @@
  * All functions are tested with comprehensive test coverage
  */
 
-export { calculateLevel } from "./calculateLevel.js";
+export { calculateLevel } from "./calculateLevel";
 // Core functions
-export { calculateStreak } from "./calculateStreak.js";
-export { calculateXPGain } from "./calculateXPGain.js";
+export { calculateStreak } from "./calculateStreak";
+export { calculateXPGain } from "./calculateXPGain";
 
 // Constants
 export {
@@ -21,7 +21,7 @@ export {
   RANK_THRESHOLDS,
   STREAK_BONUS_PER_DAY,
   XP_REWARDS,
-} from "./constants.js";
+} from "./constants";
 
 // Types
 export type {
@@ -30,4 +30,4 @@ export type {
   RankName,
   XPGainParams,
   XPGainResult,
-} from "./types.js";
+} from "./types";

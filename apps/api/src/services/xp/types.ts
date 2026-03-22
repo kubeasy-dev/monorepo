@@ -2,7 +2,7 @@
  * TypeScript types for the XP system
  */
 
-import type { RANK_THRESHOLDS } from "./constants.js";
+import type { RANK_THRESHOLDS } from "./constants";
 
 // Rank name type derived from constants
 export type RankName = (typeof RANK_THRESHOLDS)[number]["name"];

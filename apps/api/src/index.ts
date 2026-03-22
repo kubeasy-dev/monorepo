@@ -1,11 +1,11 @@
 import { serve } from "@hono/node-server";
 import { logger } from "@kubeasy/logger";
-import { app } from "./app.js";
-import { sdk } from "./instrumentation.js";
-import { redis } from "./lib/redis.js";
-import { createChallengeSubmissionWorker } from "./workers/challenge-submission.worker.js";
-import { createUserSigninWorker } from "./workers/user-lifecycle.worker.js";
-import { createXpAwardWorker } from "./workers/xp-award.worker.js";
+import { app } from "./app";
+import { sdk } from "./instrumentation";
+import { redis } from "./lib/redis";
+import { createChallengeSubmissionWorker } from "./workers/challenge-submission.worker";
+import { createUserSigninWorker } from "./workers/user-lifecycle.worker";
+import { createXpAwardWorker } from "./workers/xp-award.worker";
 
 const port = Number(process.env.PORT ?? 3001);
 

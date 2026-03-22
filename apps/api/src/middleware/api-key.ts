@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
-import { db } from "../db/index.js";
-import { user as userTable } from "../db/schema/auth.js";
-import { auth } from "../lib/auth.js";
-import type { SessionUser } from "./session.js";
+import { db } from "../db/index";
+import { user as userTable } from "../db/schema/auth";
+import { auth } from "../lib/auth";
+import type { SessionUser } from "./session";
 
 /**
  * Middleware that validates API keys from Authorization: Bearer headers.

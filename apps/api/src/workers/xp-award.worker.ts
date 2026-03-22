@@ -1,10 +1,10 @@
-import { QUEUE_NAMES, type XpAwardPayload } from "@kubeasy/jobs";
 import { queryKeys } from "@kubeasy/api-schemas/query-keys";
-import { sql } from "drizzle-orm";
+import { QUEUE_NAMES, type XpAwardPayload } from "@kubeasy/jobs";
 import { Worker } from "bullmq";
-import { db } from "../db/index.js";
-import { userXp, userXpTransaction } from "../db/schema/index.js";
-import { redis } from "../lib/redis.js";
+import { sql } from "drizzle-orm";
+import { db } from "../db/index";
+import { userXp, userXpTransaction } from "../db/schema/index";
+import { redis } from "../lib/redis";
 
 export function createXpAwardWorker() {
   const redisUrl = new URL(process.env.REDIS_URL ?? "redis://localhost:6379");
@@ -44,7 +44,10 @@ export function createXpAwardWorker() {
       const channel = `invalidate-cache:${userId}`;
       const payload = JSON.stringify({ queryKey: queryKeys.user.xp() });
       await redis.publish(channel, payload).catch((err) => {
-        console.error("[xp-award] SSE publish failed", { channel, error: String(err) });
+        console.error("[xp-award] SSE publish failed", {
+          channel,
+          error: String(err),
+        });
       });
     },
     { connection, concurrency: 5 },

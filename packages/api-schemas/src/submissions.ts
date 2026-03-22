@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ObjectiveTypeSchema } from "./objectives.js";
+import { ObjectiveTypeSchema } from "./objectives";
 
 // ---------- Enums ----------
 

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { requireAdmin } from "../../middleware/admin.js";
-import { apiKeyMiddleware } from "../../middleware/api-key.js";
-import { challengesSync } from "./challenges-sync.js";
+import { requireAdmin } from "../../middleware/admin";
+import { apiKeyMiddleware } from "../../middleware/api-key";
+import { challengesSync } from "./challenges-sync";
 
 /**
  * Admin routes — all require API key auth + admin role.

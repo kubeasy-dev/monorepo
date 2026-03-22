@@ -1,11 +1,14 @@
 import { QUEUE_NAMES, type UserSigninPayload } from "@kubeasy/jobs";
-import { eq } from "drizzle-orm";
-import { Worker } from "bullmq";
 import { all } from "better-all";
-import { db } from "../db/index.js";
-import { user } from "../db/schema/auth.js";
-import { identifyUserServer, trackUserSignupServer } from "../lib/analytics-server.js";
-import { createResendContact } from "../lib/resend.js";
+import { Worker } from "bullmq";
+import { eq } from "drizzle-orm";
+import { db } from "../db/index";
+import { user } from "../db/schema/auth";
+import {
+  identifyUserServer,
+  trackUserSignupServer,
+} from "../lib/analytics-server";
+import { createResendContact } from "../lib/resend";
 
 export function createUserSigninWorker() {
   const redisUrl = new URL(process.env.REDIS_URL ?? "redis://localhost:6379");

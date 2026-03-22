@@ -1,11 +1,11 @@
 import { apiKey } from "@better-auth/api-key";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { createQueue, QUEUE_NAMES } from "@kubeasy/jobs";
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
-import { createQueue, QUEUE_NAMES } from "@kubeasy/jobs";
-import { db } from "../db/index.js";
-import * as schema from "../db/schema/auth.js";
-import { redis } from "./redis.js";
+import { db } from "../db/index";
+import * as schema from "../db/schema/auth";
+import { redis } from "./redis";
 
 // Module-level singleton — never instantiate inside a hook callback.
 // Pass redis.options directly (ioredis RedisOptions = BullMQ ConnectionOptions).

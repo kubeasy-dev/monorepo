@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { captureServerException } from "./analytics-server.js";
+import { captureServerException } from "./analytics-server";
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY!);

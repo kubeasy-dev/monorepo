@@ -8,8 +8,8 @@ import {
   FIRST_CHALLENGE_BONUS,
   STREAK_BONUS_PER_DAY,
   XP_REWARDS,
-} from "./constants.js";
-import type { XPGainParams, XPGainResult } from "./types.js";
+} from "./constants";
+import type { XPGainParams, XPGainResult } from "./types";
 
 /**
  * Calculate the total XP gained from completing a challenge

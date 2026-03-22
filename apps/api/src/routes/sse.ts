@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { Redis } from "ioredis";
-import type { AppEnv } from "../middleware/session.js";
-import { requireAuth } from "../middleware/session.js";
+import type { AppEnv } from "../middleware/session";
+import { requireAuth } from "../middleware/session";
 
 const sse = new Hono<AppEnv>();
 

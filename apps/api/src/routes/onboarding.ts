@@ -2,16 +2,16 @@ import { queryKeys } from "@kubeasy/api-schemas/query-keys";
 import { all } from "better-all";
 import { and, count, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
-import { db } from "../db/index.js";
-import { apikey } from "../db/schema/auth.js";
-import { userProgress } from "../db/schema/challenge.js";
-import { userOnboarding } from "../db/schema/onboarding.js";
+import { db } from "../db/index";
+import { apikey } from "../db/schema/auth";
+import { userProgress } from "../db/schema/challenge";
+import { userOnboarding } from "../db/schema/onboarding";
 import {
   trackOnboardingCompletedServer,
   trackOnboardingSkippedServer,
-} from "../lib/analytics-server.js";
-import { redis } from "../lib/redis.js";
-import { requireAuth } from "../middleware/session.js";
+} from "../lib/analytics-server";
+import { redis } from "../lib/redis";
+import { requireAuth } from "../middleware/session";
 
 const onboarding = new Hono();
 

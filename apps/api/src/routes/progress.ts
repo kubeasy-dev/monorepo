@@ -4,16 +4,16 @@ import type { Handler } from "hono";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { db } from "../db/index.js";
+import { db } from "../db/index";
 import {
   challenge,
   userProgress,
   userSubmission,
   userXp,
   userXpTransaction,
-} from "../db/schema/index.js";
-import { trackChallengeStartedServer } from "../lib/analytics-server.js";
-import { requireAuth } from "../middleware/session.js";
+} from "../db/schema/index";
+import { trackChallengeStartedServer } from "../lib/analytics-server";
+import { requireAuth } from "../middleware/session";
 
 const progress = new Hono();
 

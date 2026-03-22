@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { db } from "../db/index.js";
-import { challengeTheme } from "../db/schema/index.js";
+import { db } from "../db/index";
+import { challengeTheme } from "../db/schema/index";
 
 const themes = new Hono();
 
