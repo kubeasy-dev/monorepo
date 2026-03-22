@@ -16,6 +16,7 @@ export const auth = betterAuth({
     "http://localhost:3001",
     "https://kubeasy.dev",
     "https://api.kubeasy.dev",
+    "https://*.up.railway.app",
   ],
   database: drizzleAdapter(db, {
     provider: "pg",
