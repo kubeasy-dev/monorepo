@@ -1,9 +1,9 @@
-export { createQueue } from "./factory";
+export { createQueue } from "./factory.js";
 export type {
   ChallengeSubmissionPayload,
   JobPayload,
   UserSigninPayload,
   XpAwardPayload,
-} from "./payloads";
-export type { QueueName } from "./queue-names";
-export { QUEUE_NAMES } from "./queue-names";
+} from "./payloads.js";
+export type { QueueName } from "./queue-names.js";
+export { QUEUE_NAMES } from "./queue-names.js";

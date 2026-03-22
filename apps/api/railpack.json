@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "build": {
+      "commands": ["pnpm exec turbo run build --filter=@kubeasy/api"]
+    }
+  },
+  "deploy": {
+    "startCommand": "cd apps/api && node --import ./dist/instrumentation.js dist/index.js"
+  }
+}

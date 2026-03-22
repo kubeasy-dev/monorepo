@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --env-file=.env --import tsx/esm --import ./src/instrumentation.ts --watch src/index.ts",
-    "build": "tsc",
+    "build": "tsup",
     "start": "node --import ./dist/instrumentation.js dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@kubeasy/typescript-config": "workspace:*",
+    "tsup": "^8.5.0",
     "@types/node": "^22.15.0",
     "@types/pg": "^8.18.0",
     "drizzle-kit": "0.31.9",
