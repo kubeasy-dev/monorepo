@@ -1,3 +1,4 @@
+import { httpInstrumentationMiddleware } from "@hono/otel";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -6,6 +7,8 @@ import { sessionMiddleware } from "./middleware/session.js";
 import { routes } from "./routes/index.js";
 
 const app = new Hono();
+
+app.use("*", httpInstrumentationMiddleware({ serviceName: "kubeasy-api" }));
 
 // CORS before everything (Better Auth reads Origin header)
 app.use(

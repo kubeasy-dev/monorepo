@@ -10,9 +10,14 @@ import {
   challengeDetailOptions,
   challengeObjectivesOptions,
 } from "@/lib/query-options";
+import { serverLog } from "@/lib/server-log";
 
 export const Route = createFileRoute("/challenges/$slug")({
   loader: async ({ context: { queryClient }, params }) => {
+    await serverLog.info("page.load", {
+      page: "challenges.detail",
+      slug: params.slug,
+    });
     // SSR prefetch: base challenge data (WEB-03)
     await Promise.all([
       queryClient.ensureQueryData(challengeDetailOptions(params.slug)),

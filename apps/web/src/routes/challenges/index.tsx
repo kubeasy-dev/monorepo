@@ -14,6 +14,7 @@ import {
   themeListOptions,
   typeListOptions,
 } from "@/lib/query-options";
+import { serverLog } from "@/lib/server-log";
 
 const challengeSearchSchema = z.object({
   difficulty: z.string().optional(),
@@ -25,6 +26,7 @@ const challengeSearchSchema = z.object({
 export const Route = createFileRoute("/challenges/")({
   validateSearch: challengeSearchSchema,
   loader: async ({ context: { queryClient } }) => {
+    await serverLog.info("page.load", { page: "challenges.list" });
     await Promise.all([
       queryClient.ensureQueryData(challengeListOptions()),
       queryClient.ensureQueryData(themeListOptions()),

@@ -9,11 +9,13 @@ import {
   userStreakOptions,
   userXpOptions,
 } from "@/lib/query-options";
+import { serverLog } from "@/lib/server-log";
 
 const GITHUB_URL = "https://github.com/kubeasy-dev/kubeasy";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   loader: async ({ context: { queryClient } }) => {
+    await serverLog.info("page.load", { page: "dashboard" });
     await Promise.all([
       queryClient.ensureQueryData(completionOptions({ splitByTheme: true })),
       queryClient.ensureQueryData(userXpOptions()),

@@ -1,8 +1,7 @@
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
-import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
-import { PinoInstrumentation } from "@opentelemetry/instrumentation-pino";
+import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
@@ -24,7 +23,7 @@ const sdk = new NodeSDK({
   metricReader: new PeriodicExportingMetricReader({
     exporter: new OTLPMetricExporter({ url: `${otlpEndpoint}/v1/metrics` }),
   }),
-  instrumentations: [new HttpInstrumentation(), new PinoInstrumentation()],
+  instrumentations: [new UndiciInstrumentation()],
 });
 
 sdk.start();
