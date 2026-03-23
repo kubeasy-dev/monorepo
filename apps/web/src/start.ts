@@ -9,14 +9,17 @@ const tracingMiddleware = createMiddleware({ type: "request" }).server(
       `${request.method} ${pathname}`,
       async (span) => {
         span.setAttributes({
-          "http.method": request.method,
-          "http.url": request.url,
+          "http.request.method": request.method,
+          "url.full": request.url,
           "http.route": pathname,
         });
 
         try {
           const result = await next();
-          span.setAttribute("http.status_code", result.response?.status ?? 200);
+          span.setAttribute(
+            "http.response.status_code",
+            result.response?.status ?? 200,
+          );
           span.setStatus({ code: SpanStatusCode.OK });
           return result;
         } catch (error) {

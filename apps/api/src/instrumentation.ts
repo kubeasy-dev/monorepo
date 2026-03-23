@@ -3,6 +3,7 @@ import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { IORedisInstrumentation } from "@opentelemetry/instrumentation-ioredis";
 import { PgInstrumentation } from "@opentelemetry/instrumentation-pg";
+import { PinoInstrumentation } from "@opentelemetry/instrumentation-pino";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
@@ -27,6 +28,7 @@ const sdk = new NodeSDK({
   instrumentations: [
     new PgInstrumentation({ enhancedDatabaseReporting: true }),
     new IORedisInstrumentation(),
+    new PinoInstrumentation(),
   ],
 });
 
