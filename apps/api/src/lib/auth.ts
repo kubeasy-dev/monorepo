@@ -36,7 +36,11 @@ export const auth = betterAuth({
   },
   advanced: {
     crossSubDomainCookies: {
-      enabled: process.env.NODE_ENV === "production",
+      // Disabled on Railway: .up.railway.app is in the Public Suffix List,
+      // so cross-subdomain cookies can't be shared across Railway services.
+      enabled:
+        process.env.NODE_ENV === "production" &&
+        !process.env.RAILWAY_ENVIRONMENT_NAME,
       domain: ".kubeasy.dev",
     },
   },
