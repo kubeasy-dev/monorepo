@@ -16,9 +16,8 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "http://localhost:3001",
       "https://kubeasy.dev",
-      "https://api.kubeasy.dev",
+      "https://*.up.railway.app",
     ],
     allowHeaders: ["Content-Type", "Authorization", "User-Agent"],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

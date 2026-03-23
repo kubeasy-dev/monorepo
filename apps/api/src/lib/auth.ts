@@ -13,9 +13,7 @@ export const auth = betterAuth({
   baseURL: process.env.API_URL ?? "http://localhost:3001",
   trustedOrigins: [
     "http://localhost:3000",
-    "http://localhost:3001",
     "https://kubeasy.dev",
-    "https://api.kubeasy.dev",
     "https://*.up.railway.app",
   ],
   database: drizzleAdapter(db, {
