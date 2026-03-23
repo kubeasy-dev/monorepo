@@ -1,47 +1,52 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": [
-    "app/**/*.{ts,tsx}",
-    "server/api/**/*.{ts,tsx}",
-    "server/db/schema/**/*.ts",
-    "lib/**/*.{ts,tsx}",
-    "components/**/*.{ts,tsx}",
-    "trpc/**/*.{ts,tsx}",
-    "scripts/**/*.ts",
-    "*.config.{js,ts,mjs}",
-    "instrumentation*.ts"
-  ],
-  "project": ["**/*.{ts,tsx,js,jsx,mjs,cjs}"],
+  "workspaces": {
+    ".": {
+      "entry": ["*.config.{js,ts,mjs}"],
+      "project": ["*.{ts,js,mjs,cjs}"],
+      "ignoreDependencies": [
+        "@biomejs/biome",
+        "husky",
+        "lint-staged",
+        "dotenv-cli"
+      ]
+    },
+    "apps/web": {
+      "entry": [
+        "src/**/*.{ts,tsx}",
+        "*.config.{js,ts,mjs}",
+        "app.config.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "*.{ts,js,mjs,cjs}"],
+      "ignore": ["src/routeTree.gen.ts"],
+      "ignoreDependencies": [
+        "@tailwindcss/vite",
+        "tailwindcss",
+        "tw-animate-css",
+        "nitro",
+        "pino-pretty"
+      ]
+    },
+    "apps/api": {
+      "entry": [
+        "src/**/*.{ts,tsx}",
+        "*.config.{js,ts,mjs}"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "*.{ts,js,mjs,cjs}"],
+      "ignoreDependencies": ["tsx"]
+    },
+    "packages/*": {
+      "entry": ["src/index.{ts,tsx}", "index.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx}", "*.{ts,js,mjs,cjs}"]
+    }
+  },
   "ignore": [
     "**/*.test.{ts,tsx}",
     "**/*.spec.{ts,tsx}",
     "**/node_modules/**",
-    "**/.next/**",
     "**/dist/**",
     "**/build/**",
+    "**/.output/**",
     "drizzle/**"
-  ],
-  "ignoreDependencies": [
-    "@tailwindcss/postcss",
-    "postcss",
-    "autoprefixer",
-    "tailwindcss",
-    "tw-animate-css",
-    "@biomejs/biome",
-    "husky",
-    "lint-staged",
-    "prettier",
-    "dotenv",
-    "dotenv-cli",
-    "eslint",
-    "eslint-config-next",
-    "@eslint/eslintrc"
-  ],
-  "ignoreBinaries": ["tsx"],
-  "next": {
-    "entry": ["app/**/*.{ts,tsx}!", "next.config.mjs!", "middleware.ts"]
-  },
-  "typescript": {
-    "entry": ["types/**/*.ts"]
-  }
+  ]
 }

@@ -13,7 +13,10 @@
       "!.next",
       "!dist",
       "!build",
-      "!**/*.css"
+      "!.output",
+      "!.vinxi",
+      "!**/*.css",
+      "!**/routeTree.gen.ts"
     ]
   },
   "formatter": {
@@ -36,7 +39,6 @@
       }
     },
     "domains": {
-      "next": "recommended",
       "react": "recommended"
     }
   },
@@ -55,16 +57,6 @@
   },
   "overrides": [
     {
-      "includes": ["trpc/server.tsx"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "noExplicitAny": "off"
-          }
-        }
-      }
-    },
-    {
       "includes": ["**/*.css"],
       "css": {
         "parser": {
@@ -74,16 +66,6 @@
       },
       "linter": {
         "enabled": false
-      }
-    },
-    {
-      "includes": ["app/api/cli/**/*.ts"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noNonNullAssertion": "warn"
-          }
-        }
       }
     }
   ]
