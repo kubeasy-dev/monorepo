@@ -4,6 +4,10 @@ import type { NotionBlock, RichTextItem } from "@/lib/notion";
 import { getBlogPostWithContent } from "@/lib/notion";
 
 export const Route = createFileRoute("/blog/$slug")({
+  headers: () => ({
+    "Cache-Control":
+      "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+  }),
   loader: async ({ params }) => {
     const post = await getBlogPostWithContent(params.slug);
     if (!post) throw new Error(`Blog post not found: ${params.slug}`);

@@ -5,9 +5,17 @@ import { api } from "./api-client";
 // --- Challenges ---
 
 export function challengeListOptions(params?: ChallengeListInput) {
+  // Strip undefined values so challengeListOptions() and challengeListOptions({ difficulty: undefined, ... })
+  // produce the same query key — avoids SSG cache miss on hydration.
+  const normalized = params
+    ? Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined),
+      )
+    : {};
   return queryOptions({
-    queryKey: ["challenges", "list", params ?? {}],
+    queryKey: ["challenges", "list", normalized],
     queryFn: () => api.challenges.list(params),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -15,6 +23,7 @@ export function challengeDetailOptions(slug: string) {
   return queryOptions({
     queryKey: ["challenges", "detail", slug],
     queryFn: () => api.challenges.getBySlug(slug),
+    staleTime: 60 * 60 * 1000, // 1h — matches ISR revalidation window
   });
 }
 
@@ -22,6 +31,7 @@ export function challengeObjectivesOptions(slug: string) {
   return queryOptions({
     queryKey: ["challenges", "objectives", slug],
     queryFn: () => api.challenges.getObjectives(slug),
+    staleTime: 60 * 60 * 1000,
   });
 }
 
@@ -31,6 +41,7 @@ export function themeListOptions() {
   return queryOptions({
     queryKey: ["themes", "list"],
     queryFn: () => api.themes.list(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -47,6 +58,7 @@ export function typeListOptions() {
   return queryOptions({
     queryKey: ["types", "list"],
     queryFn: () => api.types.list(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 

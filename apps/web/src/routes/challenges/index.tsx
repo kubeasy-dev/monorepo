@@ -25,6 +25,10 @@ const challengeSearchSchema = z.object({
 
 export const Route = createFileRoute("/challenges/")({
   validateSearch: challengeSearchSchema,
+  headers: () => ({
+    "Cache-Control":
+      "public, max-age=600, s-maxage=600, stale-while-revalidate=3600",
+  }),
   loader: async ({ context: { queryClient } }) => {
     await serverLog.info("page.load", { page: "challenges.list" });
     await Promise.all([

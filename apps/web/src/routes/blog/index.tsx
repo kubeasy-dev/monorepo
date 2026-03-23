@@ -4,6 +4,10 @@ import type { BlogPost } from "@/lib/notion";
 import { getBlogPosts } from "@/lib/notion";
 
 export const Route = createFileRoute("/blog/")({
+  headers: () => ({
+    "Cache-Control":
+      "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+  }),
   loader: async () => {
     // Throws on Notion API failure — causes SSG build failure (locked decision)
     const posts = await getBlogPosts();

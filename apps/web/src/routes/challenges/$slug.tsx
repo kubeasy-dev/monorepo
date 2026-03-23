@@ -13,6 +13,10 @@ import {
 import { serverLog } from "@/lib/server-log";
 
 export const Route = createFileRoute("/challenges/$slug")({
+  headers: () => ({
+    "Cache-Control":
+      "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+  }),
   loader: async ({ context: { queryClient }, params }) => {
     await serverLog.info("page.load", {
       page: "challenges.detail",
