@@ -117,7 +117,8 @@ progress.get(
 const handleGetStatus: Handler = async (c) => {
   const user = c.get("user");
   const userId = user.id;
-  const slug = c.req.param("slug")!;
+  const slug = c.req.param("slug");
+  if (!slug) return c.json({ error: "Missing slug" }, 400);
 
   const [challengeData] = await db
     .select({ id: challenge.id })
@@ -250,7 +251,8 @@ progress.post("/:slug/start", requireAuth, async (c) => {
 const handleReset: Handler = async (c) => {
   const user = c.get("user");
   const userId = user.id;
-  const slug = c.req.param("slug")!;
+  const slug = c.req.param("slug");
+  if (!slug) return c.json({ error: "Missing slug" }, 400);
 
   // Find challenge by slug
   const [challengeData] = await db

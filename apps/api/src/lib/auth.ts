@@ -6,12 +6,13 @@ import { admin } from "better-auth/plugins";
 import { db } from "../db/index";
 import * as schema from "../db/schema/auth";
 import { allowedOrigins } from "./cors";
+import { env } from "./env";
 import { redisConfig } from "./redis";
 
 const userSigninQueue = createQueue(QUEUE_NAMES.USER_SIGNIN, redisConfig);
 
 export const auth = betterAuth({
-  baseURL: process.env.API_URL ?? "http://localhost:3001",
+  baseURL: env.API_URL,
   trustedOrigins: allowedOrigins,
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -39,8 +40,7 @@ export const auth = betterAuth({
       // Only enable when API runs on kubeasy.dev (prod + v2 subdomain).
       // Disabled on Railway .up.railway.app URLs (Public Suffix List).
       enabled:
-        process.env.NODE_ENV === "production" &&
-        (process.env.API_URL ?? "").includes("kubeasy.dev"),
+        env.NODE_ENV === "production" && env.API_URL.includes("kubeasy.dev"),
       domain: ".kubeasy.dev",
     },
   },
@@ -52,19 +52,19 @@ export const auth = betterAuth({
   },
   socialProviders: {
     github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      redirectURI: `${process.env.API_URL ?? "http://localhost:3001"}/api/auth/callback/github`,
+      clientId: env.GITHUB_CLIENT_ID,
+      clientSecret: env.GITHUB_CLIENT_SECRET,
+      redirectURI: `${env.API_URL}/api/auth/callback/github`,
     },
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirectURI: `${process.env.API_URL ?? "http://localhost:3001"}/api/auth/callback/google`,
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      redirectURI: `${env.API_URL}/api/auth/callback/google`,
     },
     microsoft: {
-      clientId: process.env.MICROSOFT_CLIENT_ID!,
-      clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
-      redirectURI: `${process.env.API_URL ?? "http://localhost:3001"}/api/auth/callback/microsoft`,
+      clientId: env.MICROSOFT_CLIENT_ID,
+      clientSecret: env.MICROSOFT_CLIENT_SECRET,
+      redirectURI: `${env.API_URL}/api/auth/callback/microsoft`,
     },
   },
   databaseHooks: {

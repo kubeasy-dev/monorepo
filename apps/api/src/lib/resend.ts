@@ -1,8 +1,9 @@
 import { Resend } from "resend";
 import { captureServerException } from "./analytics-server";
+import { env } from "./env";
 
 // Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY!);
+const resend = new Resend(env.RESEND_API_KEY);
 
 /**
  * Create a contact in Resend
