@@ -5,17 +5,14 @@ import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
 import { db } from "../db/index";
 import * as schema from "../db/schema/auth";
+import { allowedOrigins } from "./cors";
 import { redisConfig } from "./redis";
 
 const userSigninQueue = createQueue(QUEUE_NAMES.USER_SIGNIN, redisConfig);
 
 export const auth = betterAuth({
   baseURL: process.env.API_URL ?? "http://localhost:3001",
-  trustedOrigins: [
-    "http://localhost:3000",
-    "https://kubeasy.dev",
-    "https://*.up.railway.app",
-  ],
+  trustedOrigins: allowedOrigins,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
