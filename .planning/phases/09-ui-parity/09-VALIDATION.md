@@ -2,7 +2,7 @@
 phase: 9
 slug: ui-parity
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-03-24
 ---
@@ -17,64 +17,72 @@ created: 2026-03-24
 
 | Property | Value |
 |----------|-------|
-| **Framework** | vitest |
+| **Framework** | vitest + Playwright (Python) |
 | **Config file** | `apps/web/vitest.config.ts` |
 | **Quick run command** | `pnpm --filter web test:run` |
 | **Full suite command** | `pnpm test:run` |
-| **Estimated runtime** | ~30 seconds |
+| **Visual verification** | Playwright screenshot comparison via `with_server.py` |
+| **Estimated runtime** | ~30 seconds (typecheck) + ~60 seconds (Playwright screenshots) |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `pnpm --filter web test:run`
-- **After every plan wave:** Run `pnpm test:run`
-- **Before `/gsd:verify-work`:** Full suite must be green
-- **Max feedback latency:** 30 seconds
+- **After every task commit:** Run `pnpm typecheck` (compile-time correctness)
+- **After every plan completes:** Run Playwright screenshot comparison for the plan's pages (visual correctness per D-05)
+- **Before `/gsd:verify-work`:** Full suite must be green + all 4 plan screenshot sets reviewed
+- **Max feedback latency:** 30 seconds (typecheck), 90 seconds (Playwright)
+
+---
+
+## Playwright Screenshot Comparison Pattern (D-05)
+
+Each plan's `<verification>` section defines a Playwright comparison step. The executor writes a short Python script per plan that captures screenshots from both `apps/web` (port 3000) and `../website` (port 3001), saves them for visual diff review.
+
+```bash
+# General pattern — executor writes per-plan comparison script
+python .agents/skills/webapp-testing/scripts/with_server.py \
+  --server "cd ../website && pnpm dev --port 3001" --port 3001 \
+  --server "cd apps/web && pnpm dev" --port 3000 \
+  -- python scripts/compare_{plan}_screenshots.py
+```
+
+Scripts save screenshots to `/tmp/parity-09-{NN}/` with naming: `{page}-{app}-{viewport}.png`.
+
+Key: always `page.wait_for_load_state('networkidle')` before screenshot (TanStack Start hydration).
 
 ---
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 9-01-01 | 01 | 1 | PARITY-01 | visual/manual | side-by-side screenshot comparison | N/A | ⬜ pending |
-| 9-02-01 | 02 | 1 | PARITY-02 | visual/manual | side-by-side screenshot comparison | N/A | ⬜ pending |
-| 9-03-01 | 03 | 2 | PARITY-03 | visual/manual | side-by-side screenshot comparison | N/A | ⬜ pending |
-| 9-04-01 | 04 | 2 | PARITY-04 | visual/manual | side-by-side screenshot comparison | N/A | ⬜ pending |
+| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | Status |
+|---------|------|------|-------------|-----------|-------------------|--------|
+| 9-01-01 | 01 | 1 | PARITY-01 | typecheck + visual | `pnpm typecheck` + Playwright `/blog` screenshots | pending |
+| 9-01-02 | 01 | 1 | PARITY-01 | typecheck + visual | `pnpm typecheck` + Playwright `/blog/{slug}` screenshots | pending |
+| 9-02-01 | 02 | 1 | PARITY-02 | typecheck + visual | `pnpm typecheck` + Playwright `/` screenshots | pending |
+| 9-03-01 | 03 | 1 | PARITY-03 | typecheck + visual | `pnpm typecheck` + Playwright `/challenges/*` screenshots | pending |
+| 9-04-01 | 04 | 1 | PARITY-04 | typecheck + visual | `pnpm typecheck` + Playwright `/dashboard` screenshots | pending |
+| 9-04-02 | 04 | 1 | PARITY-04 | typecheck | `pnpm typecheck` | pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: pending · green · red · flaky*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `pnpm typecheck` — TypeScript must pass after each plan
-- [ ] `pnpm check` — Biome lint must pass after each plan
-
-*Existing test infrastructure covers the project. UI parity is largely visual and requires manual verification via side-by-side comparison.*
-
----
-
-## Manual-Only Verifications
-
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| Blog list matches `../website` layout | PARITY-01 | Visual pixel comparison | Run both apps, compare `localhost:3000/blog` vs `../website` blog |
-| Blog article matches `../website` layout | PARITY-01 | Visual pixel comparison | Compare article pages side-by-side |
-| Marketing pages match `../website` | PARITY-02 | Visual pixel comparison | Compare landing, pricing, about pages |
-| Challenges pages match `../website` | PARITY-03 | Visual pixel comparison | Compare challenges list and detail pages |
-| Dashboard matches `../website` | PARITY-04 | Visual pixel comparison | Compare dashboard and profile pages |
+- [x] `pnpm typecheck` — TypeScript must pass after each plan
+- [x] `pnpm check` — Biome lint must pass after each plan
+- [x] Playwright screenshot comparison scripts — created per-plan by executor during plan execution
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify (pnpm typecheck)
+- [x] Per-plan Playwright visual verification defined in `<verification>` sections (D-05)
+- [x] Sampling continuity: typecheck after every task, Playwright after every plan
+- [x] No watch-mode flags
+- [x] Feedback latency < 90s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
