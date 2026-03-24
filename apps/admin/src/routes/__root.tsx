@@ -44,7 +44,7 @@ function RootComponent() {
   return (
     <>
       <TopNav user={session.user} />
-      <main className="mx-auto max-w-screen-xl px-8 pt-16">
+      <main className="container mx-auto px-4 pt-24">
         <Outlet />
       </main>
     </>

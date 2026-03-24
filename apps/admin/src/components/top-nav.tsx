@@ -54,68 +54,72 @@ export function TopNav({ user }: TopNavProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 flex h-12 items-center justify-between border-b-[3px] border-b-[oklch(0.15_0_0)] bg-card px-6">
-      {/* Logo slot — left */}
-      <Link to="/challenges" className="text-lg font-bold text-primary">
-        Kubeasy
-      </Link>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background neo-shadow-sm neo-border-thick !border-t-0 !border-l-0 !border-r-0">
+      <div className="container mx-auto flex h-20 items-center justify-between px-4">
+        {/* Logo slot — left */}
+        <Link to="/challenges" className="text-2xl font-black">
+          Kubeasy Admin
+        </Link>
 
-      {/* Nav links — center-right */}
-      <nav className="flex items-center gap-1">
-        {navLinks.map((link) => {
-          const isActive = pathname.startsWith(link.to);
-          return (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              {link.label}
-            </Link>
-          );
-        })}
-        {/* Settings — disabled placeholder */}
-        <span
-          className="cursor-not-allowed rounded-md px-3 py-2 text-sm font-medium text-muted-foreground/50"
-          aria-disabled="true"
-        >
-          Settings
-        </span>
-      </nav>
-
-      {/* User slot — far right */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <Avatar className="h-8 w-8 border-2 border-border">
-              {user.image && <AvatarImage src={user.image} alt={user.name} />}
-              <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{user.name}</p>
-              <p className="text-xs leading-none text-muted-foreground">
-                {user.email}
-              </p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={handleSignOut}
-            className="text-destructive focus:text-destructive"
+        {/* Nav links — center-right */}
+        <nav className="flex items-center gap-1">
+          {navLinks.map((link) => {
+            const isActive = pathname.startsWith(link.to);
+            return (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`inline-flex h-9 items-center justify-center rounded-lg px-4 py-2 text-base font-bold transition-colors ${
+                  isActive
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-background hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+          {/* Settings — disabled placeholder */}
+          <span
+            className="inline-flex h-9 cursor-not-allowed items-center justify-center rounded-lg px-4 py-2 text-base font-bold text-muted-foreground/50"
+            aria-disabled="true"
           >
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            Settings
+          </span>
+        </nav>
+
+        {/* User slot — far right */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-10 w-10 rounded-xl neo-border p-0">
+              <Avatar className="h-full w-full rounded-lg">
+                {user.image && <AvatarImage src={user.image} alt={user.name} />}
+                <AvatarFallback className="bg-primary text-primary-foreground font-black rounded-lg">
+                  {getInitials(user.name)}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="neo-border neo-shadow">
+            <DropdownMenuLabel>
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-bold leading-none">{user.name}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user.email}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="text-destructive focus:text-destructive font-bold"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   );
 }
