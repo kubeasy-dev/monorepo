@@ -62,7 +62,9 @@ export function UserDropdown({
           </DropdownMenuItem>
           {isAdmin && (
             <DropdownMenuItem
-              onClick={() => navigate({ to: "/admin/challenges" })}
+              onClick={() => {
+                window.location.href = "/admin/challenges";
+              }}
             >
               Admin
             </DropdownMenuItem>
