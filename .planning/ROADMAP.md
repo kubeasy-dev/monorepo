@@ -61,10 +61,10 @@ Plans:
   2. Marketing pages (landing, pricing, about) in `apps/web` match `../website` visually
   3. Challenges list and challenge detail pages in `apps/web` match `../website` visually
   4. Dashboard and profile pages in `apps/web` match `../website` visually
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 Plans:
 - [ ] 09-01-PLAN.md — Blog pages parity (BlogCard featured/compact variants, prose-neo typography)
-- [ ] 09-02-PLAN.md — Marketing landing page parity (diff and fix 7 section components)
+- [x] 09-02-PLAN.md — Marketing landing page parity (diff and fix 7 section components)
 - [ ] 09-03-PLAN.md — Challenges/themes/types pages parity (Back Button ghost variant)
 - [ ] 09-04-PLAN.md — Dashboard/profile pages parity (stats icons, grid layout, Quick Actions)
 **UI hint**: yes
@@ -119,7 +119,7 @@ Plans:
 | 6. Observability | v1.0 | 4/4 | Complete | 2026-03-21 |
 | 7. Railway Deployment | v1.0 | 3/3 | Complete | 2026-03-23 |
 | 8. Shared UI Package | v1.1 | 0/2 | Planning | — |
-| 9. UI Parity | v1.1 | 0/4 | Planning | — |
+| 9. UI Parity | v1.1 | 1/4 | In Progress|  |
 | 10. Micro-Frontend Dev Proxy + Admin Scaffold | v1.1 | 0/? | Not started | — |
 | 11. Admin Features | v1.1 | 0/? | Not started | — |
 | 12. Caddy Production + Railway Deployment | v1.1 | 0/? | Not started | — |

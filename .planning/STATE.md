@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI Parity + Micro-Frontend + Admin
-status: Ready to plan
-stopped_at: Completed 08-shared-ui-package-02-PLAN.md
-last_updated: "2026-03-24T18:11:10.726Z"
+status: Ready to execute
+stopped_at: Completed 09-ui-parity-02-PLAN.md
+last_updated: "2026-03-24T19:23:03.075Z"
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 6
+  completed_plans: 3
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** API Hono source de vérité unique, web TanStack Start client hybride, BullMQ découplé pour extraction future
-**Current focus:** Phase 08 — shared-ui-package
+**Current focus:** Phase 09 — ui-parity
 
 ## Current Position
 
-Phase: 9
-Plan: Not started
+Phase: 09 (ui-parity) — EXECUTING
+Plan: 2 of 4
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Plan: Not started
 *Updated after each plan completion*
 | Phase 08-shared-ui-package P01 | 12 | 2 tasks | 22 files |
 | Phase 08-shared-ui-package P02 | 8 | 2 tasks | 18 files |
+| Phase 09-ui-parity P02 | 2min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -59,6 +60,7 @@ v1.1 key constraints:
 - [Phase 08-shared-ui-package]: lucide-react kept in apps/web — used directly across 30+ app files outside UI primitives
 - [Phase 08-shared-ui-package]: sonner re-added to apps/web — app code uses toast directly, not via @kubeasy/ui/sonner
 - [Phase 08-shared-ui-package]: utils.ts re-exports cn from @kubeasy/ui/utils — preserves @/lib/utils import paths
+- [Phase 09-ui-parity]: Use Button asChild with anchor tags in apps/web for visual parity with website while keeping TanStack Router patterns
 
 ### Pending Todos
 
@@ -70,6 +72,6 @@ None — v1.0 in production, v1.1 scope defined.
 
 ## Session Continuity
 
-Last session: 2026-03-24T18:05:40.126Z
-Stopped at: Completed 08-shared-ui-package-02-PLAN.md
+Last session: 2026-03-24T19:23:03.072Z
+Stopped at: Completed 09-ui-parity-02-PLAN.md
 Resume file: None
