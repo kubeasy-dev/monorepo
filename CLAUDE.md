@@ -80,7 +80,7 @@ Create `.env` files in each app (see their respective CLAUDE.md). Key variables:
 | `DATABASE_URL` | `apps/api` | PostgreSQL connection string |
 | `REDIS_URL` | `apps/api` | Redis connection URL (BullMQ) |
 | `BETTER_AUTH_SECRET` | `apps/api` | Better Auth secret key |
-| `BETTER_AUTH_URL` | both | Production URL (e.g. `https://kubeasy.dev`) |
+| `API_URL` | `apps/api` | API base URL (Better Auth baseURL, OAuth redirect base — e.g. `https://api.kubeasy.dev`) |
 | `GITHUB_CLIENT_ID/SECRET` | `apps/api` | GitHub OAuth |
 | `GOOGLE_CLIENT_ID/SECRET` | `apps/api` | Google OAuth |
 | `MICROSOFT_CLIENT_ID/SECRET` | `apps/api` | Microsoft OAuth |

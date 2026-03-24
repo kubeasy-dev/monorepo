@@ -94,7 +94,7 @@ src/
     resend.ts             # Resend email client
     env.ts                # Environment variable validation
   schemas/          # Zod schemas for request/response bodies
-  __tests__/        # Vitest test files (7 files: auth, challenges, cli, middleware, etc.)
+  __tests__/        # Vitest test files (8 files: api-key, auth, challenges, cli, cookie, middleware, oauth, submit)
 ```
 
 ## Adding a New Route
@@ -189,7 +189,7 @@ const workers = [
 DATABASE_URL=          # PostgreSQL connection string
 REDIS_URL=             # Redis connection URL
 BETTER_AUTH_SECRET=    # Better Auth secret
-BETTER_AUTH_URL=       # Production URL (e.g. https://kubeasy.dev)
+API_URL=               # API base URL (Better Auth baseURL, OAuth redirect base — defaults to http://localhost:3001)
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 GOOGLE_CLIENT_ID=
@@ -199,5 +199,6 @@ MICROSOFT_CLIENT_SECRET=
 RESEND_API_KEY=        # Transactional email
 POSTHOG_KEY=           # PostHog project API key (analytics disabled if missing)
 POSTHOG_HOST=          # PostHog host (e.g. https://eu.i.posthog.com)
+OTEL_EXPORTER_OTLP_ENDPOINT=  # OpenTelemetry collector endpoint (traces/metrics/logs)
 PORT=3001              # HTTP server port (optional, defaults to 3001)
 ```
