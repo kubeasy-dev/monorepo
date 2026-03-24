@@ -16,7 +16,7 @@ L'API Hono est la source de vérité unique (auth, données, temps réel). Le we
 
 **Target features:**
 - ~~Phase 8 — Shared UI Package~~ ✓ Validated in Phase 8: packages/ui created with 17 shadcn components, CSS design tokens, sub-path exports; apps/web migrated to @kubeasy/ui
-- Phase 9 — UI Parity : audit composant par composant entre apps/web et ../website, corriger toutes les différences visuelles
+- ~~Phase 9 — UI Parity~~ ✓ Validated in Phase 9: blog components (BlogCard, ToC, AuthorCard, RelatedPosts), landing page button parity, challenges/themes/types routes verified, dashboard stat cards + chart fixed
 - Phase 10 — Admin App : nouvelle app Vite + React client-side dans apps/admin, consommant apps/api, migration de l'interface admin existante
 
 ---
