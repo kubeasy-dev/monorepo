@@ -82,10 +82,10 @@ export function ChallengesFilters({
         />
       </div>
       <Select value={theme} onValueChange={handleThemeChange}>
-        <SelectTrigger className="w-full md:w-[160px] font-bold">
+        <SelectTrigger className="w-full md:w-[160px] neo-border-thick neo-shadow font-bold py-6 text-base">
           <SelectValue placeholder="Theme" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="neo-border-thick neo-shadow">
           <SelectItem value="all" className="font-bold">
             All Themes
           </SelectItem>
@@ -97,10 +97,10 @@ export function ChallengesFilters({
         </SelectContent>
       </Select>
       <Select value={type} onValueChange={handleTypeChange}>
-        <SelectTrigger className="w-full md:w-[160px] font-bold">
+        <SelectTrigger className="w-full md:w-[160px] neo-border-thick neo-shadow font-bold py-6 text-base">
           <SelectValue placeholder="Type" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="neo-border-thick neo-shadow">
           <SelectItem value="all" className="font-bold">
             All Types
           </SelectItem>
@@ -112,10 +112,10 @@ export function ChallengesFilters({
         </SelectContent>
       </Select>
       <Select value={difficulty} onValueChange={handleDifficultyChange}>
-        <SelectTrigger className="w-full md:w-[160px] font-bold">
+        <SelectTrigger className="w-full md:w-[160px] neo-border-thick neo-shadow font-bold py-6 text-base">
           <SelectValue placeholder="Difficulty" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="neo-border-thick neo-shadow">
           {difficulties.map((diff) => (
             <SelectItem
               key={diff.value}

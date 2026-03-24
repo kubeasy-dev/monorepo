@@ -77,7 +77,7 @@ function ChallengesView() {
                   showCompleted: !filters.showCompleted,
                 })
               }
-              className="font-bold"
+              className="neo-border-thick font-black neo-shadow hover:neo-shadow-lg transition-shadow px-6 py-6 text-base"
             >
               {filters.showCompleted ? "Hide Completed" : "Show Completed"}
             </Button>
