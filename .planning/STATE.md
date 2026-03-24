@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI Parity + Micro-Frontend + Admin
 status: Ready to plan
-stopped_at: Completed 09-ui-parity-01-PLAN.md
-last_updated: "2026-03-24T19:29:17.229Z"
+stopped_at: Completed discuss-phase 10 — context captured
+last_updated: "2026-03-24T21:00:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
@@ -19,7 +19,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** API Hono source de vérité unique, web TanStack Start client hybride, BullMQ découplé pour extraction future
-**Current focus:** Phase 09 — ui-parity
+**Current focus:** Phase 10 — micro-frontend-dev-proxy-admin-scaffold
 
 ## Current Position
 
@@ -73,6 +73,13 @@ v1.1 key constraints:
 ### Pending Todos
 
 - Phase 11 start: audit `apps/api/src/routes/admin/` to confirm which Hono admin endpoints already exist vs. need adding before writing UI
+
+### Phase 10 Key Decisions
+- [Phase 10]: Turborepo built-in proxy for unified localhost:3024 — researcher to investigate exact 2.x API
+- [Phase 10]: apps/admin = pure Vite CSR SPA + TanStack Router (no SSR)
+- [Phase 10]: Admin auth guard client-side in __root.tsx via Better Auth useSession(), redirects to VITE_WEB_URL
+- [Phase 10]: Admin shell = top nav with Challenges/Users/Settings placeholder + neo-brutalist @kubeasy/ui
+- [Phase 10]: Caddyfile is a reference template only (prod routing docs, not used locally)
 
 ### Blockers/Concerns
 
