@@ -2,7 +2,7 @@
  * PostHog server-side analytics tracking utilities
  *
  * This file provides server-side tracking for events triggered from API routes
- * and tRPC procedures (especially for CLI interactions).
+ * (especially for CLI interactions).
  */
 
 import { logger } from "@kubeasy/logger";
