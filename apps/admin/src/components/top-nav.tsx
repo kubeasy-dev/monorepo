@@ -47,8 +47,7 @@ export function TopNav({ user }: TopNavProps) {
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
-          const webUrl = import.meta.env.VITE_WEB_URL ?? "http://localhost:3000";
-          window.location.href = webUrl;
+          window.location.href = "/";
         },
       },
     });

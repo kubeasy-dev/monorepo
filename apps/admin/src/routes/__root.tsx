@@ -18,16 +18,15 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
   const { data: session, isPending } = authClient.useSession();
-  const webUrl = import.meta.env.VITE_WEB_URL ?? "http://localhost:3000";
 
   useEffect(() => {
     if (isPending) return;
     if (!session) {
-      window.location.href = `${webUrl}/login`;
+      window.location.href = "/login";
     } else if (session.user.role !== "admin") {
-      window.location.href = webUrl;
+      window.location.href = "/";
     }
-  }, [session, isPending, webUrl]);
+  }, [session, isPending]);
 
   if (isPending) {
     return (
