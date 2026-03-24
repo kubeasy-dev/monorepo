@@ -78,7 +78,10 @@ Plans:
   2. A non-admin user visiting `localhost:3024/admin` is redirected to the main site — the route guard enforces role check via Better Auth session
   3. An admin user can log in and see the `apps/admin` shell layout with navigation — no features yet, but the authenticated shell renders without errors
   4. `vite build` succeeds for `apps/admin` and assets load correctly at `/admin/` path — no 404s on sub-path assets
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 10-01-PLAN.md — MFE proxy config + apps/admin Vite CSR SPA package bootstrap
+- [ ] 10-02-PLAN.md — Admin auth guard, top-nav shell, placeholder routes, Caddyfile
 **UI hint**: yes
 
 ### Phase 11: Admin Features
@@ -120,6 +123,6 @@ Plans:
 | 7. Railway Deployment | v1.0 | 3/3 | Complete | 2026-03-23 |
 | 8. Shared UI Package | v1.1 | 0/2 | Planning | — |
 | 9. UI Parity | v1.1 | 4/4 | Complete   | 2026-03-24 |
-| 10. Micro-Frontend Dev Proxy + Admin Scaffold | v1.1 | 0/? | Not started | — |
+| 10. Micro-Frontend Dev Proxy + Admin Scaffold | v1.1 | 0/2 | Planning | — |
 | 11. Admin Features | v1.1 | 0/? | Not started | — |
 | 12. Caddy Production + Railway Deployment | v1.1 | 0/? | Not started | — |
