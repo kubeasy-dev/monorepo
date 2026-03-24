@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-  component: () => <div>Admin placeholder</div>,
+  beforeLoad: () => {
+    throw redirect({ to: "/challenges" });
+  },
 });
