@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI Parity + Micro-Frontend + Admin
-status: Ready to execute
-stopped_at: Completed 09-ui-parity-03-PLAN.md
-last_updated: "2026-03-24T19:24:21.707Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 09-ui-parity-01-PLAN.md
+last_updated: "2026-03-24T19:25:38.804Z"
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -45,6 +45,7 @@ Plan: 4 of 4
 | Phase 09-ui-parity P02 | 2min | 1 tasks | 3 files |
 | Phase 09-ui-parity P04 | 8 | 2 tasks | 2 files |
 | Phase 09-ui-parity P03 | 3 | 1 tasks | 1 files |
+| Phase 09-ui-parity P01 | 15 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ v1.1 key constraints:
 - [Phase 09-ui-parity]: Dashboard stat cards use Award/Trophy/Star/Flame icons with Completed/Points/Rank/Day Streak labels matching reference design
 - [Phase 09-ui-parity]: Quick Actions use Button asChild from @kubeasy/ui/button wrapping TanStack Link/anchor
 - [Phase 09-ui-parity]: Challenge detail back button uses Button ghost asChild wrapping Link (not raw Link with manual classes)
+- [Phase 09-ui-parity]: TableOfContentsClient merged into single file — no separate client wrapper needed in TanStack Router
+- [Phase 09-ui-parity]: Blog category filter uses useState in route component, derived from post list (no URL search params)
 
 ### Pending Todos
 
@@ -77,6 +80,6 @@ None — v1.0 in production, v1.1 scope defined.
 
 ## Session Continuity
 
-Last session: 2026-03-24T19:24:21.704Z
-Stopped at: Completed 09-ui-parity-03-PLAN.md
+Last session: 2026-03-24T19:25:38.801Z
+Stopped at: Completed 09-ui-parity-01-PLAN.md
 Resume file: None

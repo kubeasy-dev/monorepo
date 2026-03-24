@@ -184,7 +184,7 @@ Scope: UI parity restoration, shared shadcn/ui package, Turborepo micro-frontend
 
 ### UI Parity
 
-- [ ] **PARITY-01**: Les pages blog (liste + articles) de `apps/web` correspondent visuellement à `../website` — typographie, spacing, layout, couleurs, composants
+- [x] **PARITY-01**: Les pages blog (liste + articles) de `apps/web` correspondent visuellement à `../website` — typographie, spacing, layout, couleurs, composants
 - [x] **PARITY-02**: Les pages marketing (landing, pricing, about) de `apps/web` correspondent visuellement à `../website`
 - [x] **PARITY-03**: Les pages challenges (liste + détail) de `apps/web` correspondent visuellement à `../website`
 - [x] **PARITY-04**: Les pages dashboard et profil de `apps/web` correspondent visuellement à `../website`
@@ -249,7 +249,7 @@ Scope: UI parity restoration, shared shadcn/ui package, Turborepo micro-frontend
 | UI-03 | Phase 8 | Complete |
 | UI-04 | Phase 8 | Complete |
 | UI-05 | Phase 8 | Complete |
-| PARITY-01 | Phase 9 | Pending |
+| PARITY-01 | Phase 9 | Complete |
 | PARITY-02 | Phase 9 | Complete |
 | PARITY-03 | Phase 9 | Complete |
 | PARITY-04 | Phase 9 | Complete |

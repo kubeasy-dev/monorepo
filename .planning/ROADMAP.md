@@ -29,7 +29,7 @@ Full details: `.planning/milestones/v1.0-ROADMAP.md`
 **Milestone Goal:** Restore full visual parity with the original website, extract a shared shadcn/ui package used by both apps, unify local dev routing via Turborepo micro-frontend proxy, migrate the admin interface to a standalone Vite SPA, and route all production traffic through a Caddy reverse proxy on Railway.
 
 - [ ] **Phase 8: Shared UI Package** — Extract all shadcn/ui components into `packages/ui`, wire Tailwind v4 `@source`, refactor `apps/web` imports
-- [ ] **Phase 9: UI Parity** — Audit and correct all visual differences between `apps/web` and `../website` across all 4 page groups
+- [x] **Phase 9: UI Parity** — Audit and correct all visual differences between `apps/web` and `../website` across all 4 page groups (completed 2026-03-24)
 - [ ] **Phase 10: Micro-Frontend Dev Proxy + Admin Scaffold** — Configure `microfrontends.json`, scaffold `apps/admin` Vite SPA with auth guard and draft Caddyfile
 - [ ] **Phase 11: Admin Features** — Build admin challenge management and user management pages, add all Hono admin API endpoints
 - [ ] **Phase 12: Caddy Production + Railway Deployment** — Deploy Caddy service on Railway, DNS cutover to unified `kubeasy.dev`, update OAuth redirect URIs
@@ -61,9 +61,9 @@ Plans:
   2. Marketing pages (landing, pricing, about) in `apps/web` match `../website` visually
   3. Challenges list and challenge detail pages in `apps/web` match `../website` visually
   4. Dashboard and profile pages in `apps/web` match `../website` visually
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 Plans:
-- [ ] 09-01-PLAN.md — Blog pages parity (BlogCard featured/compact variants, prose-neo typography)
+- [x] 09-01-PLAN.md — Blog pages parity (BlogCard featured/compact variants, prose-neo typography)
 - [x] 09-02-PLAN.md — Marketing landing page parity (diff and fix 7 section components)
 - [x] 09-03-PLAN.md — Challenges/themes/types pages parity (Back Button ghost variant)
 - [x] 09-04-PLAN.md — Dashboard/profile pages parity (stats icons, grid layout, Quick Actions)
@@ -119,7 +119,7 @@ Plans:
 | 6. Observability | v1.0 | 4/4 | Complete | 2026-03-21 |
 | 7. Railway Deployment | v1.0 | 3/3 | Complete | 2026-03-23 |
 | 8. Shared UI Package | v1.1 | 0/2 | Planning | — |
-| 9. UI Parity | v1.1 | 3/4 | In Progress|  |
+| 9. UI Parity | v1.1 | 4/4 | Complete   | 2026-03-24 |
 | 10. Micro-Frontend Dev Proxy + Admin Scaffold | v1.1 | 0/? | Not started | — |
 | 11. Admin Features | v1.1 | 0/? | Not started | — |
 | 12. Caddy Production + Railway Deployment | v1.1 | 0/? | Not started | — |
