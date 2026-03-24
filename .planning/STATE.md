@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI Parity + Micro-Frontend + Admin
 status: Ready to execute
-stopped_at: Completed 09-04-PLAN.md
-last_updated: "2026-03-24T19:24:01.598Z"
+stopped_at: Completed 09-ui-parity-03-PLAN.md
+last_updated: "2026-03-24T19:24:21.707Z"
 progress:
   total_phases: 5
   completed_phases: 1
@@ -44,6 +44,7 @@ Plan: 4 of 4
 | Phase 08-shared-ui-package P02 | 8 | 2 tasks | 18 files |
 | Phase 09-ui-parity P02 | 2min | 1 tasks | 3 files |
 | Phase 09-ui-parity P04 | 8 | 2 tasks | 2 files |
+| Phase 09-ui-parity P03 | 3 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,7 @@ v1.1 key constraints:
 - [Phase 09-ui-parity]: Use Button asChild with anchor tags in apps/web for visual parity with website while keeping TanStack Router patterns
 - [Phase 09-ui-parity]: Dashboard stat cards use Award/Trophy/Star/Flame icons with Completed/Points/Rank/Day Streak labels matching reference design
 - [Phase 09-ui-parity]: Quick Actions use Button asChild from @kubeasy/ui/button wrapping TanStack Link/anchor
+- [Phase 09-ui-parity]: Challenge detail back button uses Button ghost asChild wrapping Link (not raw Link with manual classes)
 
 ### Pending Todos
 
@@ -75,6 +77,6 @@ None — v1.0 in production, v1.1 scope defined.
 
 ## Session Continuity
 
-Last session: 2026-03-24T19:23:47.683Z
-Stopped at: Completed 09-04-PLAN.md
+Last session: 2026-03-24T19:24:21.704Z
+Stopped at: Completed 09-ui-parity-03-PLAN.md
 Resume file: None
