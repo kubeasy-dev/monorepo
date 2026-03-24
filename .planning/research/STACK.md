@@ -1,283 +1,521 @@
 # Stack Research
 
 **Domain:** TypeScript monorepo — Hono API + TanStack Start frontend + BullMQ + OpenTelemetry
-**Researched:** 2026-03-18
-**Confidence:** MEDIUM-HIGH (versions verified via npm/official docs; TanStack Start maturity is MEDIUM)
+**Researched:** 2026-03-24 (v1.1 addendum)
+**Confidence:** HIGH (versions match already-installed packages in apps/web; Turborepo micro-frontend is built-in, no extra package)
+
+> This file documents the **v1.1 additions only**. The v1.0 baseline stack (Hono, TanStack Start, Drizzle, BullMQ, Better Auth, OTel) is already validated in production and documented in the original research (2026-03-18). Do not re-research those.
 
 ---
 
-## Context: What This Replaces
+## Context: What v1.1 Adds
 
-| Current (monolith) | New (monorepo) | Why |
-|--------------------|----------------|-----|
-| Next.js 16 + App Router | TanStack Start (apps/web) | Vendor-lock-free, no Vercel coupling |
-| tRPC 11 | REST + Zod schemas (@kubeasy/api-schemas) | Standard HTTP, consumable by Go CLI |
-| Neon serverless | postgres.js + pg (Railway Postgres) | Self-hosted, no serverless constraints |
-| Upstash Redis REST | ioredis + native Redis | BullMQ requires ioredis; no REST overhead |
-| Upstash Realtime | Hono streamSSE + Redis pub/sub | Self-hosted SSE, same architectural pattern |
-| PostHog OTel exporter | OTel Collector (OTLP) | Vendor-agnostic, centralized, standard |
-| Vercel deployment | Railway | Supports long-lived processes (Hono, workers) |
+| Feature | What Changes | Scope |
+|---------|-------------|-------|
+| Unified dev proxy | `microfrontends.json` in apps/web | Turborepo built-in, zero new packages |
+| `packages/ui` | New shared shadcn/ui package | New workspace package |
+| `apps/admin` | New Vite + React SPA | New app, client-side only |
+| Caddy on Railway | New `apps/caddy` service | Replaces direct-domain routing |
 
 ---
 
-## Recommended Stack
+## New: Turborepo Micro-Frontends Proxy
 
-### Monorepo Orchestration
+**Confidence:** HIGH — verified against Turborepo 2.6 release notes and official docs.
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Turborepo | 2.8.x (latest) | Task orchestration, build cache, pipeline | De facto standard for TS monorepos; Rust-based speed; pairs natively with pnpm workspaces; Railway has documented support |
-| pnpm workspaces | 10.x (current: 10.32.1) | Package management, hoisting, symlinks | Already in use; required for Turborepo symlink resolution; monorepo-first design |
+### How It Works
 
-**Configuration:** `pnpm-workspace.yaml` declares `apps/*` and `packages/*`. Root `turbo.json` defines task pipeline (`build`, `dev`, `lint`, `typecheck`). Each package owns its own `tsconfig.json` extending from `packages/typescript-config`.
+Turborepo 2.6+ ships a built-in dev proxy. No package to install. Add a `microfrontends.json` file inside one app (the "host"), and `turbo dev` will start all apps plus a routing proxy.
 
-**Package naming:** Use `@kubeasy/` scope prefix for all packages (e.g., `@kubeasy/api-schemas`, `@kubeasy/jobs`).
+**Key facts:**
+- Built into `turbo` binary — zero additional dependencies
+- Proxy starts on port 3024 by default (configurable via `options.localProxyPort`)
+- Injects `TURBO_MFE_PORT` env var into all running tasks
+- Supports WebSocket connections (HMR passthrough works)
+- One app is the "default" catch-all (no `routing` key). All others declare path groups.
+- If `@vercel/microfrontends` is installed anywhere in the workspace, Turborepo defers to it instead. Do NOT install it — the built-in is sufficient and avoids Vercel coupling.
 
-**Confidence:** HIGH — verified against Turborepo 2.7/2.8 release notes and pnpm docs.
+### Configuration File
 
----
+Place `microfrontends.json` in `apps/web/` (the host app — handles `/` and all unmatched routes):
 
-### apps/api — Hono HTTP Server
+```json
+{
+  "applications": {
+    "web": {
+      "development": { "local": { "port": 3000 } }
+    },
+    "admin": {
+      "development": { "local": { "port": 5173 } },
+      "routing": [{ "paths": ["/admin", "/admin/:path*"] }]
+    },
+    "api": {
+      "development": { "local": { "port": 3001 } },
+      "routing": [{ "paths": ["/api", "/api/:path*"] }]
+    }
+  },
+  "options": {
+    "localProxyPort": 3024
+  }
+}
+```
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| hono | 4.12.8 | Core HTTP framework | Web-standard API, native SSE support, 14KB bundle, 3.5x faster than Express; first-class Node.js adapter |
-| @hono/node-server | 1.19.x | Node.js adapter | Required for long-lived Node.js process (Railway); enables serve() from Hono |
-| @hono/zod-openapi | latest | Route definitions with Zod schema validation | Auto-generates OpenAPI spec from the same Zod schemas used in @kubeasy/api-schemas; enables Hono RPC type inference |
-| @hono/cors | (bundled with hono) | CORS middleware | Must be registered before Better Auth routes when web and api are on different origins |
+**Result in dev:** `http://localhost:3024` routes `/admin/*` → port 5173, `/api/*` → port 3001, everything else → port 3000.
 
-**Pattern for REST + type safety:**
-Use `@hono/zod-openapi` to define routes. Schemas come from `@kubeasy/api-schemas` workspace package. This gives: (1) runtime validation, (2) OpenAPI spec for Go CLI contract documentation, (3) type-safe Hono RPC client for use in `apps/web` if needed.
-
-**SSE for real-time validation status:**
-Use `streamSSE()` from `hono/streaming`. Subscribe to a Redis channel (ioredis) per user session. On CLI submission, the API publishes to Redis; the SSE handler receives and streams to the browser. Clean teardown via the abort signal.
-
-**Confidence:** HIGH — Hono 4.x is stable and actively maintained (published 13 days ago as of research date).
-
----
-
-### apps/web — TanStack Start Frontend
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| @tanstack/react-start | 1.166.x (latest: 1.166.11) | Full-stack React framework | SSG for landing/blog, hybrid for authenticated challenge pages; Vite-based, Railway-deployable, no Vercel dependency |
-| @tanstack/react-router | (bundled) | File-based routing | Type-safe routes; built into TanStack Start |
-| @tanstack/react-query | 5.x | Server state management | Built into TanStack Start; replaces tRPC's React Query usage |
-| vinxi | (bundled) | Vite + Nitro bundler underpinning | Managed by TanStack Start, not configured directly |
-
-**Maturity note:** TanStack Start RC was announced September 2025. As of March 2026, `@tanstack/react-start` is at v1.166.11 and published daily — the API is stable but still pre-1.0 in its original semver sense. Production use is viable but expect occasional API surface changes. The older `@tanstack/start` package (v1.120.20, stale 9 months) is **not** what to use — the active package is `@tanstack/react-start`.
-
-**API consumption pattern:**
-TanStack Start fetches from `apps/api` via standard `fetch()` using Zod-validated response types from `@kubeasy/api-schemas`. Use TanStack Query's `queryOptions` for type-safe data fetching. No tRPC; no Hono RPC client required (though the latter is possible if desired).
-
-**SSG strategy:** Use TanStack Start's static prerendering for `/` (landing), `/blog/*`, `/challenges` (public listing). Use server rendering + hydration for `/challenges/[slug]` (authenticated, real-time). TanStack Start supports per-route rendering mode selection.
-
-**Confidence:** MEDIUM — Framework is actively developed and published daily. API surface is settling but the RC designation introduces some risk. Verify prerendering documentation before the SSG phase.
+**What NOT to do:**
+- Do not install `@vercel/microfrontends` — overrides the built-in and introduces Vercel dependency
+- Do not use a separate `http-proxy` or `nginx` in dev — the built-in handles it
 
 ---
 
-### packages/api-schemas — Shared Zod Contracts
+## New: packages/ui — Shared shadcn/ui Package
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| zod | 4.x (current: 4.3.6) | Schema definition, validation, inference | Already in use; zero-runtime-overhead types via `z.infer`; compatible with @hono/zod-openapi |
+**Confidence:** HIGH — Official shadcn/ui monorepo docs verified; Tailwind v4 support confirmed in shadcn changelog.
 
-**Pattern:** This package exports Zod schemas for every API request/response shape. Both `apps/api` and `apps/web` depend on it. The Go CLI uses the JSON wire format — schemas serve as the authoritative contract documentation. No runtime dependency on Hono or TanStack.
+### Why a Shared Package
 
-**Exports pattern:** Use TypeScript `exports` field in `package.json` with proper source/types entries for clean imports across workspaces.
+Both `apps/web` and `apps/admin` need shadcn components. Without `packages/ui`:
+- Components diverge between apps
+- shadcn CLI installs duplicate copies with duplicate Radix deps
+- Theming (CSS variables) must be maintained twice
 
-**Confidence:** HIGH.
+With `packages/ui`:
+- Single source of truth for all primitives
+- `shadcn add` in `packages/ui` propagates to both apps automatically
+- Tailwind v4 CSS source scanning handles class discovery across the monorepo
+
+### Package Structure
+
+```
+packages/ui/
+  package.json          # @kubeasy/ui
+  tsconfig.json         # extends @kubeasy/typescript-config/react.json
+  components.json       # shadcn CLI config pointing at packages/ui paths
+  src/
+    components/         # shadcn primitives (button, card, dialog, etc.)
+    lib/
+      utils.ts          # cn() helper (clsx + tailwind-merge)
+    styles/
+      globals.css       # CSS variables (@theme block, OKLCH tokens)
+```
+
+### package.json (packages/ui)
+
+```json
+{
+  "name": "@kubeasy/ui",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./components/*": "./src/components/*.tsx",
+    "./lib/*": "./src/lib/*.ts",
+    "./styles/*": "./src/styles/*.css",
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "0.577.0",
+    "tailwind-merge": "3.5.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@kubeasy/typescript-config": "workspace:*",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "tailwindcss": "4.2.2",
+    "typescript": "5.9.3"
+  }
+}
+```
+
+**No build step.** Apps import TypeScript source directly (same JIT pattern as `packages/api-schemas`). No tsc emit needed in the package itself.
+
+### components.json (packages/ui)
+
+```json
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@kubeasy/ui/components",
+    "utils": "@kubeasy/ui/lib/utils",
+    "ui": "@kubeasy/ui/components",
+    "lib": "@kubeasy/ui/lib",
+    "hooks": "@kubeasy/ui/hooks"
+  }
+}
+```
+
+### tsconfig.json (packages/ui)
+
+```json
+{
+  "extends": "@kubeasy/typescript-config/react.json",
+  "compilerOptions": {
+    "paths": {
+      "@kubeasy/ui/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
+}
+```
+
+### How Apps Consume packages/ui
+
+**In apps/web and apps/admin:**
+
+1. Add to `package.json`: `"@kubeasy/ui": "workspace:*"`
+2. In each app's `vite.config.ts`, add path alias:
+   ```ts
+   resolve: {
+     alias: { "@kubeasy/ui": path.resolve(__dirname, "../../packages/ui/src") }
+   }
+   ```
+3. Import CSS in app root: `import "@kubeasy/ui/styles/globals.css"`
+4. Import components: `import { Button } from "@kubeasy/ui/components/button"`
+
+**Tailwind v4 scanning:** The packages/ui CSS file should use `@source` directives to scan across the monorepo:
+```css
+@import "tailwindcss";
+@source "../../apps/web/src";
+@source "../../apps/admin/src";
+@source "../ui/src";
+```
+
+**Migration from apps/web's existing ui/:** Move `src/components/ui/*.tsx` → `packages/ui/src/components/`. Remove the `@radix-ui/*` deps from `apps/web/package.json` (they move to `packages/ui/package.json`). Keep `apps/web`'s `components.json` only if you want app-specific components; otherwise remove it and update path aliases.
+
+### Radix UI Dependencies
+
+Move all `@radix-ui/*` packages from `apps/web` to `packages/ui`. Current list (from apps/web/package.json):
+
+| Package | Version |
+|---------|---------|
+| @radix-ui/react-avatar | 1.1.11 |
+| @radix-ui/react-dialog | 1.1.15 |
+| @radix-ui/react-dropdown-menu | 2.1.16 |
+| @radix-ui/react-label | 2.1.8 |
+| @radix-ui/react-navigation-menu | 1.2.14 |
+| @radix-ui/react-select | 2.2.6 |
+| @radix-ui/react-separator | 1.1.8 |
+| @radix-ui/react-slot | 1.2.4 |
+| @radix-ui/react-switch | 1.2.6 |
+
+Add additional Radix packages to `packages/ui` as new components are needed.
 
 ---
 
-### packages/jobs — BullMQ Job Definitions
+## New: apps/admin — Vite + React SPA
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| bullmq | 5.71.x (latest: 5.71.0) | Job queue definitions and types | TypeScript-native, Redis-backed; actively maintained (published 6 days ago); purpose-built for Node.js |
-| ioredis | 5.x | Redis connection client | Required by BullMQ — BullMQ is built on ioredis's interface; the official `redis` package is incompatible with BullMQ |
+**Confidence:** HIGH — Vite 8.x and @vitejs/plugin-react 6.x are already installed in apps/web; identical versions for apps/admin.
 
-**Architecture:** `packages/jobs` defines job types (interfaces), queue names, and job schemas. It does NOT import from `apps/api`. `apps/api` imports from `packages/jobs` to dispatch jobs. Workers (currently in `apps/api`, future: `apps/worker`) import the same package to process jobs. This one-directional dependency allows future extraction of workers without API refactoring.
+### Why Client-Side Only (No SSR)
 
-**Redis connection sharing:** BullMQ recommends separate ioredis connections per Queue/Worker instance (blocking commands conflict). For SSE pub/sub, use a third dedicated connection. Total: 1 BullMQ queue connection + 1 BullMQ worker connection + 1 SSE subscriber connection + 1 general Redis connection = 4 connections. This is normal and expected.
+Admin is internal tooling, not public-facing. No SEO requirements. No SSR needed. Pure Vite SPA keeps the build simple and Railway deployment trivial (static files or a simple static server).
 
-**Confidence:** HIGH — BullMQ is the established Node.js queue solution; ioredis requirement is documented.
+### Core Stack
 
----
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| vite | 8.0.2 | Build tool + dev server | Same version as apps/web; zero new dependency risk; Rolldown-based, fast |
+| @vitejs/plugin-react | 6.0.1 | React HMR + JSX transform | Same version as apps/web; Oxc-based (no Babel), smaller install |
+| react | 19.2.4 | UI framework | Same version as apps/web; workspace consistency |
+| react-dom | 19.2.4 | DOM rendering | Same as above |
+| @tanstack/react-router | 1.168.3 | Client-side routing | Type-safe, file-based; reuses the router already used in apps/web; avoids adding React Router |
+| @tanstack/react-query | 5.95.2 | Data fetching / server state | Already used in apps/web; consistent patterns across apps |
+| @kubeasy/ui | workspace:* | Shared components | The whole point of packages/ui |
+| better-auth | 1.5.6 | Auth client | Same instance as apps/web; admin must authenticate against the same API |
+| tailwindcss | 4.2.2 | Styling | Same version as apps/web |
 
-### Database Layer
+### Supporting Libraries
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| drizzle-orm | 0.45.x (latest: 0.45.1) | TypeScript ORM | Already in use; schema stays unchanged (migration constraint); excellent type inference |
-| drizzle-kit | 0.31.x | Schema migration tooling | Paired with drizzle-orm |
-| postgres (postgres.js) | 3.x | PostgreSQL driver | Recommended by Drizzle for non-serverless Node.js; faster than `pg` for most workloads; prepared statements by default |
+| Library | Version | Purpose | Notes |
+|---------|---------|---------|-------|
+| @kubeasy/api-schemas | workspace:* | Shared types | Reuse existing contracts |
+| lucide-react | 0.577.0 | Icons | In packages/ui; no separate install needed |
+| sonner | 2.0.7 | Toast notifications | Same version as apps/web; consistent UX |
+| zod | 4.3.6 | Form validation | Same version as workspace |
 
-**Migration note:** Current stack uses `@neondatabase/serverless` (Neon-optimized HTTP client for Vercel). For Railway/long-lived Node.js, switch to `postgres` (postgres.js). Drizzle supports both with identical schema API — only `drizzle()` constructor call changes. Schema itself is untouched.
+### Package Structure
 
-**Do NOT use:** `@neondatabase/serverless` in the new stack. It wraps HTTP transport optimized for Vercel's serverless runtime. In a long-lived Node.js process, use the native TCP driver.
+```
+apps/admin/
+  package.json        # @kubeasy/admin
+  tsconfig.json       # extends @kubeasy/typescript-config/react.json
+  vite.config.ts
+  index.html
+  src/
+    main.tsx          # Entry point (no server.tsx — client-only)
+    routes/           # TanStack Router file-based routes
+    components/       # Admin-specific components
+    lib/              # auth-client, query-client
+    styles/
+      globals.css     # imports @kubeasy/ui/styles/globals.css
+```
 
-**Confidence:** HIGH.
+### vite.config.ts (apps/admin)
 
----
+```typescript
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import path from "node:path";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 
-### Authentication
+export default defineConfig({
+  plugins: [tanstackRouter(), react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "@kubeasy/ui": path.resolve(__dirname, "../../packages/ui/src"),
+    },
+  },
+  server: {
+    port: 5173,
+  },
+});
+```
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| better-auth | 1.5.5 | Authentication framework | Already in use; Hono integration is first-class (no adapter needed — Hono uses Web Standard Request/Response); OAuth, sessions, API keys all preserved |
-| @better-auth/drizzle-adapter | 1.5.5 | Drizzle ORM adapter | Already in use; works identically in Hono context |
+**Note:** `@tailwindcss/vite` is required (same as apps/web). Add it as a devDependency.
 
-**Migration:** Move `lib/auth.ts` from Next.js into `apps/api`. Mount handler at `app.on(["POST", "GET"], "/api/auth/*", c => auth.handler(c.req.raw))`. Add CORS middleware before auth routes. Inject session into Hono context via middleware for downstream route access. `apps/web` uses `better-auth` client with `baseURL` pointing to `apps/api`.
+### Turbo Integration
 
-**Confidence:** HIGH — official Hono integration documented by Better Auth.
+Add to turbo.json `outputs`:
+```json
+"outputs": [".next/**", "!.next/cache/**", "dist/**", ".output/**"]
+```
 
----
+`apps/admin` builds to `dist/` (standard Vite SPA output). No `.output/` because no Nitro.
 
-### Observability — OpenTelemetry
+### Railway Deployment
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| @opentelemetry/sdk-node | 0.213.0 | Unified Node.js SDK (traces + metrics + logs) | Single entry point; auto-instruments http, pg, redis; SDK 2.x released Feb 2025 |
-| @opentelemetry/api | 1.x | OTel API (stable semver separate from SDK) | Stable API contract for instrumenting application code |
-| @opentelemetry/exporter-trace-otlp-http | 0.213.0 | OTLP HTTP trace exporter | Sends to local OTel Collector via OTLP/HTTP; collector handles final destination |
-| @opentelemetry/exporter-metrics-otlp-http | 0.213.0 | OTLP HTTP metrics exporter | Same pattern |
-| @opentelemetry/exporter-logs-otlp-http | 0.213.0 | OTLP HTTP logs exporter | Replaces direct PostHog log export |
-| @opentelemetry/auto-instrumentations-node | latest | Auto-instrumentation for common Node.js libs | Instruments http, net, dns, pg, ioredis, bullmq automatically |
-| otelcol (docker image) | latest | OpenTelemetry Collector | Receives OTLP from all services; exports to Grafana Cloud/Honeycomb/etc; runs in docker-compose and Railway |
+Three options for serving the static SPA on Railway:
 
-**SDK version note:** OTel JS SDK 2.x uses a split versioning scheme: stable packages are `>=2.0.0`, unstable (pre-GA) packages are `>=0.200.0`. The `sdk-node` package at `0.213.0` is the unstable channel — this is correct and expected, not a downgrade. The API package (1.x) is separately versioned and stable.
+**Option A (recommended): Caddy serves the admin static files directly.**
+The `apps/caddy` service serves `dist/` from apps/admin at the `/admin` path prefix. Admin SPA files are baked into the Caddy Docker image at build time.
 
-**Initialization pattern:** Create `apps/api/src/instrumentation.ts`, import and start `NodeSDK` before any other imports. In Node.js 18+, use `--import ./instrumentation.js` flag or register via `register()`. Configure exporters to point to `http://localhost:4318` (OTel Collector OTLP/HTTP endpoint) in development.
+**Option B: Separate static service.**
+Add a dedicated Railway service for apps/admin using `caddy:2-alpine` or `nginx:alpine` as the base. Simplest isolation but more Railway services.
 
-**Replacing PostHog OTel:** Remove `@opentelemetry/exporter-logs-otlp-http` pointing to PostHog. Keep PostHog for product analytics (posthog-js, posthog-node) but route operational telemetry through the Collector. PostHog analytics events (feature flags, user behavior) remain separate from observability signals.
+**Option C: TanStack Start serves admin.**
+Not recommended — couples the admin app to apps/web's SSR infrastructure.
 
-**Confidence:** MEDIUM — SDK 2.x is recent (Feb 2025); migration guide exists but breaking changes require validation. The `0.2xx` versioning for unstable packages can be confusing but is intentional.
-
----
-
-### Infrastructure
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Railway | — | Production hosting | Native support for Turborepo monorepos; supports long-lived processes, TCP services, private networking; PostgreSQL and Redis as plugins; Watch Paths for selective deployment triggers |
-| PostgreSQL 16 | — | Primary database | Via Railway plugin; same schema, no changes |
-| Redis 7.x | — | Cache, pub/sub, BullMQ backing | Via Railway plugin; replace Upstash entirely |
-| Docker Compose | — | Local development | PostgreSQL + Redis + OTel Collector; ensures parity with production |
-
-**Railway monorepo pattern:** Set Root Directory per service (e.g., `apps/api`), or use `turbo prune --scope=@kubeasy/api` in a Dockerfile for pruned builds. Use Watch Paths to trigger `apps/api` deployment only when `apps/api/**` or `packages/**` changes.
-
-**Confidence:** MEDIUM — Railway monorepo support is documented but has known rough edges (environment variable access during build); verify Watch Paths behavior during deployment phase.
-
----
-
-### Development Tooling (Preserved)
-
-| Tool | Version | Purpose | Notes |
-|------|---------|---------|-------|
-| TypeScript | 5.9.x | Type checking | Strict mode; each package has its own tsconfig extending shared base |
-| Biome | 2.4.x | Lint + format | Already in use; configure at repo root with per-package overrides |
-| Vitest | 4.x | Unit testing | Already in use; works in monorepo with shared config |
-| Husky + lint-staged | 9.x / 16.x | Pre-commit hooks | Already in use; hooks run at repo root |
-| knip | 5.x | Dead code detection | Already in use; configure workspace-aware |
-
----
-
-## Alternatives Considered
-
-| Recommended | Alternative | Why Not |
-|-------------|-------------|---------|
-| TanStack Start | Next.js 16 (keep current) | Vendor lock to Vercel; tRPC coupling; entire migration rationale |
-| TanStack Start | Remix / React Router 7 | Less SSG-native; Shopify stewardship uncertainty; smaller ecosystem for our use case |
-| Hono | Express 5 / Fastify | Express: no native SSE helpers, older patterns; Fastify: heavier, plugin ecosystem overhead for this scope |
-| Hono | ElysiaJS | Bun-first; less Node.js ecosystem maturity; team unfamiliarity |
-| postgres.js | node-postgres (pg) | Both are valid; postgres.js has slightly better TypeScript ergonomics and performance; Drizzle recommends both equally |
-| ioredis | node-redis (official) | BullMQ is architecturally incompatible with node-redis; not a preference — a hard requirement |
-| BullMQ | Inngest / Trigger.dev | External SaaS; contradicts self-hosted architecture goal; Railway + Redis makes BullMQ simpler |
-| OTel Collector | Direct export to Grafana/Honeycomb | Collector provides vendor flexibility, retry/batching, and a single configuration point; avoids SDK changes when switching observability backend |
+Use Option A for simplicity in this milestone.
 
 ---
 
-## What NOT to Use
+## New: apps/caddy — Railway Reverse Proxy
+
+**Confidence:** MEDIUM-HIGH — Railway Caddy templates confirmed active (March 2026); private networking DNS pattern verified; Caddyfile multi-handle syntax is standard Caddy 2 docs.
+
+### Why Caddy
+
+In production, `kubeasy.dev` currently routes:
+- `kubeasy.dev` → apps/web (TanStack Start SSR)
+- `api.kubeasy.dev` → apps/api (Hono)
+
+v1.1 adds `/admin` path under `kubeasy.dev`. This requires a routing layer in front of web + admin. Options:
+
+| Option | Verdict |
+|--------|---------|
+| Caddy as Railway service | **Use this** — lightweight, Railway-native, Caddyfile is simple |
+| Nginx | Works but heavier; Caddy has automatic HTTPS and simpler config |
+| Railway custom domains per service | Can't share a domain across services without a proxy |
+| Vercel Edge / Cloudflare Workers | Contradicts self-hosted Railway goal |
+
+### Caddy Version
+
+Use `caddy:2-alpine` Docker image (currently Caddy 2.11.2 as of March 2026). Pin to `caddy:2` for auto-patch updates within v2.
+
+### Service Structure
+
+```
+apps/caddy/
+  Dockerfile
+  Caddyfile
+```
+
+### Caddyfile
+
+```caddyfile
+{
+  admin off
+}
+
+kubeasy.dev {
+  handle /api/* {
+    reverse_proxy {$API_HOST}:{$API_PORT}
+  }
+
+  handle /admin* {
+    reverse_proxy {$ADMIN_HOST}:{$ADMIN_PORT}
+  }
+
+  handle {
+    reverse_proxy {$WEB_HOST}:{$WEB_PORT}
+  }
+}
+```
+
+### Railway Environment Variables
+
+Railway private networking uses DNS names in the format `<service-name>.railway.internal`. Set these as Railway reference variables in the `caddy` service:
+
+```
+API_HOST=${{api.RAILWAY_PRIVATE_DOMAIN}}
+API_PORT=3001
+WEB_HOST=${{web.RAILWAY_PRIVATE_DOMAIN}}
+WEB_PORT=3000
+ADMIN_HOST=${{admin.RAILWAY_PRIVATE_DOMAIN}}
+ADMIN_PORT=5173
+```
+
+**If admin is baked into Caddy (Option A above):** Replace the `/admin*` upstream with a `file_server` block pointing to the compiled SPA files. The environment variable for admin host/port is not needed.
+
+### Dockerfile (apps/caddy — Option A, static files baked in)
+
+```dockerfile
+FROM node:24-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN pnpm install --frozen-lockfile
+RUN pnpm turbo build --filter=@kubeasy/admin
+
+FROM caddy:2-alpine
+COPY --from=builder /app/apps/admin/dist /srv/admin
+COPY apps/caddy/Caddyfile /etc/caddy/Caddyfile
+```
+
+```caddyfile
+{
+  admin off
+}
+
+kubeasy.dev {
+  handle /api/* {
+    reverse_proxy {$API_HOST}:{$API_PORT}
+  }
+
+  handle /admin* {
+    uri strip_prefix /admin
+    root * /srv/admin
+    try_files {path} /index.html
+    file_server
+  }
+
+  handle {
+    reverse_proxy {$WEB_HOST}:{$WEB_PORT}
+  }
+}
+```
+
+**SPA routing:** `try_files {path} /index.html` is required so that direct navigation to `/admin/users` doesn't 404 — it serves `index.html` and lets TanStack Router handle the route client-side.
+
+---
+
+## What NOT to Add
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `@neondatabase/serverless` | HTTP transport designed for serverless/Vercel edge; unnecessary overhead in long-lived Node.js; drops when used with native TCP poolers | `postgres` (postgres.js) via drizzle |
-| `@upstash/redis` | REST-based Redis; no pub/sub; no BullMQ compatibility; serverless-only value | `ioredis` |
-| `@upstash/realtime` | Proprietary Upstash streaming; being fully replaced by SSE | Hono `streamSSE` + ioredis pub/sub |
-| `@tanstack/start` (old package) | Stale (9 months old, last version 1.120.20); the active package is `@tanstack/react-start` | `@tanstack/react-start` |
-| `node-redis` (official redis package) | Architecturally incompatible with BullMQ; BullMQ requires ioredis connection interface | `ioredis` |
-| tRPC | Being removed from the stack; couples web/api at the framework level; not consumable by Go CLI | `@hono/zod-openapi` + `@kubeasy/api-schemas` |
-| Vercel Analytics | Vercel-specific; being removed with Vercel departure | Keep PostHog for product analytics |
+| `@vercel/microfrontends` | Overrides Turborepo's built-in proxy; introduces Vercel dependency for a self-hosted app | `microfrontends.json` with Turborepo built-in |
+| Module Federation (Webpack) | Overkill for 2 apps; no code sharing at runtime needed; adds Webpack to a Vite monorepo | Shared `packages/ui` imported at build time |
+| `single-spa` | Framework for runtime micro-frontends; this project needs path-based routing, not component-level federation | Path routing via Caddy (prod) + Turborepo proxy (dev) |
+| React Router v6/v7 in apps/admin | Introduces a second routing library when @tanstack/react-router is already in the workspace | `@tanstack/react-router` |
+| Separate Tailwind config in apps/admin | Tailwind v4 does not use `tailwind.config.js` — config lives in CSS; separate configs cause token drift | Single `globals.css` in `packages/ui` imported by each app |
+| Build step in packages/ui | Adds tsc emit complexity; JIT import pattern (same as api-schemas) is simpler | `"type": "module"` + direct TS source exports |
+| nginx for apps/admin | Heavier than Caddy; separate Railway service wastes resources | Bake static files into the Caddy service |
 
 ---
 
 ## Version Compatibility
 
-| Package | Requires | Notes |
-|---------|----------|-------|
-| bullmq 5.x | ioredis 5.x | Hard dependency; do not substitute node-redis |
-| better-auth 1.5.x | hono 4.x | Compatible; uses Web Standard Request/Response interface |
-| drizzle-orm 0.45.x | postgres.js 3.x OR pg 8.x | Either driver works; schemas are driver-agnostic |
-| @opentelemetry/sdk-node 0.213.x | Node.js >=18.19.0 OR >=20.6.0 | SDK 2.x dropped Node 14/16; current stack uses Node 24 — no issue |
-| @tanstack/react-start 1.166.x | React 19.x | TanStack Start targets React 19; aligned with current React version |
-| turbo 2.8.x | pnpm 9+ or 10+ | Works with pnpm 10.32.x currently in use |
+| Package | Version | Compatible With | Notes |
+|---------|---------|-----------------|-------|
+| vite | 8.0.2 | @vitejs/plugin-react 6.0.1 | Already confirmed in apps/web |
+| @vitejs/plugin-react | 6.0.1 | react 19.x, vite 8.x | Oxc transform, no Babel dependency |
+| @tanstack/react-router | 1.168.3 | react 19.x, vite 8.x | Already used in apps/web |
+| tailwindcss | 4.2.2 | @tailwindcss/vite 4.2.2 | CSS-first config; no tailwind.config.js |
+| caddy | 2.11.2 (image tag: 2-alpine) | Railway Docker runtime | Pin to `caddy:2` for patch auto-updates |
+| turbo | 2.8.17 | microfrontends.json built-in | microfrontends feature added in Turborepo 2.6 |
 
 ---
 
-## Installation Sketch
+## Installation
 
 ```bash
-# Root
-pnpm add -D turbo typescript @biomejs/biome
+# packages/ui — new package
+# (create package.json manually, then:)
+cd packages/ui
+pnpm add class-variance-authority clsx lucide-react tailwind-merge
+pnpm add -D tailwindcss @types/react @types/react-dom typescript
 
-# apps/api
-pnpm add hono @hono/node-server @hono/zod-openapi \
-  better-auth @better-auth/drizzle-adapter \
-  drizzle-orm postgres ioredis bullmq \
-  @opentelemetry/sdk-node @opentelemetry/api \
-  @opentelemetry/exporter-trace-otlp-http \
-  @opentelemetry/exporter-metrics-otlp-http \
-  @opentelemetry/exporter-logs-otlp-http \
-  @opentelemetry/auto-instrumentations-node \
-  zod
+# Move @radix-ui/* from apps/web to packages/ui
+# (remove from apps/web/package.json, add to packages/ui/package.json)
+pnpm add @radix-ui/react-avatar @radix-ui/react-dialog \
+  @radix-ui/react-dropdown-menu @radix-ui/react-label \
+  @radix-ui/react-navigation-menu @radix-ui/react-select \
+  @radix-ui/react-separator @radix-ui/react-slot @radix-ui/react-switch
 
-# apps/web
-pnpm add @tanstack/react-start @tanstack/react-router \
-  @tanstack/react-query react react-dom \
-  better-auth zod
+# apps/admin — new app
+cd apps/admin
+pnpm add react react-dom @tanstack/react-router @tanstack/react-query \
+  better-auth sonner zod \
+  @kubeasy/ui@workspace:* @kubeasy/api-schemas@workspace:*
+pnpm add -D vite @vitejs/plugin-react @tailwindcss/vite tailwindcss \
+  @tanstack/router-plugin typescript @types/react @types/react-dom \
+  @kubeasy/typescript-config@workspace:*
 
-# packages/api-schemas
-pnpm add zod
+# apps/web — add workspace dep on packages/ui, remove migrated @radix-ui/* deps
+cd apps/web
+pnpm add @kubeasy/ui@workspace:*
+# (remove individual @radix-ui/* from package.json after migration)
 
-# packages/jobs
-pnpm add bullmq ioredis zod
+# No new packages needed at repo root for microfrontends proxy
+# Turborepo 2.8.17 already has it built-in
 ```
+
+---
+
+## Alternatives Considered
+
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| Turborepo built-in microfrontends proxy | http-proxy-middleware in a custom script | When not using Turborepo, or when needing conditional middleware logic beyond path routing |
+| packages/ui JIT (no build step) | Build step with tsc + declarations | When packages/ui is published to npm or consumed outside the monorepo |
+| Caddy on Railway | Nginx on Railway | Either works; Caddy is smaller, has automatic HTTPS, simpler config syntax |
+| @tanstack/react-router in apps/admin | React Router v7 | If the team is more familiar with React Router and the project doesn't use TanStack Router elsewhere |
+| Static files baked into Caddy image | Separate Railway service for admin | When admin has its own deployment cadence independent of the proxy service |
 
 ---
 
 ## Sources
 
-- [Hono npm releases](https://github.com/honojs/hono/releases) — v4.12.8 confirmed current
-- [Hono Node.js adapter](https://github.com/honojs/node-server) — v1.19.11 confirmed
-- [Hono Node.js getting started](https://hono.dev/docs/getting-started/nodejs) — Node.js >=18 requirement
-- [Better Auth Hono integration](https://better-auth.com/docs/integrations/hono) — Pattern verified HIGH confidence
-- [TanStack Start overview](https://tanstack.com/start/latest/docs/framework/react/overview) — RC status, SSG support
-- [@tanstack/react-start npm](https://www.npmjs.com/package/@tanstack/react-start) — v1.166.11 active package
-- [TanStack Start v1 RC announcement](https://tanstack.com/blog/announcing-tanstack-start-v1) — September 2025 RC
-- [BullMQ npm](https://www.npmjs.com/package/bullmq) — v5.71.0 verified
-- [BullMQ connections docs](https://docs.bullmq.io/guide/connections) — ioredis requirement confirmed
-- [OTel JS SDK 2.0 announcement](https://opentelemetry.io/blog/2025/otel-js-sdk-2-0/) — February 2025 release
-- [@opentelemetry/sdk-node npm](https://www.npmjs.com/package/@opentelemetry/sdk-node) — v0.213.0 confirmed
-- [Turborepo 2.7 blog](https://turborepo.dev/blog/turbo-2-7) — v2.8.x current
-- [Turborepo structuring docs](https://turborepo.dev/docs/crafting-your-repository/structuring-a-repository) — apps/ + packages/ pattern
-- [Railway monorepo guide](https://docs.railway.com/guides/monorepo) — Watch Paths, root directory per service
-- [Turborepo Docker guide](https://turborepo.dev/docs/guides/tools/docker) — `turbo prune` pattern
-- [Drizzle PostgreSQL docs](https://orm.drizzle.team/docs/get-started-postgresql) — postgres.js driver recommended
-- [ioredis vs redis comparison](https://docs.bullmq.io/guide/connections) — BullMQ ioredis requirement
-- [Hono @hono/zod-openapi docs](https://hono.dev/examples/zod-openapi) — RPC type-safety pattern
+- [Turborepo Microfrontends docs](https://turborepo.dev/docs/guides/microfrontends) — built-in proxy, microfrontends.json structure, `@vercel/microfrontends` override behavior — HIGH confidence
+- [Turborepo 2.6 blog](https://turborepo.dev/blog/turbo-2-6) — when microfrontends feature was introduced — HIGH confidence
+- [shadcn/ui Monorepo docs](https://ui.shadcn.com/docs/monorepo) — components.json structure, CLI path behavior — HIGH confidence
+- [shadcn/ui Tailwind v4 docs](https://ui.shadcn.com/docs/tailwind-v4) — @theme inline, @source directives — HIGH confidence
+- [Turborepo shadcn/ui guide](https://turborepo.dev/docs/guides/tools/shadcn-ui) — official integration guide — HIGH confidence
+- [Vite 8.0 announcement](https://vite.dev/blog/announcing-vite8) — current stable Vite version — HIGH confidence
+- [@vitejs/plugin-react npm](https://www.npmjs.com/package/@vitejs/plugin-react) — v6.0.1 current, Oxc-based — HIGH confidence
+- [Railway Caddy reverse proxy templates](https://railway.com/deploy/caddy-backend-proxy) — confirmed active March 2026 — MEDIUM confidence (Railway template docs, not primary Railway docs)
+- [Caddy reverse_proxy directive docs](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy) — handle routing, try_files for SPA — HIGH confidence
+- [Railway private networking docs](https://docs.railway.com/networking/private-networking/how-it-works) — `<service>.railway.internal` DNS pattern — HIGH confidence
+- [Caddy Docker Hub](https://hub.docker.com/_/caddy) — caddy:2-alpine current (2.11.2) — HIGH confidence
+- apps/web/package.json (this repo) — confirmed current versions for vite, @vitejs/plugin-react, react, tailwindcss, shadcn, @radix-ui/* — HIGH confidence
 
 ---
 
-*Stack research for: Kubeasy monorepo refactoring (Turborepo + Hono + TanStack Start + BullMQ + OTel)*
-*Researched: 2026-03-18*
+*Stack research for: Kubeasy v1.1 — micro-frontend proxy, packages/ui, apps/admin, Caddy Railway*
+*Researched: 2026-03-24*

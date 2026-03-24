@@ -1,8 +1,21 @@
 # Feature Research
 
-**Domain:** Hono REST API + Tanstack Start monorepo — migration from Next.js 15 + tRPC
-**Researched:** 2026-03-18
-**Confidence:** HIGH (patterns verified via official docs and multiple current sources)
+**Domain:** Micro-frontend monorepo expansion — shared UI library, admin SPA, production proxy
+**Milestone:** v1.1 — UI Parity + Micro-Frontend + Admin
+**Researched:** 2026-03-24
+**Confidence:** HIGH (Turborepo/shadcn/Caddy verified via official docs and current sources)
+
+---
+
+## Context
+
+This document covers five new feature areas being added to an existing Turborepo monorepo that already has `apps/api` (Hono) and `apps/web` (TanStack Start). The v1.0 architecture and feature set are complete and deployed. This milestone adds:
+
+1. Turborepo microfrontend dev proxy (unified localhost routing)
+2. Shared shadcn/ui package (`packages/ui`)
+3. Admin SPA (`apps/admin` — Vite + React)
+4. Caddy reverse proxy on Railway (production multi-app routing)
+5. UI parity audit methodology (apps/web vs ../website visual diff)
 
 ---
 
@@ -10,130 +23,134 @@
 
 ### Table Stakes (Users Expect These)
 
-These are the architectural capabilities that any Hono + Tanstack Start monorepo must implement correctly. Missing or doing these wrong = broken architecture that requires rewrites.
+Features required for the milestone to be considered complete. Missing these means the architecture is broken or incomplete.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Shared Zod schema package (`@kubeasy/api-schemas`) | REST contracts without tRPC require an explicit source of truth for req/res shapes; both TS frontend and Go CLI must agree | MEDIUM | Schemas in a standalone package — no Hono-specific imports, plain Zod. Go CLI reads OpenAPI or raw JSON shapes. Frontend uses `z.infer<>` for types. |
-| CORS + credentials configuration on Hono | Cross-origin frontend (separate domain/port) requires explicit `Access-Control-Allow-Origin` and `credentials: true` | LOW | `@hono/cors` middleware must be registered BEFORE auth handler. `credentials: "include"` on all client fetches. Must list trusted origins explicitly. |
-| Better Auth mounted on Hono (`/api/auth/*`) | Auth is a Hono responsibility; frontend consumes via `createAuthClient` pointing at API origin | MEDIUM | `app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))`. Session middleware extracts user into `c.var` for downstream routes. |
-| Hono session middleware for protected routes | All protected routes need `ctx.user` / `ctx.session` available without repeating extraction logic | LOW | Thin middleware: `auth.api.getSession(headers)` → `c.set("user", session.user)`. Reuse pattern from existing tRPC `privateProcedure`. |
-| API key validation middleware for CLI routes | CLI submits challenge results via API key (Bearer header), not session cookie | LOW | `better-auth` API key plugin: `auth.api.verifyApiKey({ body: { key } })`. Middleware extracts `Authorization: Bearer <key>`, validates, injects user. |
-| Tanstack Query data fetching in Tanstack Start | Frontend data layer requires useQuery/prefetch patterns — no tRPC, direct HTTP fetch to Hono API | MEDIUM | `queryOptions` factories wrapping `fetch()` calls. Server prefetch via `Route.loader`. Client hydration via Tanstack Router dehydration. |
-| Static prerendering for marketing/blog routes | Landing pages and blog posts must be prerendered at build time (no runtime SSR cost) | MEDIUM | Tanstack Start `prerender` config per route + `crawlLinks: true` for linked pages. Blog slugs listed in prerender options. ISR available for periodic refresh. |
-| SSE endpoint on Hono (`/api/sse/validation/:id`) | Real-time validation status updates from CLI submission require server push without WebSocket overhead | MEDIUM | `streamSSE` from `hono/sse`. Redis `SUBSCRIBE` per channel derived from `userId:challengeSlug`. On connect: subscribe; on disconnect: unsubscribe + cleanup. |
-| EventSource + query invalidation in Tanstack Query | Frontend must receive SSE events and reflect validation status update without polling | MEDIUM | `useEffect` → `new EventSource(url, { withCredentials: true })`. On message: `queryClient.invalidateQueries(["validationStatus", slug])`. `staleTime: Infinity` on query to prevent redundant fetches. |
-| Turborepo pipeline with correct task ordering | `build`, `typecheck`, `dev` tasks must respect dependency graph (`api-schemas` built before consumers) | LOW | `dependsOn: ["^build"]` in turbo.json ensures package builds before app builds. Separate `dev` pipeline for parallel app startup. |
+| Unified dev proxy (`turbo dev` routes all apps) | Devs must test admin + web + api together without CORS/cookie hacks | LOW | Turborepo built-in `microfrontends.json` + `turbo dev`. Default port 3024. One config file at monorepo root. No extra packages needed. |
+| `packages/ui` with shadcn components | Both `apps/web` and `apps/admin` share primitive components — duplication without a shared package causes divergence | MEDIUM | `shadcn init` monorepo mode creates `packages/ui` with `components.json`. Apps import `@kubeasy/ui/components/button`. Single Tailwind v4 CSS file in the package, apps `@import` it. |
+| Admin route guard (role check) | `/admin/*` must redirect non-admins — same pattern as old Next.js admin layout | LOW | Client-side check via `authClient.useSession()`. Redirect to `/` if `session.user.role !== "admin"`. API routes already have `requireAdmin` middleware. No SSR needed for admin SPA. |
+| Admin challenge visibility toggle | Core admin feature already exists in old Next.js admin — must be migrated | MEDIUM | Switch component (shadcn) + `PATCH /api/admin/challenges/:slug` endpoint. Optimistic update + rollback on error (TanStack Query pattern). Existing Hono route at `/api/admin` exists but needs challenge enable/disable endpoint. |
+| Admin user management (list + role/ban) | Exists in old website — must be migrated | MEDIUM | Paginated user table with role selector and ban toggle. Existing API: `GET /api/user` (admin list), `PATCH /api/user/:id` (role/ban). Confirm with API route audit before building UI. |
+| Admin stats cards (challenge + user counts) | Exists in old website — dashboard-style overview | LOW | Two stat card components reusing `@kubeasy/ui/components/card`. Fetch from existing API endpoints. |
+| Production routing under `kubeasy.dev` | All three apps must be reachable under one domain in production — `kubeasy.dev` (web), `kubeasy.dev/admin` (admin), `api.kubeasy.dev` (api already separate) | MEDIUM | Caddy reverse proxy as a Railway service. Caddyfile routes `/admin/*` to admin service, `/*` to web service. Internal Railway hostnames (`*.railway.internal`). |
+| UI parity: visual match to old Next.js site | v1.1 goal is visual restoration — every page in `apps/web` must match `../website` pixel-for-pixel in layout, typography, spacing | HIGH | Component-by-component audit. Identify divergence, correct in `apps/web`. Not a feature to build — a quality gate to pass. |
 
 ### Differentiators (Kubeasy-Specific Patterns)
 
-These features are specific to what Kubeasy needs — not every Hono + Tanstack Start project builds these.
+Features that are specific choices for this project and define the quality of the implementation.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| CLI-compatible REST contract (`@kubeasy/api-schemas`) | Go CLI (`kubeasy-cli`) consumes the same endpoint shapes as the TS frontend — shared schemas enforce this contract without OpenAPI codegen | HIGH | Zod schemas in `packages/api-schemas` define request/response shapes. No Hono RPC (RPC client can't be consumed by Go). OpenAPI generation via `@hono/zod-openapi` optional but valuable for Go. CLI submit endpoint: `POST /api/challenges/:slug/submit`. |
-| Redis pub/sub for SSE fan-out | CLI submission triggers a Redis `PUBLISH` on channel `validation:{userId}:{slug}`; Hono SSE endpoint subscribes and forwards to browser — decouples submission processing from realtime delivery | HIGH | Requires `ioredis` subscriber per SSE connection. Must clean up subscription on client disconnect (abort signal). Pattern scales across multiple API instances on Railway. |
-| BullMQ job definitions in isolated package | `packages/jobs` defines queue names + job payload types; `apps/api` dispatches but doesn't implement workers — future extraction to dedicated worker service requires zero API changes | MEDIUM | Package exports: `queues` object, typed `JobPayload` union, `createQueue(name, redis)` factory. No BullMQ `Worker` class in the package — only `Queue` and `Job` types. API imports `@kubeasy/jobs`, worker app will too. |
-| Hybrid rendering strategy in Tanstack Start | Marketing/blog routes prerendered (SSG), challenge pages SSR with data prefetch, validation status fully client-driven via SSE | HIGH | Route-level `ssr` flag and `prerender` option. Challenge detail: `ssr: "data-only"` or full SSR with `Route.loader` prefetch. Real-time status: client-only component with `staleTime: Infinity`. |
-| Objective enrichment on submission | CLI sends raw `ObjectiveResult[]`; API enriches with display metadata from `challengeObjective` table before storing — frontend always gets display-ready data | MEDIUM | Logic already exists in tRPC router — migrate verbatim to Hono route handler. Validation: ALL registered objectives must be present (no missing, no unknown). This is a security constraint, not just UX. |
-| API key plugin for user-linked CLI authentication | CLI auth uses Better Auth API key plugin (not JWT); keys are user-owned, show in dashboard, can be rotated | MEDIUM | `apiKey()` plugin in Better Auth config. Frontend creates keys via `authClient.apiKey.create()`. CLI stores key in `~/.kubeasy/config`. Hono middleware validates on CLI-facing routes. |
-| OpenTelemetry via centralized OTel Collector | Both `apps/api` and `apps/web` export OTLP to a single collector in docker-compose/Railway — no direct PostHog OTel export | HIGH | `@opentelemetry/sdk-node` in API. `instrumentation.ts` pattern carried over to Hono startup. Collector config exports to Grafana Cloud or Honeycomb. Removes Vercel-specific OTel integration. |
+| Single Tailwind v4 CSS source in `packages/ui` | All apps share identical design tokens — no Tailwind config drift between web and admin | MEDIUM | `packages/ui/src/styles/globals.css` is the one source of truth. Apps do `@import "@kubeasy/ui/styles/globals.css"` in their own CSS entry. No duplicate `@theme` blocks. Tailwind v4's CSS-first config makes this clean. |
+| Turborepo native microfrontend proxy (no `@vercel/microfrontends`) | Keeps stack free of Vercel dependency, which contradicts the Railway-first strategy | LOW | Built-in Turborepo proxy via `microfrontends.json` is sufficient for 2 frontend apps + 1 API. `@vercel/microfrontends` is an override layer — avoid unless Vercel features are needed. |
+| TanStack Router in admin SPA (consistent with apps/web) | Admin shares routing mental model and query patterns with main web app — lower cognitive switching for devs | MEDIUM | TanStack Router works in pure SPA/client mode (no SSR). `createHashHistory` or `createBrowserHistory`. TanStack Query for data fetching — already used in `apps/web`, same patterns apply. |
+| Admin SPA fully client-rendered (no SSR) | Admin is internal tool used by authenticated users only — SSR adds zero value and complicates Vite setup | LOW | Vite SPA mode: no TanStack Start, no SSR, no prerendering. Pure Vite + React 19 + TanStack Router (file-based routing via `@tanstack/router-plugin`). Simpler build, faster iteration. |
+| `packages/ui` without a build step (JIT, source consumed directly) | Same pattern as existing packages — apps import TypeScript source, no compile step needed | LOW | `package.json` exports TypeScript source directly. Apps use `tsconfig` paths. No `tsc` or `vite build` for the UI package. Consistent with `@kubeasy/api-schemas` and `@kubeasy/logger` patterns. |
+| Caddy over Nginx for Railway proxy | Caddy has zero-config HTTPS, simple Caddyfile DSL, Railway templates exist, hot-reload config | LOW | Railway already has first-party Caddy templates. Caddyfile is 10 lines for 2-app routing. Nginx requires more config overhead with no benefit on Railway (Railway handles TLS). |
 
 ### Anti-Features (Approaches to Deliberately Avoid)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Hono RPC client (`hc<AppType>()`) for frontend | Zero-schema-duplication type safety from Hono's RPC mode sounds ideal | Go CLI cannot consume Hono RPC types. TypeScript project boundary leaks — frontend imports from API, coupling their build environments. IDE becomes slow as routes grow (deep type instantiation). Monorepo environment conflicts when API uses Node types that frontend doesn't have | Shared `@kubeasy/api-schemas` Zod package: schemas defined once, imported by both Hono routes (for validation) and frontend (for `fetch` wrapper types and `z.infer`). Go CLI reads the same JSON shapes. |
-| WebSockets for validation real-time | WebSockets seem more powerful than SSE | Bidirectional not needed — server only pushes validation result once after CLI submit. WebSocket requires stateful connection management. SSE reconnects automatically. Hono has first-class `streamSSE` helper. Railway doesn't add complexity for SSE. | SSE via `streamSSE` + Redis pub/sub. One event per submission. Client reconnects automatically on network drop. |
-| Polling from frontend for validation status | Simple to implement, already works in current architecture | Wastes requests. Creates unnecessary DB load during active challenge solving. SSE is already planned and delivers instant feedback. | SSE invalidation: `queryClient.invalidateQueries` on SSE event. Single refetch triggered by server push. |
-| Shared database schema package | Tempting to share Drizzle schema between API and a future worker | Drizzle schemas are tightly coupled to database connection config and migration tooling. Workers consuming schemas directly creates hidden dependencies. Breaks the "packages must not import from apps" rule | Worker communicates via BullMQ job payload types from `@kubeasy/jobs`. Worker has its own DB connection if needed (or none — API does DB writes). |
-| tRPC in the new architecture | Would preserve existing type safety patterns | Contradicts the explicit decision to move to REST + Zod schemas. Re-adding tRPC defeats the purpose of decoupling API from framework. CLI compatibility requires standard HTTP. | REST with `@kubeasy/api-schemas`. Same type safety, framework-agnostic. |
-| Notion-less blog migration in this milestone | Opportunity to switch to MDX or another source | Out of scope per PROJECT.md. Notion content pipeline works and adds no technical debt to this migration. Changing content source while changing architecture multiplies risk. | Keep Notion API integration as-is. Evaluate separately after monorepo is stable. |
-| `"use cache"` directive in Tanstack Start | Carried over from Next.js App Router mental model | Not a Tanstack Start concept. Tanstack Start uses `loader` + `staleTime` via Tanstack Query for caching. Mixing mental models causes confusion. | `queryOptions({ staleTime: 5 * 60 * 1000 })` in route loaders. ISR via `prerender` with revalidation intervals at build config level. |
+| Module Federation (Webpack/Vite) | True runtime micro-frontends with shared code at runtime | Massive complexity overhead. Each app needs runtime federation config. Shared dependencies must be explicitly declared. Build errors are cryptic. Not needed — apps/web and apps/admin are compiled independently, they share code at package level (build time), not at runtime. | Turborepo `packages/ui` shared at build time. Clean separation with no runtime coupling. |
+| Next.js for apps/admin | Familiar Next.js patterns, same as old website | admin is an internal SPA — SSR, ISR, and App Router add zero value. Adds Railway service complexity (Node SSR process). Vite SPA is simpler, faster, and sufficient. | Vite + React 19 SPA. ~10x faster HMR, simpler production build. |
+| Shared routing between apps/web and apps/admin | Fewer entry points, simpler config | Different rendering models (SSR vs SPA), different auth flows, different deployment targets. Mixing them creates irreversible coupling. Admin at `/admin` path prefix is a routing concern, not a code-sharing concern. | Separate apps that share `packages/ui` components. Caddy/proxy handles `/admin` routing in both dev and prod. |
+| Embedding admin in apps/web as a route group | Simpler initially — one app to deploy | Pollutes apps/web bundle with admin code. Admin users would trigger download of admin JS on every page. Breaks separation of concerns. Hard to add admin-specific dependencies without affecting web. | Separate `apps/admin` Vite SPA. Served from distinct URL path by proxy. Zero shared runtime. |
+| Custom dev proxy (http-proxy, nginx in docker) | Control, custom config, no Turborepo dependency | Maintenance burden. Requires rebuilding what Turborepo provides: hot reload forwarding, WebSocket proxying, route fallback. Docker nginx in dev means another service in docker-compose. | Turborepo `microfrontends.json` — purpose-built, zero maintenance, integrates with `turbo dev`. |
+| Copying shadcn components per-app instead of sharing | Simpler initially, no package setup | Components diverge immediately. Bug fixes must be applied in multiple places. Design inconsistency. Same mistake the v1.0 → v1.1 upgrade is correcting for web vs old website. | `packages/ui` with single source. `shadcn add button` installs to package, all apps consume. |
+| Cookie-based admin auth separate from main auth | "Extra security" for admin | better-auth already provides role-based access. Two auth systems = two sets of tokens, two logout flows, two session stores. Over-engineering. | Same `better-auth` session + `requireAdmin` middleware already in Hono API. Client-side role check gates the SPA routes. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Better Auth on Hono]
-    └──requires──> [CORS middleware configured]
-    └──requires──> [Database connection in apps/api]
-    └──enables──>  [Session middleware for protected routes]
-    └──enables──>  [API key plugin for CLI routes]
+[packages/ui (shadcn shared)]
+    └──requires──> [Tailwind v4 CSS config moved to package]
+    └──requires──> [pnpm workspace alias @kubeasy/ui]
+    └──enables──>  [apps/web consuming shared components]
+    └──enables──>  [apps/admin consuming shared components]
+    └──independent-of──> [Turborepo microfrontend proxy]
 
-[@kubeasy/api-schemas package]
-    └──requires──> [Zod as shared dependency]
-    └──enables──>  [Type-safe fetch wrappers in apps/web]
-    └──enables──>  [Route validation in apps/api]
-    └──enables──>  [CLI contract compatibility (Go)]
+[apps/admin (Vite SPA)]
+    └──requires──> [packages/ui for shared primitives]
+    └──requires──> [@kubeasy/api-schemas for fetch types]
+    └──requires──> [apps/api admin routes (existing + new endpoints)]
+    └──requires──> [better-auth client for session check]
+    └──enables──>  [Admin challenge management]
+    └──enables──>  [Admin user management]
 
-[SSE endpoint on Hono]
-    └──requires──> [Redis pub/sub connection in apps/api]
-    └──requires──> [Better Auth session or API key validation]
-    └──enables──>  [EventSource + query invalidation in apps/web]
+[Turborepo microfrontend dev proxy]
+    └──requires──> [microfrontends.json at monorepo root]
+    └──requires──> [apps/admin running on a port]
+    └──requires──> [apps/web running on a port]
+    └──requires──> [apps/api running on a port]
+    └──independent-of──> [packages/ui]
+    └──independent-of──> [Caddy prod proxy]
 
-[CLI submit endpoint (POST /api/challenges/:slug/submit)]
-    └──requires──> [API key middleware]
-    └──requires──> [@kubeasy/api-schemas ObjectiveResult schema]
-    └──requires──> [Objective enrichment logic (from challengeObjective table)]
-    └──triggers──> [Redis PUBLISH on validation:{userId}:{slug}]
-    └──triggers──> [BullMQ job dispatch via @kubeasy/jobs]
+[Caddy Railway proxy (production)]
+    └──requires──> [apps/admin deployed as Railway service]
+    └──requires──> [apps/web already deployed as Railway service]
+    └──requires──> [Railway internal hostnames (*.railway.internal)]
+    └──mirrors──>  [Turborepo microfrontend proxy routing rules]
+    └──independent-of──> [packages/ui]
 
-[@kubeasy/jobs package]
-    └──requires──> [BullMQ as peer dependency]
-    └──requires──> [Redis connection (provided by caller, not package)]
-    └──enables──>  [Future worker extraction without API changes]
+[UI parity audit]
+    └──requires──> [../website readable for component comparison]
+    └──requires──> [packages/ui exists (some fixes land there)]
+    └──enables──>  [Visual correctness before admin phase]
+    └──blocks──>   [apps/admin styling (admin adopts corrected design)]
 
-[Static prerendering (marketing + blog)]
-    └──requires──> [Tanstack Start prerender config]
-    └──requires──> [Notion API accessible at build time]
-    └──independent-of──> [Better Auth] (public routes)
+[Admin challenge visibility toggle]
+    └──requires──> [apps/admin routing + layout]
+    └──requires──> [packages/ui card, switch, table components]
+    └──requires──> [Hono admin route: PATCH /api/admin/challenges/:slug/availability]
 
-[Tanstack Query prefetch in challenge routes]
-    └──requires──> [@kubeasy/api-schemas for fetch shape]
-    └──requires──> [Better Auth session cookie forwarded in loader fetch]
-    └──enhances──> [SSE invalidation] (provides baseline data before SSE arrives)
+[Admin user management]
+    └──requires──> [apps/admin routing + layout]
+    └──requires──> [packages/ui table, badge, select components]
+    └──requires──> [Hono user route: GET /api/user (admin list), PATCH /api/user/:id]
 ```
 
 ### Dependency Notes
 
-- **SSE requires Redis before anything else:** The SSE endpoint is useless without Redis pub/sub. Redis must be up in docker-compose before `apps/api` starts.
-- **`@kubeasy/api-schemas` must be built first in Turborepo pipeline:** Both `apps/api` and `apps/web` depend on it. `dependsOn: ["^build"]` in turbo.json handles this.
-- **API key plugin depends on Better Auth being fully configured:** The `apiKey()` plugin shares the Drizzle adapter and DB connection from the main auth instance. It's not a standalone service.
-- **Objective enrichment depends on `challengeObjective` table being seeded:** The enrichment step joins submitted keys against DB rows. If the table is empty (fresh deploy), submission fails. Seed/sync must run as part of deployment.
-- **Prerendering is independent of auth:** Marketing pages and blog routes are public. They can be prerendered without session context. Challenge detail pages (authenticated) must use SSR or hybrid rendering.
+- **packages/ui is the foundation:** Both apps/admin and the parity-corrected apps/web depend on it. Build packages/ui first, then audit/fix apps/web, then scaffold apps/admin.
+- **microfrontends.json requires all apps to have stable ports:** Set fixed ports in each app's dev config before writing the proxy config. apps/web=3000, apps/api=3001, apps/admin=3002 is the natural assignment.
+- **Caddy prod config mirrors dev proxy routing:** Define routing rules once (in microfrontends.json), replicate in Caddyfile. Any routing change must update both files.
+- **Admin SPA requires API admin endpoints to exist:** The old website used tRPC procedures (`trpc.challenge.adminList`, `trpc.user.adminList`). These must be verified/added as Hono REST routes before building the admin UI. Some may already exist at `/api/admin/challenges-sync` but the full CRUD is not confirmed.
+- **UI parity audit must precede admin styling decisions:** Admin SPA adopts the corrected design system. Auditing after admin is built means double work.
 
 ---
 
 ## MVP Definition
 
-This is a migration, not a greenfield product. MVP = feature parity with the existing Next.js monolith on the new architecture.
+### Launch With (v1.1 milestone complete)
 
-### Launch With (v1 — migration complete)
+This is an expansion milestone, not a greenfield product. MVP = all five feature areas functional and integrated.
 
-- [ ] `@kubeasy/api-schemas` package with all existing tRPC procedure shapes converted to Zod request/response schemas
-- [ ] Hono API with all existing tRPC routes ported to REST endpoints — challenge CRUD, user progress, XP, submission
-- [ ] Better Auth on Hono with GitHub, Google, Microsoft OAuth + API key plugin
-- [ ] CLI submit endpoint (`POST /api/challenges/:slug/submit`) with API key auth and objective enrichment
-- [ ] SSE endpoint for validation status with Redis pub/sub
-- [ ] Tanstack Start web with Tanstack Query replacing tRPC hooks — challenge listing, dashboard, detail pages
-- [ ] Static prerendering for landing and blog routes
-- [ ] Turborepo monorepo structure with correct build pipeline
-- [ ] Docker-compose with Postgres, Redis, OTel Collector for local dev
-- [ ] Railway deployment configuration replacing Vercel
+- [ ] `packages/ui` with all shadcn primitives currently used in `apps/web` (17 components migrated from `apps/web/src/components/ui/`)
+- [ ] `apps/web` imports from `@kubeasy/ui` — no local `/components/ui/` shadcn copies remain
+- [ ] UI parity audit complete — all divergent components in `apps/web` corrected against `../website`
+- [ ] `microfrontends.json` at monorepo root — `turbo dev` serves all apps via unified proxy
+- [ ] `apps/admin` scaffolded: Vite SPA, TanStack Router, TanStack Query, admin layout with nav
+- [ ] Admin challenge page: list + enable/disable toggle
+- [ ] Admin users page: paginated list + role/ban actions
+- [ ] Admin stats overview cards
+- [ ] Caddy service on Railway routing `/admin/*` → admin service, `/*` → web service
+- [ ] Admin app deployed as Railway service
 
 ### Add After Validation (v1.x)
 
-- [ ] OpenAPI spec generation from `@hono/zod-openapi` — enables auto-generated Go client types, reduces manual contract maintenance
-- [ ] ISR (Incremental Static Regeneration) for blog routes — currently full SSG rebuild on deploy is acceptable
-- [ ] OTel Collector destination finalized (Grafana Cloud vs Honeycomb vs other) — collector accepts OTLP from day one
+- [ ] Admin submissions view (view all submissions per user/challenge) — not in old website, but obvious next step
+- [ ] Admin challenge detail editor (edit title/description from UI) — currently requires DB edit
+- [ ] ISR for blog routes — full rebuild acceptable now, revisit when content velocity increases
 
 ### Future Consideration (v2+)
 
-- [ ] Dedicated BullMQ worker app extracting `@kubeasy/jobs` consumers — architecture is prepared, extraction happens when job volume warrants it
-- [ ] Notion to MDX migration for blog — out of scope for this milestone, revisit when content velocity increases
-- [ ] WebSocket upgrade if SSE proves insufficient — unlikely given unidirectional use case
+- [ ] Admin analytics dashboard (PostHog integration, user growth charts)
+- [ ] Challenge import UI (sync from GitHub challenges repo via UI instead of CLI/admin API)
+- [ ] Role-based admin sub-sections (content editor vs superadmin)
 
 ---
 
@@ -141,41 +158,67 @@ This is a migration, not a greenfield product. MVP = feature parity with the exi
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| `@kubeasy/api-schemas` shared Zod package | HIGH (unblocks all REST contracts) | LOW | P1 |
-| Better Auth on Hono (session + API key) | HIGH (nothing works without auth) | MEDIUM | P1 |
-| CLI submit endpoint with objective enrichment | HIGH (core user flow) | MEDIUM | P1 |
-| Challenge listing / filtering REST endpoints | HIGH (primary content browsing) | LOW | P1 |
-| Tanstack Query fetch wrappers in apps/web | HIGH (replaces tRPC client) | MEDIUM | P1 |
-| SSE endpoint + Redis pub/sub | HIGH (real-time validation UX) | HIGH | P1 |
-| Static prerendering (landing + blog) | MEDIUM (SEO + performance) | MEDIUM | P1 |
-| Turborepo pipeline + docker-compose | HIGH (dev experience + CI) | MEDIUM | P1 |
-| `@kubeasy/jobs` BullMQ package | LOW (no new job types in scope) | LOW | P2 |
-| OpenAPI spec from `@hono/zod-openapi` | MEDIUM (Go client generation) | MEDIUM | P2 |
-| OTel Collector destination config | LOW (collector works day one) | LOW | P2 |
-| ISR for blog routes | LOW (full rebuild acceptable) | LOW | P3 |
-| Dedicated worker app extraction | LOW (future architecture) | HIGH | P3 |
+| `packages/ui` extraction | HIGH (unblocks admin + parity) | MEDIUM | P1 |
+| UI parity audit + fixes | HIGH (v1.1 goal #1) | HIGH | P1 |
+| `microfrontends.json` dev proxy | HIGH (dev experience) | LOW | P1 |
+| Admin challenge management | HIGH (operational need) | MEDIUM | P1 |
+| Admin user management | HIGH (operational need) | MEDIUM | P1 |
+| Caddy Railway proxy | HIGH (production routing) | LOW | P1 |
+| apps/admin scaffold + layout | HIGH (required for admin features) | LOW | P1 |
+| Admin stats cards | MEDIUM (nice overview) | LOW | P2 |
+| Admin submissions view | MEDIUM (operational insight) | MEDIUM | P2 |
+| Admin challenge detail editor | LOW (CLI workaround exists) | MEDIUM | P3 |
 
 **Priority key:**
-- P1: Must have for migration to be considered complete
-- P2: Should have, add in follow-up phase
-- P3: Future consideration
+- P1: Required for v1.1 milestone to be complete
+- P2: High-value follow-up, add in v1.1.x patch
+- P3: Future consideration, does not block milestone
+
+---
+
+## Feature Inventory: What Already Exists
+
+This table maps what exists in `../website` (old Next.js) to what must be built in `apps/admin`.
+
+| Old Website Feature | Location | Status in apps/admin |
+|--------------------|----------|----------------------|
+| Admin layout (header, nav, auth guard) | `website/app/(admin)/layout.tsx` | Must build |
+| Challenge list with enable/disable | `website/app/(admin)/admin/challenges/` | Must build |
+| Challenge stats cards | `website/app/(admin)/admin/challenges/_components/admin-stats-cards.tsx` | Must build |
+| User list with role/ban | `website/app/(admin)/admin/users/` | Must build |
+| User stats cards | `website/app/(admin)/admin/users/_components/user-stats-cards.tsx` | Must build |
+| Admin API: challenge adminList | tRPC `challenge.adminList` | Verify Hono equivalent exists |
+| Admin API: challenge setAvailability | tRPC `challenge.setAvailability` | Must add to Hono `/api/admin` |
+| Admin API: user adminList + adminStats | tRPC `user.adminList`, `user.adminStats` | Must add to Hono `/api/user` |
+
+**Note on API parity:** The Hono API has `/api/admin/challenges-sync` (POST) but may not have the admin list/toggle endpoints. These must be audited and added before building the admin SPA. This is a non-trivial dependency.
+
+---
+
+## Complexity Heatmap by Area
+
+| Area | Complexity | Why |
+|------|-----------|-----|
+| `packages/ui` setup | MEDIUM | Tailwind CSS v4 sharing across apps is a known tricky setup — CSS `@import` order matters, apps must not define their own `@theme` blocks |
+| UI parity audit | HIGH | Subjective, labor-intensive, no automation. Requires side-by-side comparison of every page/component. Risk of missing subtle differences. |
+| `microfrontends.json` dev proxy | LOW | Built-in Turborepo feature, well-documented, requires only port coordination |
+| `apps/admin` scaffold | LOW | Vite SPA is the simplest possible setup. TanStack Router client-only mode is well-documented. |
+| Admin feature migration | MEDIUM | Requires verifying Hono API routes exist for all admin actions. Some endpoints likely need to be added. |
+| Caddy Railway proxy | LOW | Railway has first-party Caddy templates. Caddyfile for 2-app routing is ~10 lines. |
 
 ---
 
 ## Sources
 
-- [Hono RPC docs](https://hono.dev/docs/guides/rpc) — RPC constraints and monorepo tradeoffs (HIGH confidence)
-- [Hono Integration — Better Auth](https://better-auth.com/docs/integrations/hono) — Auth handler setup, CORS requirements (HIGH confidence)
-- [Better Auth API Key plugin](https://better-auth.com/docs/plugins/api-key) — `verifyApiKey` pattern, Hono middleware integration (HIGH confidence)
-- [SSE with TanStack Start & TanStack Query — ollioddi.dev](https://ollioddi.dev/blog/tanstack-sse-guide) — Invalidation vs direct mutation strategies, `staleTime: Infinity` pattern (MEDIUM confidence)
-- [TanStack Start Static Prerendering](https://tanstack.com/start/latest/docs/framework/react/guide/static-prerendering) — `prerender` config, `crawlLinks`, ISR (HIGH confidence)
-- [SSE, WebSockets, or Polling — Hono + React — DEV Community](https://dev.to/itaybenami/sse-websockets-or-polling-build-a-real-time-stock-app-with-react-and-hono-1h1g) — Hono `streamSSE` usage (MEDIUM confidence)
-- [End-to-end typesafe APIs with shared Zod schemas — DEV Community](https://dev.to/jussinevavuori/end-to-end-typesafe-apis-with-typescript-and-shared-zod-schemas-4jmo) — Shared schema monorepo pattern (MEDIUM confidence)
-- [BullMQ TypeScript setup](https://oneuptime.com/blog/post/2026-01-21-bullmq-typescript-setup/view) — Typed job definitions, shared queue factory pattern (MEDIUM confidence)
-- [Hono Stacks — Hono docs](https://hono.dev/docs/concepts/stacks) — Monorepo guidance for RPC and type sharing (HIGH confidence)
-- [Scaling SSE with Redis pub/sub — SurveySparrow Engineering](https://engineering.surveysparrow.com/scaling-real-time-applications-with-server-sent-events-sse-abd91f70a5c9) — Redis pub/sub fan-out pattern for multi-instance SSE (MEDIUM confidence)
+- [Turborepo Microfrontends Guide](https://turborepo.dev/docs/guides/microfrontends) — `microfrontends.json` format, routing config, proxy port, WebSocket support (HIGH confidence)
+- [shadcn/ui Monorepo Documentation](https://ui.shadcn.com/docs/monorepo) — `components.json` workspace alias, `packages/ui` structure, CLI `add` workflow (HIGH confidence)
+- [Turborepo shadcn/ui integration guide](https://turborepo.dev/docs/guides/tools/shadcn-ui) — Turborepo-specific shadcn init and add commands (HIGH confidence)
+- [Railway Caddy reverse proxy templates](https://railway.com/deploy/caddy-proxy) — Caddyfile multi-service routing, Railway internal hostnames (HIGH confidence)
+- [Caddy reverse_proxy directive](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy) — Upstream syntax, path matchers (HIGH confidence)
+- [react-admin Vite installation](https://marmelab.com/react-admin/Vite.html) — Vite SPA admin panel patterns (MEDIUM confidence)
+- [turborepo-shadcn-ui-tailwind-4 GitHub template](https://github.com/linkb15/turborepo-shadcn-ui-tailwind-4) — Tailwind v4 + shadcn in monorepo working reference (MEDIUM confidence)
 
 ---
 
-*Feature research for: Kubeasy monorepo refactoring — Hono REST API + Tanstack Start*
-*Researched: 2026-03-18*
+*Feature research for: Kubeasy monorepo v1.1 — micro-frontend, shared UI, admin SPA*
+*Researched: 2026-03-24*

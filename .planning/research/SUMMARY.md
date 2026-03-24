@@ -1,207 +1,242 @@
 # Project Research Summary
 
-**Project:** Kubeasy monorepo migration — Next.js 15 + tRPC to Turborepo + Hono + TanStack Start
-**Domain:** TypeScript full-stack monorepo migration (self-hosted, Railway deployment)
-**Researched:** 2026-03-18
-**Confidence:** MEDIUM-HIGH
+**Project:** Kubeasy monorepo — v1.1 UI Parity + Micro-Frontend + Admin
+**Domain:** Turborepo micro-frontend expansion — shared UI library, admin SPA, production reverse proxy
+**Researched:** 2026-03-24
+**Confidence:** HIGH
 
 ## Executive Summary
 
-Kubeasy is migrating from a Next.js 15 + tRPC monolith on Vercel to a Turborepo monorepo with a Hono REST API (`apps/api`) and TanStack Start frontend (`apps/web`), deployed on Railway. The migration is motivated by three concrete problems with the current stack: Vercel vendor lock-in prevents long-lived processes (blocking BullMQ), tRPC coupling makes the API unconsuable by the Go CLI, and Upstash REST-based Redis is incompatible with BullMQ. The recommended architecture places shared Zod schemas in `packages/api-schemas` as the contract between Hono, TanStack Start, and the Go CLI — eliminating tRPC without sacrificing type safety.
+Kubeasy v1.1 is a well-scoped monorepo expansion milestone, not a greenfield project. The v1.0 baseline (Hono API, TanStack Start frontend, Drizzle, BullMQ, Better Auth) is already deployed and stable. This milestone adds three net-new artifacts — `packages/ui` (shared shadcn/ui library), `apps/admin` (Vite SPA), and `apps/caddy` (Railway reverse proxy) — plus configuration changes to enable a Turborepo micro-frontend dev proxy. The recommended approach is to build in strict dependency order: shared UI package first, then UI parity audit, then admin scaffold, then admin features, then production proxy. Deviation from this order causes rework because both admin and the corrected web app depend on the shared package being stable.
 
-The recommended approach follows a strict dependency order: scaffold the Turborepo monorepo and internal packages first, migrate the database and Hono API second (porting all existing tRPC routes to REST), then migrate the TanStack Start frontend, and finally layer in real-time SSE, OTel observability, and Railway deployment. This ordering is non-negotiable — TanStack Start depends on the API being available, and the SSE system depends on Redis pub/sub being operational. The existing database schema is preserved unchanged; only the driver changes (Neon serverless HTTP to postgres.js TCP).
+The most consequential architectural decision is consolidating all traffic under a single `kubeasy.dev` domain via a Caddy reverse proxy on Railway, replacing the current split between `kubeasy.dev` (web) and `api.kubeasy.dev` (API). This simplifies auth cookie handling significantly — Better Auth can use a same-origin cookie rather than a cross-subdomain one — but requires updating `API_URL` on `apps/api`, re-registering OAuth redirect URIs with GitHub/Google/Microsoft, and transferring the custom domain from the web service to the Caddy service. These are high-risk production steps that must be executed with a rollback plan.
 
-The primary risks are cross-cutting: Better Auth cookie behavior in a cross-domain API/web split requires explicit configuration and staging verification; TanStack Start is actively developed (v1.166.x, daily publishes) but still pre-1.0 and may have API surface changes; Railway's Turborepo integration has a confirmed bug where `NIXPACKS_TURBO_APP_NAME` is ignored, requiring explicit per-service root directory and watch path configuration. These risks are addressable with specific countermeasures documented in the research, and none represents a blocker to the migration.
+The main implementation risks are infrastructure-level rather than feature-level: Caddy's `auto_https` behavior on Railway, Railway's internal DNS startup race, the Vite SPA `base` path requirement for sub-path serving, and the Tailwind v4 `@source` scanning requirement for the shared package. All have clear, well-documented solutions, but each will silently appear to work locally while failing in production if skipped. The research provides explicit prevention checklists for all nine identified pitfalls.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The new stack replaces every Vercel/serverless-coupled dependency with self-hosted equivalents while preserving the core toolchain (TypeScript, Drizzle ORM, Better Auth, Biome). Turborepo 2.8.x orchestrates the monorepo using the existing pnpm 10.x workspaces. Hono 4.12.x serves as the REST API framework — chosen for its Web Standard API (native SSE, no adapter needed for Better Auth), lightweight footprint, and first-class `@hono/zod-openapi` integration. TanStack Start 1.166.x replaces Next.js as the frontend framework, supporting per-route SSG/SSR without Vercel coupling. BullMQ 5.x replaces any future async job needs, backed by ioredis (hard requirement — BullMQ is architecturally incompatible with `node-redis`). OpenTelemetry SDK 2.x routes all observability signals through a self-hosted OTel Collector rather than PostHog's OTLP exporter.
+The v1.1 stack introduces no new technology categories — every addition reuses versions already present in `apps/web`. The micro-frontend proxy is built into Turborepo 2.6+ via `microfrontends.json` and requires zero new packages (provided `@vercel/microfrontends` is never installed — it overrides the built-in). The admin SPA uses the same Vite 8/React 19/TanStack Router combination already in use on the web app. `packages/ui` follows the same no-build-step JIT import pattern already used by `packages/api-schemas` and `packages/logger`.
 
-**Core technologies:**
-- **Turborepo 2.8.x + pnpm workspaces:** Monorepo orchestration — dependency graph, build cache, task pipeline
-- **Hono 4.12.x + @hono/node-server:** REST API framework — native SSE, Web Standard Request/Response (Better Auth compatible)
-- **@hono/zod-openapi:** Route definitions with Zod validation — generates OpenAPI spec for Go CLI contract documentation
-- **TanStack Start 1.166.x:** Frontend framework — SSG for marketing/blog, SSR for authenticated challenge pages, no Vercel dependency
-- **@kubeasy/api-schemas (Zod 4.x):** Shared request/response contracts — single source of truth for Hono validation, TanStack fetch types, Go CLI wire format
-- **Better Auth 1.5.5:** Authentication — preserved from current stack; Hono integration is first-class (no adapter)
-- **Drizzle ORM 0.45.x + postgres.js 3.x:** Database layer — schema unchanged, driver switched from Neon serverless to native TCP
-- **BullMQ 5.x + ioredis 5.x:** Job queue — isolated in `packages/jobs`; API dispatches, workers run in-process initially
-- **OTel SDK 0.213.x + OTel Collector:** Observability — OTLP from all services to collector; vendor-agnostic backend
-- **Railway:** Production hosting — native pnpm workspace support, PostgreSQL and Redis as plugins
+**Core new technologies:**
+- **Turborepo built-in micro-frontend proxy** (`microfrontends.json`): unified localhost routing at `:3024` — zero additional packages; dev-only
+- **`packages/ui` (shadcn/ui, Tailwind v4)**: shared component library; no tsc emit; JIT TypeScript source exports via workspace alias; `react`/`react-dom` as `peerDependencies` only
+- **`apps/admin`** (Vite 8 + React 19 + TanStack Router 1.168.x): client-side SPA; same versions as `apps/web`; `base: "/admin/"` required in `vite.config.ts`
+- **Caddy 2.11 (`caddy:2-alpine`)**: Railway reverse proxy; `auto_https off`; `flush_interval -1` for SSE paths; admin static files baked into image
+
+See `/Users/paul/Workspace/kubeasy/app/.planning/research/STACK.md` for full version matrix, exact `package.json` snippets, Dockerfile, and Caddyfile.
 
 ### Expected Features
 
-This is a migration, not a greenfield product. MVP means feature parity on the new architecture.
+The milestone is an operational expansion. Features split between infrastructure and migrated admin capabilities from the deprecated `../website` Next.js app.
 
-**Must have (table stakes — v1 migration complete):**
-- `@kubeasy/api-schemas` Zod package with all existing tRPC procedure shapes as REST contracts
-- Hono API with all tRPC routes ported: challenge CRUD, user progress, XP, submission, admin
-- Better Auth on Hono with GitHub/Google/Microsoft OAuth and API key plugin for CLI auth
-- CLI submit endpoint (`POST /api/challenges/:slug/submit`) with API key auth and objective enrichment
-- SSE endpoint for validation status with Redis pub/sub (replaces Upstash Realtime)
-- TanStack Start web with TanStack Query replacing tRPC hooks — all existing pages
-- Static prerendering for landing, blog, challenge listing routes
-- Turborepo pipeline with correct task ordering + docker-compose for local dev
-- Railway deployment configuration replacing Vercel (per-service root directory + watch paths)
-- Rate limiting on CLI submission endpoint after Upstash removal
+**Must have (table stakes — v1.1 incomplete without these):**
+- Turborepo `microfrontends.json` dev proxy — all apps testable via single `localhost:3024` origin
+- `packages/ui` with all 17 shadcn components migrated from `apps/web/src/components/ui/`
+- `apps/web` imports from `@kubeasy/ui` only — no local shadcn copies remain
+- UI parity audit complete — every page in `apps/web` visually matches `../website`
+- Admin layout with route guard (role check via `authClient.useSession()`)
+- Admin challenge list with enable/disable toggle
+- Admin user list with role/ban actions
+- Admin stats overview cards
+- Caddy Railway service routing `/admin/*` and `/*` correctly
+- `apps/admin` deployed as Railway service
 
-**Should have (v1.x — add after validation):**
-- OpenAPI spec generation from `@hono/zod-openapi` for Go CLI auto-generated client types
-- ISR for blog routes (full SSG rebuild on deploy is acceptable initially)
-- OTel Collector destination finalized (Grafana Cloud vs Honeycomb)
+**Should have (v1.1.x patch):**
+- Admin submissions view (per user/challenge)
+- Admin challenge detail editor
 
 **Defer (v2+):**
-- Dedicated BullMQ worker app extracting `packages/jobs` consumers — architecture is prepared, extraction happens when job volume warrants it
-- Notion to MDX migration for blog — out of scope for this milestone
-- WebSocket upgrade — unlikely given unidirectional SSE use case
+- Admin analytics dashboard (PostHog integration)
+- Challenge import UI (sync from GitHub challenges repo via UI)
+- Role-based admin sub-sections (content editor vs superadmin)
+
+See `/Users/paul/Workspace/kubeasy/app/.planning/research/FEATURES.md` for full dependency graph, feature inventory mapped against `../website`, and complexity heatmap.
 
 ### Architecture Approach
 
-The architecture is a strict two-service monorepo: `apps/api` (Hono, owns all business logic, DB access, auth, job dispatch) and `apps/web` (TanStack Start, owns UI rendering and user-facing pages). Communication is HTTP REST and SSE — no tRPC, no Hono RPC client (the latter would prevent Go CLI compatibility). Two shared packages bridge them: `packages/api-schemas` (pure Zod schemas, no framework imports) and `packages/jobs` (BullMQ queue definitions, no DB imports). The dependency graph flows strictly `apps → packages`, never the reverse — this is what enables future worker extraction without API refactoring. Stateful services (PostgreSQL, Redis, OTel Collector) run in Docker for local dev; apps run on the host with `turbo run dev`.
+The v1.1 architecture keeps all three application services (`apps/web`, `apps/api`, `apps/admin`) as independent Railway deployments communicating over Railway private networking. A fourth Caddy service becomes the single public entry point for `kubeasy.dev`, routing by path prefix. In local development, Turborepo's built-in proxy mirrors this routing at `localhost:3024`. The shared `packages/ui` package is consumed at build time by both `apps/web` and `apps/admin` — there is no runtime code sharing or module federation.
 
 **Major components:**
-1. `apps/api` (Hono) — REST endpoints, auth sessions, business logic, job dispatch, SSE, OTel instrumentation
-2. `apps/web` (TanStack Start) — SSG/SSR pages, TanStack Query data fetching, Better Auth client, SSE consumer
-3. `packages/api-schemas` — Zod request/response contracts; imported by both apps and documented for Go CLI
-4. `packages/jobs` — BullMQ queue/job type definitions; imported by API to dispatch, future worker to process
-5. `packages/typescript-config` — Shared tsconfig bases; prevents DOM/Node type divergence between apps
-6. Infrastructure — PostgreSQL 16, Redis 7.x, OTel Collector (docker-compose local, Railway plugins production)
+1. **`packages/ui`** — shadcn/ui primitives; exports TypeScript source + CSS tokens; all `@radix-ui/*` deps consolidated here; `react`/`react-dom` as peer deps
+2. **`apps/admin`** — client-only Vite SPA; TanStack Router with `basename="/admin"`; `base: "/admin/"` in Vite config; authenticates via same Better Auth session as web app
+3. **`apps/caddy`** — Docker image baking admin static files + Caddyfile; routes `/api/*` (with `flush_interval -1`), `/admin/*`, `/*` to internal Railway services
+4. **`microfrontends.json`** (repo root) — dev proxy config mirroring Caddy routing; web=3000, api=3001, admin=3002, proxy=3024; apps use `$TURBO_MFE_PORT` in dev scripts
+5. **Modified `apps/web`** — imports from `@kubeasy/ui`; local `src/components/ui/` removed; dev script uses `$TURBO_MFE_PORT`; `API_URL` env updated to `https://kubeasy.dev`
 
-**Key patterns:**
-- Hono route modules via `app.route()` — each resource domain is a separate Hono instance
-- Session middleware in Hono context — extracted once per request, stored in `c.var`, no repetition
-- SSE + Redis pub/sub for real-time — CLI submission publishes to Redis channel; SSE handler streams to browser
-- JIT internal packages — `packages/api-schemas` and `packages/jobs` export TypeScript source directly; no build step needed
+See `/Users/paul/Workspace/kubeasy/app/.planning/research/ARCHITECTURE.md` for full directory tree, data flow diagrams, auth cookie flow comparison (v1.0 vs v1.1), and explicit new/modified/unchanged artifact inventory.
 
 ### Critical Pitfalls
 
-1. **TypeScript path resolution breaks across internal packages** — Choose compiled vs. JIT strategy for internal packages on day one and apply consistently. Never mix strategies. Use `tsconfig references` not `paths`. Establish this in the monorepo scaffold phase before writing any business logic. Recovery cost is HIGH if caught late.
+1. **Turborepo proxy is dev-only — production path is entirely separate** — Write the Caddyfile first; Turborepo proxy config is a mirror of it. Test Caddy on Railway before building admin routes, not after. Production blank pages from missing Caddy config are a common trap.
 
-2. **Better Auth cookies fail in cross-domain API/web split** — Configure `crossSubdomainCookies: { enabled: true, domain: ".kubeasy.dev" }`, add `User-Agent` to Hono CORS `allowHeaders`, ensure CORS middleware is registered before Better Auth handler. Validate end-to-end cookie flow on staging before declaring auth done.
+2. **Vite SPA `base` path omitted** — Set `base: "/admin/"` in `apps/admin/vite.config.ts` at scaffold time. Test with `vite build && vite preview --base /admin/` before any feature work. Default `base: "/"` produces asset 404s in production that are invisible in dev.
 
-3. **Railway rebuilds all apps on every commit** — `NIXPACKS_TURBO_APP_NAME` is a confirmed no-op in Railpack. Use separate Railway services per app, set explicit `Root Directory` and `Watch Patterns`. Configure before setting up CI/CD pipelines.
+3. **Tailwind `@source` not configured for shared package** — Add `@source "../../../packages/ui/src"` to each consuming app's CSS entrypoint. Verify by inspecting generated CSS for a class that only exists in the shared package. Tailwind v4's auto-detection does not traverse workspace packages.
 
-4. **BullMQ workers stall on Railway service restarts** — Register SIGTERM handler that `await worker.close()` before process exits. Set Redis `maxmemory-policy noeviction`. Configure `removeOnComplete`/`removeOnFail` to prevent PII accumulation. Include SIGTERM test as acceptance criteria.
+4. **Duplicate React instance from wrong peer dep config** — Declare `react` and `react-dom` as `peerDependencies` in `packages/ui/package.json`. Verify with `pnpm ls react` — must show exactly one instance per app. Wrong config causes "Invalid hook call" at runtime from all Radix UI components.
 
-5. **SSE connections leak Redis subscriber instances** — Register cleanup on `c.req.raw.signal` abort event AND implement 25-30s heartbeat ping (broken pipe = reliable disconnect signal). Include a Redis `CLIENT LIST` baseline test (10 connect/disconnect cycles) as acceptance criteria for the SSE phase.
+5. **CSS theme variables missing in admin** — Move `:root` CSS variable declarations into `packages/ui/src/styles/tokens.css` and export them. Every consuming app must import this file. Verify with DevTools — `--primary` and `--background` must be defined in the admin app.
 
-6. **OTel SDK initialized after instrumented libraries** — Use `--import ./dist/instrumentation.js` flag (Node 18.19+) to guarantee OTel runs first. Never import from `@kubeasy/*` inside `instrumentation.ts`. Write a DB span smoke test as the first acceptance criterion for the OTel phase.
+6. **Caddy `auto_https` on Railway causes startup loop** — Railway terminates TLS at its edge. Add `auto_https off` to the global Caddyfile block. Use `http://` scheme (or bare `:{$PORT}`) in site blocks. Caddy's automatic HTTPS conflicts with Railway's infrastructure-level TLS.
 
-7. **Go CLI contract breaks on tRPC to REST migration** — Coordinate REST endpoint paths in `@kubeasy/api-schemas` with the CLI team before removing tRPC. Add alias routes in Hono if needed for backward compatibility during transition.
+7. **Railway internal DNS startup race** — Caddy resolves upstream service hostnames at startup; if upstream services haven't registered yet, Caddy fails to start. Configure `fail_duration 60s` + `max_fails 10` on health checks. Set Railway deploy order so Caddy starts last.
+
+8. **Better Auth cookies fail in admin SPA** — Initialize admin auth client with `credentials: "include"`. Verify `kubeasy.dev` is in `apps/api` CORS `allowedOrigins`. Test full OAuth flow end-to-end in admin app before building any admin features.
+
+9. **Cross-app SPA navigation silently broken** — Use `<a href="/admin">` (full page navigation) for any link from `apps/web` to `apps/admin`. Never use TanStack Router's `<Link>` across app boundaries — it intercepts as a client-side transition and the admin bundle never loads.
+
+---
 
 ## Implications for Roadmap
 
-Based on the dependency graph in ARCHITECTURE.md and pitfall-to-phase mappings in PITFALLS.md, the following phase structure is recommended:
+The hard dependency chain is: `packages/ui` → UI parity audit → `apps/admin` scaffold → admin features → Caddy production deployment. The Turborepo dev proxy is a low-effort config change that should be set up alongside the admin scaffold (both require knowing stable port assignments).
 
-### Phase 1: Monorepo Scaffold
-**Rationale:** Everything else depends on the monorepo structure. Internal package strategy (JIT vs compiled) must be established before any business logic is written — changing it later is HIGH recovery cost. Turborepo pipeline with env var declarations must precede any Railway deployment.
-**Delivers:** Turborepo workspace (`pnpm-workspace.yaml`, `turbo.json`), `packages/typescript-config`, `packages/api-schemas` skeleton, `packages/jobs` skeleton, docker-compose for local stateful services, root Biome config.
-**Avoids:** TypeScript path resolution pitfall (Pitfall 1), Turborepo cache miss from undeclared env vars (Pitfall 5).
-**Research flag:** Standard patterns — Turborepo internal packages and pnpm workspaces are well-documented. No additional research needed.
+### Phase 1: Shared UI Package
 
-### Phase 2: Hono API Migration
-**Rationale:** TanStack Start web depends on the API being available. The CLI Go team needs the new REST contract before tRPC is removed. This is the highest-risk phase because it involves porting all existing tRPC business logic to REST while keeping the existing database schema intact.
-**Delivers:** Full Hono API with all tRPC routes ported to REST (`/api/challenges`, `/api/submissions`, `/api/progress`, `/api/xp`), Better Auth on Hono with CORS configured, API key plugin for CLI auth, objective enrichment logic migrated verbatim, rate limiting on CLI submission endpoint, Drizzle switched from Neon serverless to postgres.js.
-**Uses:** Hono 4.12.x, @hono/zod-openapi, @hono/zod-validator, Better Auth 1.5.5, Drizzle 0.45.x + postgres.js 3.x, @kubeasy/api-schemas.
-**Avoids:** Better Auth cross-domain cookie pitfall (Pitfall 2 — validate on staging), CLI contract breaking (Pitfall 7 — coordinate with Go team), Neon driver not removed (verify with `pnpm why @neondatabase/serverless`), Vercel wildcard still in trustedOrigins.
-**Research flag:** Needs verification — Better Auth cross-subdomain cookie configuration should be tested in staging before declaring done. Better Auth + Hono integration is HIGH confidence but cookie domain behavior has community-reported issues.
+**Rationale:** Everything else depends on this. Both the UI parity audit and the admin app require the shared component library to exist and be stable first. Building admin before extracting the shared package forces a second import refactor pass.
 
-### Phase 3: TanStack Start Web Migration
-**Rationale:** Web depends on API being available and `@kubeasy/api-schemas` being stable. TanStack Start is the highest-maturity-risk component — starting it after the API is stable reduces the blast radius of any TanStack Start API surface changes.
-**Delivers:** TanStack Start app with file-based routing, TanStack Query replacing tRPC hooks for all pages (challenges listing, dashboard, challenge detail), Better Auth client configured for cross-origin API, static prerendering for landing and blog routes, SSE consumer (EventSource + query invalidation).
-**Uses:** @tanstack/react-start 1.166.x, @tanstack/react-query 5.x, Better Auth client, @kubeasy/api-schemas for typed fetch wrappers.
-**Avoids:** `"use cache"` directive anti-pattern (use `queryOptions` + `staleTime` instead), Hono RPC client anti-pattern (use `@kubeasy/api-schemas` fetch wrappers), tRPC re-introduction.
-**Research flag:** Needs research — TanStack Start prerendering and per-route rendering mode (SSG vs SSR vs hybrid) documentation should be verified against the current version (v1.166.x) before the phase begins. The RC designation means prerender API surface may have changed from earlier documentation.
+**Delivers:** `packages/ui` with all shadcn primitives migrated from `apps/web/src/components/ui/`; `apps/web` import paths refactored to `@kubeasy/ui`; all `@radix-ui/*` deps consolidated; Tailwind v4 `@source` wired in both apps; CSS tokens exported from package.
 
-### Phase 4: Real-time SSE + Redis
-**Rationale:** SSE is additive to the REST API. It requires Redis pub/sub operational in docker-compose (already available from Phase 1 docker-compose) and the challenge submission endpoint working (Phase 2). Can be developed in parallel with Phase 3 if teams allow, but should be verified end-to-end after both API and web are stable.
-**Delivers:** SSE endpoint on Hono (`/api/sse/validation/:challengeSlug`), Redis pub/sub integration (ioredis subscriber per connection), `streamSSE` with heartbeat and abort cleanup, EventSource + `queryClient.invalidateQueries` in TanStack Start, `@kubeasy/jobs` BullMQ package populated with job definitions for async post-submission work.
-**Uses:** Hono `streamSSE`, ioredis pub/sub, BullMQ 5.x + ioredis 5.x.
-**Avoids:** SSE Redis subscriber leak (Pitfall 7 — verify with CLIENT LIST test), BullMQ stalled jobs on restart (Pitfall 4 — SIGTERM handler), shared Redis connection anti-pattern (separate ioredis instances for pub/sub vs commands).
-**Research flag:** Standard patterns — Hono streamSSE and Redis pub/sub are well-documented. The subscriber cleanup pattern is documented in both Hono and ioredis sources. Load test is required as acceptance criteria.
+**Addresses:** FEATURES.md `packages/ui` P1 item; elimination of component duplication that "the whole point of v1.1 is correcting."
 
-### Phase 5: OTel Instrumentation
-**Rationale:** Observability is infrastructure and can be added after the application is functionally complete. It is independent of all application logic. The OTel Collector is available from docker-compose Phase 1 onwards — this phase wires the SDK and verifies signals reach the collector.
-**Delivers:** `instrumentation.ts` in `apps/api` initialized via `--import` flag, OTLP HTTP exporters for traces/metrics/logs, auto-instrumentation for pg/ioredis/http, OTel Collector config with debug exporter for local dev and configurable destination for production, PostHog OTLP export removed (PostHog retained for product analytics only).
-**Uses:** @opentelemetry/sdk-node 0.213.x, @opentelemetry/auto-instrumentations-node, @opentelemetry/exporter-*-otlp-http.
-**Avoids:** SDK initialized after instrumented libraries (Pitfall 6 — `--import` flag), OTel Collector admin port exposed on Railway, debug exporter left on in production.
-**Research flag:** Needs verification — OTel SDK 2.x (February 2025) has breaking changes from 1.x. Verify `0.2xx` versioning for unstable packages is understood before starting. DB span smoke test is the first acceptance criterion.
+**Avoids:** Pitfall 3 (Tailwind `@source` — verify during package wiring), Pitfall 4 (CSS variables — move to package before admin exists), Pitfall 5 (duplicate React — enforce peer deps at creation, verify with `pnpm ls react`).
 
-### Phase 6: Railway Deployment
-**Rationale:** Railway deployment is the last phase because it validates the entire stack working together in a production-like environment. All application phases must be complete and stable before investing in deployment configuration.
-**Delivers:** Separate Railway services for `apps/api` and `apps/web` with explicit root directories and watch paths, multi-stage Dockerfiles using `turbo prune --scope`, PostgreSQL and Redis Railway plugins replacing Neon/Upstash, OTel Collector Railway service, environment variable configuration for all services, CI/CD triggering correct per-service deploys.
-**Avoids:** Railway rebuilding all apps on every commit (Pitfall 3 — per-service root directory + watch paths), pnpm workspace Dockerfile install failures (copy root workspace files before `pnpm install`), `NIXPACKS_TURBO_APP_NAME` no-op (confirmed broken, use explicit config).
-**Research flag:** Needs verification — Railway Railpack monorepo behavior should be re-verified against Railway docs at the time of this phase. The Railpack `NIXPACKS_TURBO_APP_NAME` bug was confirmed broken in community reports but Railway is actively developing Railpack; behavior may change.
+**Research flag:** Standard patterns — well-documented in shadcn/ui monorepo docs and Turborepo integration guide. No additional research needed. The Tailwind v4 `@source` with workspace symlinks needs empirical verification during this phase (community reports of edge cases).
+
+---
+
+### Phase 2: UI Parity Audit
+
+**Rationale:** The audit requires `packages/ui` to exist (some corrections land in the shared package). Admin adopts the corrected design system — auditing after admin is built means double styling work. This is the highest-complexity item in the milestone (subjective, labor-intensive, no automation).
+
+**Delivers:** Visual match between `apps/web` and `../website` on every public page; design system in a known-good state before admin styling decisions are made.
+
+**Addresses:** FEATURES.md "UI parity" P1 item and quality gate that blocks admin styling decisions.
+
+**Avoids:** Design token drift between the two apps once admin is built on top of a corrected baseline.
+
+**Research flag:** No research needed — this is a manual inspection and correction task, not a development task. Methodology: side-by-side comparison, page by page, component by component, using `../website` as the reference.
+
+---
+
+### Phase 3: Micro-Frontend Dev Proxy + Admin Scaffold
+
+**Rationale:** The Turborepo proxy (`microfrontends.json`) and the `apps/admin` skeleton should be built together — both require stable port assignments, and writing the Caddyfile mirror at this point forces production routing to be designed upfront rather than bolted on later.
+
+**Delivers:** `microfrontends.json` at repo root; unified `localhost:3024` dev routing; `apps/admin` Vite SPA scaffold with TanStack Router, auth client, admin layout, route guard, and `base: "/admin/"` configured; draft `apps/caddy/Caddyfile` mirroring proxy routing.
+
+**Addresses:** FEATURES.md `microfrontends.json` P1 item and `apps/admin` scaffold P1 item.
+
+**Avoids:** Pitfall 1 (write Caddyfile alongside dev proxy — they must mirror each other), Pitfall 2 (set `base: "/admin/"` at scaffold, verify with `vite build` before writing features), Pitfall 6 (configure Better Auth in admin at scaffold, test OAuth before building features), Pitfall 9 (document `<a href>` rule in the initial scaffold — not a TanStack Router `<Link>`).
+
+**Research flag:** Standard patterns — Turborepo and Vite docs are well-documented. The combination of Vite `base: "/admin/"` + TanStack Router `basename="/admin"` trailing slash behavior should be smoke-tested empirically during this phase.
+
+---
+
+### Phase 4: Admin Features (Challenge Management + User Management)
+
+**Rationale:** Admin features require a working scaffold (Phase 3) and confirmed Hono API endpoints. FEATURES.md flags a non-trivial dependency: the old tRPC procedures (`challenge.adminList`, `challenge.setAvailability`, `user.adminList`, `user.adminStats`) must be confirmed as Hono REST equivalents or added. This API audit must happen before UI work.
+
+**Delivers:** Admin challenge list with enable/disable toggle; admin user list with role/ban actions; admin stats cards; all backed by verified Hono REST endpoints at `/api/admin/challenges`, `PATCH /api/admin/challenges/:slug/availability`, `/api/user?admin=true`, `PATCH /api/user/:id`.
+
+**Addresses:** FEATURES.md admin challenge management, admin user management, admin stats (all P1).
+
+**Avoids:** Building UI against non-existent API endpoints (explicit dependency flag in FEATURES.md).
+
+**Research flag:** Needs light audit before feature work — inspect `apps/api/src/routes/admin/` and `apps/api/src/routes/user/` to confirm which endpoints exist vs. need adding. Not a full research-phase, but an explicit verification step at the start.
+
+---
+
+### Phase 5: Caddy Production Proxy + Railway Deployment
+
+**Rationale:** The full Railway deployment — DNS cutover, `API_URL` change, OAuth redirect URI updates — should happen last. It affects live production and requires a rollback plan. The Caddyfile itself was drafted in Phase 3; this phase deploys and validates it.
+
+**Delivers:** `apps/caddy` Docker service on Railway; `kubeasy.dev/admin/*` → admin service, `kubeasy.dev/api/*` → API service (with SSE flush), `kubeasy.dev/*` → web service; auth cookies simplified to same-origin; `api.kubeasy.dev` custom domain removed from API service.
+
+**Addresses:** FEATURES.md production routing P1 item; ARCHITECTURE.md auth cookie simplification; SSE `flush_interval -1` for real-time validation updates.
+
+**Avoids:** Pitfall 6 (Caddy `auto_https off`), Pitfall 7 (Railway DNS startup race — `fail_duration 60s`, deploy Caddy last), ARCHITECTURE.md Anti-Pattern 4 (remove `api.kubeasy.dev` after Caddy is stable, not before).
+
+**Research flag:** Railway DNS startup race mitigation is MEDIUM confidence (Railway private networking docs are sparse). Test Caddy redeploy while other services are running in a staging environment before production cutover. The `API_URL` env change and OAuth redirect URI re-registration are the highest-risk steps — keep `api.kubeasy.dev` active in parallel until new routing is confirmed stable.
+
+---
 
 ### Phase Ordering Rationale
 
-- **Packages before apps:** `packages/typescript-config` and `packages/api-schemas` have zero dependencies and must exist before either app can import from them. This is enforced by Turborepo's `dependsOn: ["^build"]` pipeline.
-- **API before web:** TanStack Start web depends on the API being available for data fetching. API contains the most business logic risk. Isolating API migration reduces blast radius from any TanStack Start API surface changes.
-- **SSE after REST API:** SSE is additive and requires the submission endpoint to function. Developing SSE independently allows the core REST API to be validated without real-time complexity.
-- **OTel after functionality:** Observability does not block any user-facing feature. Adding it last allows focusing on correctness first, instrumentation second.
-- **Railway last:** Production deployment should validate a stable application, not introduce debugging complexity alongside application development.
+- **Shared UI must come before parity audit and admin** — both depend on the design system being stable and co-located. Any feature built before this forces a second import refactor.
+- **Parity audit before admin styling** — admin adopts whatever state the design system is in; auditing after admin is built doubles styling work.
+- **Dev proxy and admin scaffold together** — they share port configuration; writing the Caddyfile mirror at this point forces production routing to be designed upfront.
+- **Admin features after scaffold** — API endpoint verification must precede UI work; discovering missing Hono routes mid-feature is a phase-blocker.
+- **Caddy deployment last** — involves DNS changes, OAuth reconfiguration, and production traffic migration; all other phases can be completed with current routing intact.
 
 ### Research Flags
 
-Phases needing deeper research during planning:
-- **Phase 2 (Hono API Migration):** Better Auth cross-subdomain cookie configuration — PITFALLS.md documents two confirmed GitHub issues. Validate on staging before declaring auth done. Specifically verify `crossSubdomainCookies` config with Hono CORS and `User-Agent` allowHeaders.
-- **Phase 3 (TanStack Start Web):** TanStack Start prerendering and per-route rendering mode API — framework is daily-published RC. Re-verify `prerender` config and `ssr` flag documentation against v1.166.x before starting. The older `@tanstack/start` package (stale, 9 months) must not be used — active package is `@tanstack/react-start`.
-- **Phase 5 (OTel Instrumentation):** OTel SDK 2.x migration guide — released February 2025, has breaking changes. Verify `0.2xx` unstable channel versioning before installing.
-- **Phase 6 (Railway Deployment):** Railpack monorepo behavior — `NIXPACKS_TURBO_APP_NAME` confirmed broken but Railway is actively developing Railpack. Re-check Railway docs and station reports at time of execution.
+Needs investigation at phase start:
+- **Phase 4:** Audit Hono admin routes before building UI — `GET /api/admin/challenges`, `PATCH /api/admin/challenges/:slug/availability`, `GET /api/user?admin=true`, `PATCH /api/user/:id` need to be confirmed or added.
+- **Phase 5:** Test Caddy redeploy while upstream services are running in staging — do not wait until production cutover to discover Railway DNS timing issues.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Monorepo Scaffold):** Turborepo internal packages, pnpm workspaces, and JIT vs compiled package strategy are thoroughly documented in official Turborepo docs. HIGH confidence.
-- **Phase 4 (SSE + Redis):** Hono `streamSSE`, ioredis pub/sub, and the subscriber cleanup pattern are all documented with code examples. BullMQ job definitions are standard. MEDIUM-HIGH confidence.
+Standard patterns (skip research-phase):
+- **Phase 1:** shadcn/ui monorepo setup is fully documented; Tailwind v4 `@source` pattern is explicit in official docs. Needs empirical verification, not research.
+- **Phase 2:** Manual inspection task — no research needed.
+- **Phase 3:** Turborepo `microfrontends.json` is well-documented; Vite SPA setup is standard.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM-HIGH | Core stack (Hono, Drizzle, Better Auth, Turborepo, pnpm) is HIGH — all verified via npm + official docs. TanStack Start is MEDIUM due to RC status and daily publishes. OTel SDK 2.x is MEDIUM due to recent release (Feb 2025) with breaking changes. |
-| Features | HIGH | Migration scope is well-defined — porting existing tRPC routes to REST with `@kubeasy/api-schemas`. No novel features. Dependency graph is explicit. Anti-features clearly documented. |
-| Architecture | HIGH | Turborepo monorepo patterns, Hono route modules, SSE + Redis pub/sub, and JIT internal packages all verified against official documentation with code examples. |
-| Pitfalls | MEDIUM-HIGH | Critical pitfalls sourced from official docs (BullMQ, Better Auth, Turborepo) and confirmed GitHub issues. Railway Railpack bug confirmed via community station reports. OTel init order confirmed via official getting started guide. |
+| Stack | HIGH | All versions verified against existing `apps/web/package.json`; Turborepo 2.6 micro-frontend feature confirmed in release notes; Caddy 2.11 current on Docker Hub; no new technology categories introduced |
+| Features | HIGH | Feature inventory derived from existing `../website` codebase; Turborepo/shadcn/Caddy integration patterns from official docs; anti-features are explicit |
+| Architecture | HIGH | Component boundaries derived from official Turborepo, Vite, and Caddy docs; Railway private networking pattern verified; data flow diagrams are explicit |
+| Pitfalls | MEDIUM-HIGH | Critical pitfalls (Vite base, Tailwind source, React peer deps, Caddy auto_https) verified with official docs or known issue trackers; Railway-specific items (DNS startup race) are MEDIUM — Railway private networking docs are sparse |
 
-**Overall confidence:** MEDIUM-HIGH
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **TanStack Start prerender API:** Verify `prerender` config and per-route rendering mode API against v1.166.x documentation before Phase 3 begins. The RC designation means documentation from September 2025 may not reflect current API.
-- **OTel Collector destination:** Grafana Cloud vs Honeycomb vs other is undecided. The Collector accepts OTLP from day one regardless — finalize destination in Phase 5 or v1.x. This is not a blocker.
-- **Go CLI contract coordination:** The new REST endpoint paths (`POST /api/challenges/:slug/submit`) must be communicated to the Go CLI team before tRPC removal in Phase 2. Add alias routes in Hono as a safety net during transition.
-- **Railway Railpack stability:** Railpack is Railway's new build system and is under active development. The `NIXPACKS_TURBO_APP_NAME` bug may be fixed by Phase 6. Re-verify behavior at execution time rather than assuming the workaround is still needed.
-- **Redis maxmemory-policy on Railway:** Railway's Redis plugin default memory policy must be verified at deployment time. If not `noeviction`, BullMQ queue keys may be silently evicted under memory pressure.
+- **Hono admin route inventory:** FEATURES.md flags that the Hono API may be missing `challenge.adminList`, `challenge.setAvailability`, `user.adminList`, `user.adminStats` equivalents. Must audit `apps/api` before Phase 4. Not blocking Phases 1-3.
+
+- **Railway deploy order UI:** Railway does not clearly document multi-service start ordering. The health check retry approach (`fail_duration 60s`, `max_fails 10`) is the documented fallback. Test in staging before production.
+
+- **Tailwind v4 `@source` with workspace symlinks:** Community reports suggest Tailwind v4 may behave differently when scanning through `node_modules` symlinks vs. direct source paths. The `@source` directive with a relative path to `packages/ui/src` is recommended, but must be verified empirically during Phase 1.
+
+- **TanStack Router + Vite `base` trailing slash:** TanStack Router's `basename` prop combined with Vite `base: "/admin/"` has known edge cases. The `vite build && vite preview` verification step in Phase 3 is the empirical check — no blocker, but requires explicit testing before declaring Phase 3 done.
+
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Turborepo Internal Packages](https://turborepo.dev/docs/core-concepts/internal-packages) — JIT vs compiled strategy, TypeScript references
-- [Turborepo Configuring Tasks](https://turborepo.dev/docs/crafting-your-repository/configuring-tasks) — dependsOn, env declarations, persistent tasks
-- [Hono Best Practices](https://hono.dev/docs/guides/best-practices) — route modules, app.route() pattern
-- [Hono Streaming Helper](https://hono.dev/docs/helpers/streaming) — streamSSE usage and abort signal
-- [Better Auth Hono Integration](https://better-auth.com/docs/integrations/hono) — auth handler mount, CORS requirements, session middleware
-- [Better Auth API Key plugin](https://better-auth.com/docs/plugins/api-key) — verifyApiKey, Hono middleware
-- [BullMQ Going to production](https://docs.bullmq.io/guide/going-to-production) — maxmemory-policy, SIGTERM handler
-- [BullMQ Connections](https://docs.bullmq.io/guide/connections) — ioredis hard requirement, separate connections per Queue/Worker
-- [BullMQ Graceful shutdown](https://docs.bullmq.io/guide/workers/graceful-shutdown) — worker.close() pattern
-- [TanStack Start Static Prerendering](https://tanstack.com/start/latest/docs/framework/react/guide/static-prerendering) — prerender config, crawlLinks, ISR
-- [Railway Monorepo guide](https://docs.railway.com/guides/monorepo) — root directory, watch paths
-- [OpenTelemetry Node.js getting started](https://opentelemetry.io/docs/languages/js/getting-started/nodejs/) — SDK init order, --import flag
+- Turborepo microfrontends guide — `microfrontends.json`, proxy behavior, `@vercel/microfrontends` override: https://turborepo.dev/docs/guides/microfrontends
+- Turborepo 2.6 release notes — micro-frontend feature introduction: https://turborepo.dev/blog/turbo-2-6
+- shadcn/ui monorepo docs — `components.json`, workspace aliases, CLI behavior: https://ui.shadcn.com/docs/monorepo
+- shadcn/ui Tailwind v4 docs — `@theme`, `@source` directives: https://ui.shadcn.com/docs/tailwind-v4
+- Turborepo shadcn/ui integration guide: https://turborepo.dev/docs/guides/tools/shadcn-ui
+- Caddy reverse_proxy directive — handle routing, `flush_interval`, `try_files` for SPA: https://caddyserver.com/docs/caddyfile/directives/reverse_proxy
+- Caddy Caddyfile patterns — path-based routing: https://caddyserver.com/docs/caddyfile/patterns
+- Railway private networking — `<service>.railway.internal` DNS pattern: https://docs.railway.com/networking/private-networking
+- Caddy Docker Hub — caddy:2-alpine current version (2.11.2): https://hub.docker.com/_/caddy
+- Vite base config option: https://vite.dev/config/shared-options (base option)
+- `apps/web/package.json` (this repo) — verified current versions for all shared dependencies
 
 ### Secondary (MEDIUM confidence)
-- [Better Auth cross-domain cookie issue #4038](https://github.com/better-auth/better-auth/issues/4038) — confirmed cross-domain cookie failures
-- [Better Auth session null with separate frontend/backend #3470](https://github.com/better-auth/better-auth/issues/3470) — session null debugging
-- [Railway Turborepo integration (station)](https://station.railway.com/questions/bad-turborepo-integration-3aede9d7) — NIXPACKS_TURBO_APP_NAME confirmed broken in Railpack
-- [Scaling SSE with Redis pub/sub](https://engineering.surveysparrow.com/scaling-real-time-applications-with-server-sent-events-sse-abd91f70a5c9) — subscriber leak pattern, fan-out
-- [SSE with TanStack Start & TanStack Query](https://ollioddi.dev/blog/tanstack-sse-guide) — EventSource + query invalidation pattern
-- [End-to-end typesafe APIs with shared Zod schemas](https://dev.to/jussinevavuori/end-to-end-typesafe-apis-with-typescript-and-shared-zod-schemas-4jmo) — shared schema monorepo pattern
+- Railway Caddy reverse proxy templates — confirmed active March 2026: https://railway.com/deploy/caddy-backend-proxy
+- Railway Caddy private networking Q&A — DNS startup race pattern: https://station.railway.com/questions/private-networking-unavailable-caddy-re-8f00af81
+- Tailwind v4 monorepo `@source` issue: https://github.com/tailwindlabs/tailwindcss/issues/13136
+- Tailwind v4 Turborepo community setup guide: https://medium.com/@philippbtrentmann/setting-up-tailwind-css-v4-in-a-turbo-monorepo-7688f3193039
+- Better Auth cross-domain cookies: https://better-auth.com/docs/concepts/cookies
+- Better Auth cross-domain issue (confirmed behavior): https://github.com/better-auth/better-auth/issues/4038
+- turborepo-shadcn-ui-tailwind-4 working reference: https://github.com/linkb15/turborepo-shadcn-ui-tailwind-4
 
 ### Tertiary (LOW confidence)
-- [OpenTelemetry Top 10 Setup Mistakes](https://oneuptime.com/blog/post/2026-02-06-fix-top-10-opentelemetry-setup-mistakes/view) — port confusion, SDK init order
-- [Turborepo + Hono template (mono-f7)](https://github.com/makyinmars/mono-f7) — community example for structure reference
+- pnpm duplicate peer deps behavior — fix is authoritative: https://github.com/pnpm/pnpm/issues/3558
 
 ---
-*Research completed: 2026-03-18*
+
+*Research completed: 2026-03-24*
 *Ready for roadmap: yes*

@@ -1,482 +1,358 @@
 # Architecture Research
 
-**Domain:** TypeScript monorepo — Hono API + Tanstack Start web app
-**Researched:** 2026-03-18
-**Confidence:** HIGH (Turborepo, Hono, Better Auth official docs + verified examples)
-
----
+**Domain:** Turborepo monorepo micro-frontend + shared shadcn/ui + Vite admin SPA
+**Researched:** 2026-03-24
+**Confidence:** HIGH
 
 ## Standard Architecture
 
-### System Overview
+### System Overview (v1.1 target state)
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          Browser / CLI (Go)                          │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-               ┌─────────────────┴─────────────────┐
-               ▼                                   ▼
-┌──────────────────────────┐       ┌───────────────────────────────┐
-│      apps/web             │       │         apps/api               │
-│  (Tanstack Start)         │       │         (Hono)                 │
-│                           │  REST │                                │
-│  SSG: landing, blog       │ ────► │  REST + SSE endpoints          │
-│  SSR: challenges, dash    │ ◄──── │  Better Auth (sessions)        │
-│  Tanstack Query (client)  │  SSE  │  Drizzle ORM → PostgreSQL      │
-│  Better Auth client       │       │  BullMQ → Redis (jobs)         │
-│                           │       │  Redis pub/sub → SSE           │
-└──────────────────────────┘       └───────────────────────────────┘
-                                                 │
-                              ┌──────────────────┴──────────────────┐
-                              │                                      │
-                    ┌─────────▼────────┐              ┌─────────────▼────┐
-                    │   PostgreSQL      │              │      Redis        │
-                    │  (data + auth)    │              │  (jobs + pub/sub) │
-                    └──────────────────┘              └──────────────────┘
-                              │
-                    ┌─────────▼────────┐
-                    │  OTel Collector   │
-                    │  (receives OTLP   │
-                    │   from all apps)  │
-                    └──────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                     LOCAL DEV (Turborepo proxy :3024)                    │
+│                                                                          │
+│  localhost:3024/          → apps/web  (TanStack Start SSR  :3000)        │
+│  localhost:3024/admin/*   → apps/admin (Vite React SPA     :3002)        │
+│  localhost:3024/api/*     → apps/api  (Hono REST + SSE     :3001)        │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                     PRODUCTION (Railway — 5 services)                    │
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────────┐   │
+│  │  Caddy reverse proxy  (kubeasy.dev — Railway private networking) │   │
+│  │                                                                  │   │
+│  │  kubeasy.dev/          → web service   (Railway private domain)  │   │
+│  │  kubeasy.dev/admin/*   → admin service (Railway private domain)  │   │
+│  │  kubeasy.dev/api/*     → api service   (Railway private domain)  │   │
+│  └──────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                     │
+│  │ web service │  │admin service│  │ api service │                     │
+│  │ TanStack    │  │ Vite SPA    │  │ Hono + BullMQ│                    │
+│  │ Start SSR   │  │ (static)    │  │ + Drizzle   │                     │
+│  └─────────────┘  └─────────────┘  └─────────────┘                     │
+│                                                                          │
+│  ┌─────────────┐  ┌─────────────┐                                       │
+│  │ PostgreSQL  │  │   Redis     │  (Railway plugins — shared)            │
+│  └─────────────┘  └─────────────┘                                       │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                     PACKAGES (no build step — JIT TS)                    │
+│                                                                          │
+│  packages/ui             ← NEW: shadcn/ui components (Tailwind CSS 4)   │
+│  packages/api-schemas    ← existing Zod contracts                       │
+│  packages/jobs           ← existing BullMQ definitions                  │
+│  packages/logger         ← existing Pino wrapper                        │
+│  packages/typescript-config ← existing tsconfig bases                   │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
 
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| `apps/web` | UI rendering (SSG/SSR), user-facing pages, auth client | `apps/api` via HTTP/SSE |
-| `apps/api` | HTTP REST endpoints, auth sessions, business logic, job dispatch | PostgreSQL, Redis, OTel Collector |
-| `packages/api-schemas` | Zod request/response contracts shared between web and api | None (pure definitions) |
-| `packages/jobs` | BullMQ queue + job definitions | Redis (at runtime, imported by `apps/api`) |
-| PostgreSQL | All persistent data: users, challenges, submissions, XP | `apps/api` only |
-| Redis | BullMQ job queues + pub/sub for SSE | `apps/api` only |
-| OTel Collector | Receives OTLP from all apps, forwards to external backend | Grafana Cloud / Honeycomb / etc. |
+| Component | Responsibility | Status |
+|-----------|----------------|--------|
+| `apps/web` | Public-facing SSR/SSG site: landing, blog, challenges, dashboard | Existing — receives shared `packages/ui` |
+| `apps/api` | REST API + SSE, auth, DB, BullMQ workers | Existing — no structural changes in v1.1 |
+| `apps/admin` | Client-only SPA for admin tasks; consumes `apps/api` admin routes | NEW |
+| `packages/ui` | shadcn/ui component library shared between web and admin | NEW |
+| Caddy service | Production reverse proxy routing all traffic under `kubeasy.dev` | NEW |
+| Turbo proxy | Dev-only proxy at :3024 routing to the three apps | Config change only |
 
 ---
 
 ## Recommended Project Structure
 
 ```
-kubeasy/website/                   # Repo root (in-place refactor)
+kubeasy/app/
+├── microfrontends.json          # NEW — Turborepo proxy routing config
+├── turbo.json                   # Updated — proxy task integration
 ├── apps/
-│   ├── web/                       # Tanstack Start frontend
-│   │   ├── src/
-│   │   │   ├── routes/            # File-based routes (TanStack Router)
-│   │   │   │   ├── __root.tsx     # Root layout, providers
-│   │   │   │   ├── index.tsx      # Landing page (SSG)
-│   │   │   │   ├── challenges/
-│   │   │   │   │   ├── index.tsx  # Challenge listing (SSR)
-│   │   │   │   │   └── $slug.tsx  # Challenge detail (SSR)
-│   │   │   │   ├── blog/
-│   │   │   │   │   ├── index.tsx  # Blog listing (SSG)
-│   │   │   │   │   └── $slug.tsx  # Blog article (SSG)
-│   │   │   │   └── dashboard/
-│   │   │   │       └── index.tsx  # User dashboard (SSR, auth-gated)
-│   │   │   ├── components/        # React components
-│   │   │   │   ├── ui/            # shadcn/ui primitives
-│   │   │   │   ├── challenge/     # Challenge-specific
-│   │   │   │   └── layout/        # header, footer
-│   │   │   ├── lib/
-│   │   │   │   ├── api-client.ts  # Typed fetch client (consumes @kubeasy/api-schemas)
-│   │   │   │   ├── auth-client.ts # Better Auth client
-│   │   │   │   └── query-client.ts
-│   │   │   └── styles/
-│   │   ├── app.config.ts          # Tanstack Start config (Vite/Nitro)
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   └── api/                       # Hono API server
-│       ├── src/
-│       │   ├── index.ts           # Entry point: mount routes, start server
-│       │   ├── routes/            # Hono route modules (app.route())
-│       │   │   ├── auth.ts        # Better Auth handler (/api/auth/*)
-│       │   │   ├── challenges.ts  # Challenge CRUD + listing
-│       │   │   ├── submissions.ts # CLI submission endpoint
-│       │   │   ├── progress.ts    # User progress + XP
-│       │   │   ├── sse.ts         # SSE endpoint for realtime updates
-│       │   │   └── admin.ts       # Admin endpoints
-│       │   ├── middleware/
-│       │   │   ├── auth.ts        # Session extraction middleware
-│       │   │   ├── cors.ts        # CORS config (web + CLI origins)
-│       │   │   └── logger.ts      # OTel request logging
-│       │   ├── db/                # Drizzle (migrated from server/db)
-│       │   │   ├── index.ts       # PostgreSQL connection (node-postgres)
-│       │   │   └── schema/        # Same schema, no functional changes
-│       │   ├── services/          # Business logic
-│       │   │   ├── xp.ts          # XP calculation (migrated from server/services)
-│       │   │   └── submissions.ts # Submission validation logic
-│       │   ├── lib/
-│       │   │   ├── auth.ts        # Better Auth server config
-│       │   │   ├── redis.ts       # Redis client (ioredis)
-│       │   │   └── logger.ts      # OTel structured logger
-│       │   └── jobs/              # BullMQ workers (runs jobs from @kubeasy/jobs)
-│       │       └── worker.ts      # Worker registration
-│       ├── package.json
-│       └── tsconfig.json
-│
+│   ├── web/                     # Existing — add @kubeasy/ui dep, remove local ui/ dir
+│   │   ├── components.json      # shadcn config pointing to @kubeasy/ui
+│   │   └── src/
+│   │       └── components/      # Only app-specific compositions remain
+│   ├── api/                     # Existing — unchanged code
+│   └── admin/                   # NEW
+│       ├── package.json         # name: "@kubeasy/admin"
+│       ├── vite.config.ts       # base: "/admin", port: $TURBO_MFE_PORT
+│       ├── components.json      # shadcn config pointing to @kubeasy/ui
+│       ├── index.html
+│       └── src/
+│           ├── main.tsx
+│           ├── App.tsx
+│           ├── routes/          # TanStack Router or react-router for SPA routing
+│           ├── components/      # Admin-specific components only
+│           ├── lib/
+│           │   ├── auth-client.ts  # Better Auth client (same config as web)
+│           │   └── api-client.ts   # Fetch wrapper to VITE_API_URL
+│           └── styles/
+│               └── globals.css  # @import "@kubeasy/ui/styles" + @source directive
 ├── packages/
-│   ├── api-schemas/               # @kubeasy/api-schemas
+│   ├── ui/                      # NEW
+│   │   ├── package.json         # name: "@kubeasy/ui"
+│   │   ├── components.json      # shadcn monorepo config (root of components)
 │   │   ├── src/
-│   │   │   ├── challenges.ts      # Challenge request/response schemas
-│   │   │   ├── submissions.ts     # CLI submission payload schema
-│   │   │   ├── progress.ts        # User progress schemas
-│   │   │   └── index.ts           # Re-exports all schemas
-│   │   ├── package.json           # JIT package — no build step
-│   │   └── tsconfig.json
-│   │
-│   ├── jobs/                      # @kubeasy/jobs
-│   │   ├── src/
-│   │   │   ├── queues.ts          # Queue definitions (BullMQ Queue instances)
-│   │   │   ├── jobs/              # Job payload type definitions + processors
-│   │   │   │   └── email.ts       # Email job definition
-│   │   │   └── index.ts
-│   │   ├── package.json           # JIT package — no build step
-│   │   └── tsconfig.json
-│   │
-│   └── typescript-config/         # @kubeasy/typescript-config
-│       ├── base.json              # Shared tsconfig base
-│       ├── web.json               # Web app tsconfig extends base
-│       └── api.json               # API tsconfig extends base (no DOM lib)
-│
-├── turbo.json                     # Task pipeline config
-├── pnpm-workspace.yaml            # Workspace roots: apps/*, packages/*
-├── package.json                   # Root: devDeps only (turbo, biome)
-├── biome.json                     # Shared lint/format config
-├── docker-compose.yml             # Local dev: postgres, redis, otel-collector
-└── drizzle/                       # Migrations (stays at root or moves to apps/api)
+│   │   │   ├── components/      # shadcn primitives (button, card, dialog, etc.)
+│   │   │   ├── hooks/           # shadcn hooks (use-mobile, etc.)
+│   │   │   └── lib/
+│   │   │       └── utils.ts     # cn() helper
+│   │   └── styles/
+│   │       └── globals.css      # @theme CSS variables (Tailwind CSS 4)
+│   ├── api-schemas/             # Existing
+│   ├── jobs/                    # Existing
+│   ├── logger/                  # Existing
+│   └── typescript-config/       # Existing
+└── docker/
+    └── Caddyfile                # NEW — production reverse proxy config
 ```
 
 ### Structure Rationale
 
-- **`apps/`**: Only deployable services. Each has its own `package.json`, Dockerfile, and runtime concern.
-- **`packages/api-schemas`**: Zod-only, no framework imports. JIT (no build step) — both Vite (web) and esbuild/tsx (api) understand TypeScript natively.
-- **`packages/jobs`**: Exports BullMQ queue and job definitions only. `apps/api` instantiates workers. Future `apps/worker` would import the same package. No import from `apps/*` — strictly unidirectional.
-- **`packages/typescript-config`**: Shared tsconfig bases. Prevents divergence between web (React JSX, DOM) and api (Node.js, no DOM).
-- **JIT packages**: Both `packages/` packages use direct TypeScript exports (no `dist/`). The consuming bundler handles transpilation. Valid because Vite (web) and tsx/esbuild (api dev) both understand TypeScript. Build is only needed if ever published externally.
-
----
-
-## Package Dependency Graph
-
-Direction: `app → package` only. Never `package → app`. Never circular.
-
-```
-apps/web
-  ├── @kubeasy/api-schemas  (request/response types, fetch call shapes)
-  └── (dev) @kubeasy/typescript-config
-
-apps/api
-  ├── @kubeasy/api-schemas  (validates incoming requests against same schemas)
-  ├── @kubeasy/jobs         (dispatches jobs, runs workers)
-  └── (dev) @kubeasy/typescript-config
-
-packages/api-schemas
-  └── zod (external only)
-
-packages/jobs
-  └── bullmq (external only)
-  └── (optionally) @kubeasy/api-schemas (job payload types)
-
-packages/typescript-config
-  └── (no runtime deps)
-```
-
-**Critical:** `packages/jobs` must NOT import from `apps/api`. The API imports jobs, not the reverse. This is the constraint that enables future worker extraction.
+- **`microfrontends.json` at root:** Turborepo reads it automatically when `turbo dev` runs; proxy port defaults to 3024.
+- **`packages/ui/` as component source of truth:** shadcn CLI installs components here; apps import from `@kubeasy/ui`; no duplication between web and admin.
+- **`apps/admin/` as Vite SPA:** Client-side only — no SSR needed for admin, keeps it simple and fast to build. Served as static files.
+- **`docker/Caddyfile`:** Keeps infra config colocated with repo; Caddy Railway service uses it via a Docker image or mounted config.
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: Hono Route Modules via `app.route()`
+### Pattern 1: Turborepo Proxy via `microfrontends.json`
 
-**What:** Each resource domain is a separate Hono instance, mounted at a prefix.
-**When to use:** Always — this is the idiomatic Hono scaling pattern.
-**Trade-offs:** Clean separation; type inference is preserved when using Hono RPC; avoids Rails-like controller indirection.
+**What:** A `microfrontends.json` at the repo root instructs `turbo dev` to spin up a proxy server that routes requests across apps based on path prefixes. Apps receive their assigned port via `$TURBO_MFE_PORT`.
 
-```typescript
-// apps/api/src/routes/challenges.ts
-import { Hono } from "hono";
-const challenges = new Hono();
-challenges.get("/", async (c) => { /* list challenges */ });
-challenges.get("/:slug", async (c) => { /* get by slug */ });
-export default challenges;
+**When to use:** All local development. Lets the browser hit one origin (`localhost:3024`) while apps run on different ports — solving cross-origin auth cookie issues with Better Auth.
 
-// apps/api/src/index.ts
-import { Hono } from "hono";
-import challenges from "./routes/challenges";
-import submissions from "./routes/submissions";
-const app = new Hono();
-app.route("/challenges", challenges);
-app.route("/submissions", submissions);
-```
+**Trade-offs:** Proxy is dev-only; production requires Caddy. The proxy port (3024 by default) is where developers point their browser, not 3000/3001/3002.
 
-### Pattern 2: Session Middleware in Hono Context
-
-**What:** Better Auth session extracted once per request in a global middleware, stored in Hono's typed context variables. Downstream route handlers read `c.get("user")` — no repetition.
-**When to use:** All authenticated routes.
-**Trade-offs:** Single extraction point; type-safe via Hono generics; same pattern as current Next.js tRPC context.
-
-```typescript
-// apps/api/src/middleware/auth.ts
-import type { auth } from "../lib/auth";
-
-type Variables = {
-  user: typeof auth.$Infer.Session.user | null;
-  session: typeof auth.$Infer.Session.session | null;
-};
-
-export const sessionMiddleware = createMiddleware<{ Variables: Variables }>(
-  async (c, next) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    c.set("user", session?.user ?? null);
-    c.set("session", session?.session ?? null);
-    await next();
-  }
-);
-```
-
-### Pattern 3: SSE + Redis Pub/Sub for Realtime
-
-**What:** Hono SSE endpoint subscribes to a Redis channel scoped to `userId:challengeSlug`. When `apps/api` processes a CLI submission, it publishes to that channel. The SSE handler streams the event to the connected browser.
-**When to use:** Validation status updates (replaces Upstash Realtime).
-**Trade-offs:** No WebSocket overhead; stateless (Redis is the broker, not the Node.js process); scales across multiple API replicas.
-
-```typescript
-// apps/api/src/routes/sse.ts
-import { streamSSE } from "hono/streaming";
-import { redis } from "../lib/redis";
-
-sse.get("/validation/:challengeSlug", sessionRequired, async (c) => {
-  const userId = c.get("user")!.id;
-  const channel = `validation:${userId}:${c.req.param("challengeSlug")}`;
-  const subscriber = redis.duplicate(); // dedicated connection for subscribe
-
-  return streamSSE(c, async (stream) => {
-    await subscriber.subscribe(channel);
-    subscriber.on("message", async (_, message) => {
-      await stream.writeSSE({ data: message, event: "validation-update" });
-    });
-    stream.onAbort(() => {
-      subscriber.unsubscribe(channel);
-      subscriber.disconnect();
-    });
-  });
-});
-```
-
-### Pattern 4: Zod-First API Contracts via `@kubeasy/api-schemas`
-
-**What:** Shared Zod schemas define the exact shape of HTTP request bodies and responses. `apps/api` validates incoming data with `@hono/zod-validator`. `apps/web` uses the same types for its fetch client — no code generation, no tRPC, no OpenAPI runtime.
-**When to use:** All endpoints that both web and CLI consume.
-**Trade-offs:** Simpler than tRPC; Go CLI can consume independently; web and api always agree on shapes.
-
-```typescript
-// packages/api-schemas/src/submissions.ts
-export const SubmitChallengeBody = z.object({
-  challengeSlug: z.string(),
-  results: z.array(ObjectiveResultSchema),
-});
-export type SubmitChallengeBody = z.infer<typeof SubmitChallengeBody>;
-
-// apps/api — validates at the edge
-import { zValidator } from "@hono/zod-validator";
-import { SubmitChallengeBody } from "@kubeasy/api-schemas/submissions";
-submissions.post("/", zValidator("json", SubmitChallengeBody), async (c) => { ... });
-
-// apps/web — typed fetch
-import type { SubmitChallengeBody } from "@kubeasy/api-schemas/submissions";
-async function submitChallenge(body: SubmitChallengeBody) {
-  return fetch(`${API_URL}/submissions`, { method: "POST", body: JSON.stringify(body) });
+**Config example:**
+```json
+// microfrontends.json
+{
+  "$schema": "https://turborepo.dev/schema/microfrontends.json",
+  "applications": {
+    "web": {
+      "development": { "local": { "port": 3000 } }
+    },
+    "admin": {
+      "development": { "local": { "port": 3002 } },
+      "routing": [{ "path": "/admin" }]
+    },
+    "api": {
+      "development": { "local": { "port": 3001 } },
+      "routing": [{ "path": "/api" }]
+    }
+  },
+  "options": { "localProxyPort": 3024 }
 }
 ```
 
-### Pattern 5: Turborepo Task Pipeline with `dependsOn`
+`web` has no routing entry — it is the default catch-all app.
 
-**What:** `turbo.json` encodes that apps cannot build until their package dependencies have built. For JIT packages (no build), Turborepo's graph still resolves order correctly — it just has no output to cache for the package.
-**When to use:** Always defined. Especially important for `dev` tasks using the `with` key.
+**Dev script update in apps:**
+```jsonc
+// apps/admin/package.json
+"dev": "vite dev --port $TURBO_MFE_PORT"
+// apps/web/package.json
+"dev": "vinxi dev --port $TURBO_MFE_PORT"
+// apps/api/package.json — no change needed (not a frontend)
+```
+
+### Pattern 2: `packages/ui` as shadcn Component Library
+
+**What:** shadcn/ui components live in `packages/ui` with their own `components.json`. Consumer apps (`web`, `admin`) each have their own `components.json` pointing aliases at `@kubeasy/ui`. The package exports no compiled JS — apps import TypeScript source directly (same JIT pattern as the other shared packages).
+
+**When to use:** Any shared UI primitive (Button, Card, Dialog, Badge, etc.). App-specific layout compositions stay in the app.
+
+**Trade-offs:** No build step needed (Vite/Vinxi resolves TypeScript workspace imports directly). Tailwind CSS 4 `@source` directive must be configured in each consumer app to scan `packages/ui/src/**` for utility classes — otherwise styles are not generated.
+
+**Config example:**
+```json
+// packages/ui/package.json
+{
+  "name": "@kubeasy/ui",
+  "exports": {
+    "./components/*": "./src/components/*.tsx",
+    "./hooks/*": "./src/hooks/*.tsx",
+    "./lib/*": "./src/lib/*.ts",
+    "./styles": "./styles/globals.css"
+  }
+}
+```
 
 ```json
-// turbo.json
+// packages/ui/components.json
 {
-  "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", ".output/**"]
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "typecheck": {
-      "dependsOn": ["^build"]
-    }
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "tailwind": { "baseColor": "slate", "cssVariables": true },
+  "aliases": {
+    "components": "@kubeasy/ui/components",
+    "utils": "@kubeasy/ui/lib/utils",
+    "hooks": "@kubeasy/ui/hooks"
   }
 }
 ```
 
-For `dev`, run both apps together: `turbo run dev --filter=apps/web --filter=apps/api`
+```css
+/* apps/admin/src/styles/globals.css */
+@import "tailwindcss";
+@import "@kubeasy/ui/styles";
+@source "../../packages/ui/src/**/*.{ts,tsx}";
+```
+
+### Pattern 3: Caddy Path-Based Reverse Proxy (Production)
+
+**What:** A Caddy service on Railway receives all traffic at `kubeasy.dev` and forwards to three Railway private-domain services based on path prefix. Uses Railway's internal networking (no public internet hop between services).
+
+**When to use:** Production only. Caddy replaces the need for separate subdomains per service. All three apps share the same `kubeasy.dev` origin — auth cookies work as same-origin without cross-subdomain config.
+
+**Trade-offs:** Caddy is an additional Railway service (small cost). Caddy must know private domain names of other services via env vars (Railway reference variables). TLS termination is handled by Railway's load balancer upstream — Caddy runs in plain HTTP mode internally on `$PORT`.
+
+**Caddyfile pattern:**
+```
+{
+  auto_https off
+}
+
+:{$PORT} {
+  handle /api/* {
+    reverse_proxy {$API_PRIVATE_URL} {
+      flush_interval -1
+    }
+  }
+  handle /admin/* {
+    reverse_proxy {$ADMIN_PRIVATE_URL}
+  }
+  handle {
+    reverse_proxy {$WEB_PRIVATE_URL}
+  }
+}
+```
+
+Railway injects `$PORT` automatically. `API_PRIVATE_URL`, `ADMIN_PRIVATE_URL`, `WEB_PRIVATE_URL` are set as Railway reference variables pointing to each service's private domain.
+
+### Pattern 4: Admin SPA with `base: "/admin"`
+
+**What:** Vite config sets `base: "/admin"` so all asset paths are prefixed correctly when served from a sub-path. The SPA router must also use a matching base path.
+
+**When to use:** Any SPA served from a non-root path. Critical — without this, Vite emits root-relative `/assets/…` paths that return 404 when the app is served under `/admin/`.
+
+**Trade-offs:** `base` must match exactly between dev proxy routing and Caddy routing in prod. Trailing-slash normalization in Caddy must be consistent with what Vite expects.
+
+```typescript
+// apps/admin/vite.config.ts
+export default defineConfig({
+  base: "/admin",
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: { "@": path.resolve(__dirname, "./src") }
+  }
+})
+```
 
 ---
 
 ## Data Flow
 
-### REST Request (Web → API)
+### Request Flow — Admin User Managing Challenges
 
 ```
-Browser
-  ↓ fetch("/challenges?difficulty=easy")
-apps/web (Tanstack Query loader or route loader)
-  ↓ HTTP GET to $API_URL/challenges
-apps/api (Hono route)
-  ↓ sessionMiddleware extracts session from cookie
-  ↓ challengeRoute handler
-  ↓ Drizzle query → PostgreSQL
-  ↓ returns JSON matching @kubeasy/api-schemas shape
-apps/web
-  ↓ Tanstack Query caches response
-React renders
+Admin Browser → kubeasy.dev/admin/challenges
+    ↓
+Railway LB → Caddy (/admin/* → admin service)
+    ↓
+admin service serves index.html (Vite static build)
+    ↓
+React app boots → router renders /admin/challenges
+    ↓
+useQuery → fetch("/api/admin/challenges")  [same origin — Caddy routes it]
+    ↓
+Caddy (/api/* → api service)
+    ↓
+Hono apps/api — admin middleware (role check) → DB query
+    ↓
+JSON response → React renders challenge list
 ```
 
-### CLI Submission → SSE Update
+In dev: all requests go through the Turbo proxy at :3024 which routes to :3001/:3002/:3000 respectively. Same path logic applies.
+
+### Auth Cookie Flow — Simplified in v1.1
 
 ```
-kubeasy-cli (Go)
-  ↓ POST $API_URL/submissions  {challengeSlug, results:[...]}
-apps/api
-  ↓ zValidator validates body against SubmitChallengeBody
-  ↓ sessionMiddleware: API key auth (not cookie)
-  ↓ submissionService: validate objectives, award XP
-  ↓ Redis PUBLISH validation:{userId}:{slug} {payload}
-  ↓ responds to CLI with enriched results
+v1.0 state:
+  web on kubeasy.dev, api on api.kubeasy.dev
+  → Better Auth cookie domain: .kubeasy.dev  (cross-subdomain)
 
-Redis pub/sub channel
-  ↓ (simultaneously)
-apps/api SSE handler (browser already connected)
-  ↓ receives Redis message
-  ↓ streamSSE writes event to browser
-
-Browser
-  ↓ Tanstack Query invalidates validation status query
-  ↓ UI re-renders with pass/fail indicators
+v1.1 state:
+  web + admin + api all under kubeasy.dev/* via Caddy
+  → Better Auth cookie domain: kubeasy.dev  (same-origin, simpler)
 ```
 
-### Authentication Flow (Web ↔ API)
+`API_URL` env var on `apps/api` must change from `https://api.kubeasy.dev` to `https://kubeasy.dev`. OAuth redirect URIs registered in GitHub/Google/Microsoft OAuth apps must be updated to match.
+
+### SSE Flow — Real-time Validation Updates
+
+SSE connections (`GET /api/sse`) travel through Caddy to `apps/api`. Long-lived connections require `flush_interval -1` on the `/api/*` handle block to prevent Caddy from buffering SSE frames. Without this, clients receive no events until the buffer fills.
+
+### Build Dependency Graph
 
 ```
-Browser
-  ↓ clicks "Login with GitHub"
-apps/web
-  ↓ redirects to $API_URL/api/auth/signin/github
-apps/api (Better Auth handler on /api/auth/*)
-  ↓ OAuth exchange with GitHub
-  ↓ creates session in PostgreSQL
-  ↓ sets cookie (SameSite=Lax, domain shared between web and api if same domain)
-Browser
-  ↓ subsequent requests include cookie automatically
-apps/api middleware
-  ↓ auth.api.getSession() reads session from PostgreSQL
-  ↓ c.set("user", session.user)
+packages/typescript-config  (no deps)
+      ↑
+packages/logger       packages/api-schemas    packages/jobs    packages/ui [NEW]
+      ↑                     ↑                     ↑                ↑
+      └─────────────────────┴─────────────────────┴────────────────┘
+                                    ↑
+                  apps/api     apps/web     apps/admin [NEW]
+
+Turbo build order (topological via "dependsOn": ["^build"]):
+1. All packages/* in parallel  (no cross-package deps)
+2. All apps/* in parallel      (after packages complete)
 ```
 
-**Cross-origin note:** In local dev, web runs on port 3000 and api on port 3001. Better Auth CORS must be configured with `credentials: true` for the web origin. Cookies must be `SameSite=None; Secure` for truly different origins, or use a local proxy (e.g., Caddy) to serve both under the same domain — the latter is simpler and recommended.
+`packages/ui` needs no build step — Vite and Vinxi resolve TypeScript workspace imports directly. Turbo's `typecheck` pipeline (`"dependsOn": ["^typecheck"]`) ensures packages typecheck before apps.
 
 ---
 
-## Build Order (Phase Dependency Implications)
+## New vs Modified: Explicit Inventory
 
-The dependency graph below determines which components must be built first and which phases can be developed independently.
+### New (v1.1)
 
-```
-Phase order by dependency depth:
+| Artifact | Type | Notes |
+|----------|------|-------|
+| `microfrontends.json` | Config | Root-level Turborepo proxy config |
+| `apps/admin/` | New app | Vite + React 19 SPA, port via `$TURBO_MFE_PORT`, base `/admin` |
+| `packages/ui/` | New package | shadcn/ui shared component library, no build step |
+| `docker/Caddyfile` | Config | Production reverse proxy rules |
+| Caddy Railway service | Infrastructure | New Railway service, receives `kubeasy.dev` custom domain |
 
-1. packages/typescript-config    (no deps — build first, trivial)
-2. packages/api-schemas          (depends on: zod only — can be built in isolation)
-3. packages/jobs                 (depends on: bullmq, optionally api-schemas)
-4. apps/api                      (depends on: api-schemas, jobs — needs infra running)
-5. apps/web                      (depends on: api-schemas — needs apps/api running for SSR data)
-```
+### Modified (v1.1)
 
-**Implication for roadmap phases:**
-- Scaffold packages before apps (packages are pure TypeScript, low risk)
-- Migrate DB + Hono API before touching Tanstack Start web (web depends on API being available)
-- SSE/realtime can be added after basic REST API is working (Redis pub/sub is additive)
-- OTel Collector setup is infrastructure-only, can be done in parallel with any app phase
+| Artifact | Change | Risk |
+|----------|--------|------|
+| `turbo.json` | May need `proxy` task or `dev` config update for microfrontends | Low |
+| `apps/web/package.json` | Add `@kubeasy/ui` dep, update dev script to use `$TURBO_MFE_PORT` | Low |
+| `apps/web/components.json` | Point aliases to `@kubeasy/ui` paths | Medium — existing component imports in web must be updated |
+| `apps/web/src/components/ui/` | Remove shadcn primitives now living in `packages/ui` | Medium — import paths refactor across web |
+| `apps/web/src/styles/*.css` | Add `@source "../../packages/ui/src/**/*.{ts,tsx}"` | Low |
+| `apps/api` `API_URL` env | Change from `https://api.kubeasy.dev` to `https://kubeasy.dev` | High — OAuth redirects and auth cookies break if wrong |
+| Railway `web` service | Transfer `kubeasy.dev` custom domain to Caddy service | High — DNS/routing change, plan rollback |
+| `apps/api/src/lib/cors.ts` | Verify `kubeasy.dev/admin` is an allowed origin | Low |
 
----
+### Unchanged (v1.1)
 
-## Docker Compose Layout (Local Dev)
-
-```yaml
-# docker-compose.yml (root of repo)
-services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: kubeasy
-      POSTGRES_USER: kubeasy
-      POSTGRES_PASSWORD: kubeasy
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    volumes:
-      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
-    ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-    depends_on:
-      - postgres      # not a real dep, just ensures collector starts after stable services
-
-volumes:
-  postgres_data:
-```
-
-**Note:** `apps/api` and `apps/web` run with `pnpm dev` on the host (not in Docker). Docker only manages stateful services. This avoids volume mount performance issues and preserves hot reload.
-
-**OTel Collector config** (`otel-collector-config.yaml`) receives OTLP from `apps/api` (and optionally `apps/web` SSR) and exports to a configured destination (Grafana Cloud, Honeycomb, etc.). In local dev, the exporter can be set to `debug` (logs to stdout) to avoid requiring a real backend.
-
----
-
-## Railway Production Layout
-
-```
-Railway Project: kubeasy
-
-Services:
-├── api          → apps/api Dockerfile, root dir: apps/api
-│                  Watch path: apps/api/**, packages/**
-│                  Env: DATABASE_URL, REDIS_URL, BETTER_AUTH_SECRET, ...
-│
-├── web          → apps/web Dockerfile, root dir: apps/web
-│                  Watch path: apps/web/**, packages/**
-│                  Env: API_URL=https://api.kubeasy.dev, ...
-│
-├── otel         → otel/opentelemetry-collector-contrib image
-│                  Config via env or mounted config
-│
-├── postgres     → Railway PostgreSQL plugin
-│
-└── redis        → Railway Redis plugin
-```
-
-**Watch paths** are critical: changing `packages/api-schemas` must trigger redeploy of both `api` and `web`. Railway supports gitignore-style watch patterns per service.
-
-**Dockerfiles:** Both apps need multi-stage Dockerfiles that:
-1. Install all workspace deps at root (pnpm needs all `packages/` to resolve)
-2. Build only the target app (`turbo run build --filter=apps/api`)
-3. Prune to production deps with `turbo prune --scope=apps/api --docker`
-
-**`turbo prune` is critical** for Docker builds in monorepos. It generates a minimal subset of the repo containing only the files and deps needed for the target app, reducing image size significantly.
+| Artifact | Reason |
+|----------|--------|
+| `apps/api` source code | No new routes needed in Phase 9; existing `/api/admin/*` routes already exist |
+| `packages/api-schemas` | Contracts unchanged |
+| `packages/jobs` | No new jobs |
+| DB schema | Explicitly out of scope for v1.1 |
+| Railway PostgreSQL + Redis plugins | Shared by all services — no changes |
+| OTel / SigNoz | Unchanged; admin app may add OTel optionally post-Phase 10 |
 
 ---
 
@@ -486,56 +362,64 @@ Services:
 
 | Service | Integration Pattern | Notes |
 |---------|---------------------|-------|
-| PostgreSQL | Drizzle ORM + node-postgres driver (replaces Neon serverless driver) | Same schema, driver change only |
-| Redis | ioredis (two instances: one for jobs, one dedicated subscriber for SSE) | Dedicated subscriber connection required for pub/sub |
-| Better Auth | Mounted on Hono at `/api/auth/*`, Drizzle adapter | CORS must precede auth routes |
-| OTel Collector | OTLP HTTP export from `apps/api` and `apps/web` (server-side) | Replace direct PostHog OTLP export |
-| Notion API | Stays in `apps/web` server functions (blog content) | No change needed |
-| PostHog | Retained for product analytics (not OTel logs) | Client-side in web, server-side optional |
+| Railway | Caddy added as new service; existing services use private domain env refs | Remove `kubeasy.dev` custom domain from web service, assign to Caddy service |
+| Better Auth / OAuth providers | `API_URL` on `apps/api` changes to `https://kubeasy.dev` | OAuth redirect URIs in GitHub/Google/Microsoft developer consoles need updating |
+| PostHog | No change — event tracking in web and api unchanged | Admin app may add PostHog later |
+| SigNoz OTel | No change for v1.1 | |
 
 ### Internal Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| `apps/web` ↔ `apps/api` | HTTP REST + SSE | No tRPC; typed via `@kubeasy/api-schemas` |
-| `apps/api` ↔ `packages/jobs` | Direct import (same process) | Worker runs inside api process initially |
-| `apps/web` ↔ `packages/api-schemas` | TypeScript import (JIT) | Web bundle includes schema types |
-| `apps/api` ↔ `packages/api-schemas` | TypeScript import (JIT) | API validates with zValidator |
-| `kubeasy-cli` (Go) ↔ `apps/api` | HTTP REST | Same contracts as before; schemas are the source of truth |
+| `apps/admin` ↔ `apps/api` | HTTP REST fetch via `VITE_API_URL/api/admin/*` | In prod, `VITE_API_URL=""` (same origin, Caddy routes `/api/*`); in dev, `VITE_API_URL="http://localhost:3024"` (Turbo proxy) |
+| `apps/web` ↔ `packages/ui` | TypeScript workspace import, no build step | Tailwind must `@source` scan `packages/ui/src` to generate utility classes |
+| `apps/admin` ↔ `packages/ui` | TypeScript workspace import, no build step | Same Tailwind `@source` constraint |
+| Caddy ↔ `apps/api` SSE | Long-lived HTTP streams | Requires `flush_interval -1` in Caddyfile on the `/api/*` handle |
+| Turbo proxy ↔ all frontend apps | `$TURBO_MFE_PORT` env injection | Dev scripts must use `$TURBO_MFE_PORT`, not hardcoded ports |
 
 ---
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Cross-Package Relative Imports
+### Anti-Pattern 1: Hardcoding Ports in Dev Scripts
 
-**What people do:** Write `import { schema } from "../../packages/api-schemas/src/index"` from within an app.
-**Why it's wrong:** Bypasses package.json resolution, breaks Turborepo's dependency graph, breaks pruning for Docker.
-**Do this instead:** Declare `"@kubeasy/api-schemas": "workspace:*"` in the app's `package.json` and import as `import { schema } from "@kubeasy/api-schemas"`.
+**What people do:** `"dev": "vite --port 3002"` in apps/admin/package.json
 
-### Anti-Pattern 2: Package Importing from App
+**Why it's wrong:** Turborepo microfrontends proxy injects `$TURBO_MFE_PORT` and expects apps to use it. Hardcoding means the proxy cannot manage port allocation and routing breaks.
 
-**What people do:** `packages/jobs` imports a DB client or auth helper from `apps/api` to avoid duplication.
-**Why it's wrong:** Creates circular dependency. Prevents extracting `apps/worker` later. Turborepo cannot build cleanly.
-**Do this instead:** Move shared concerns (Redis client config, types) into a `packages/` layer, or pass them as constructor arguments at runtime.
+**Do this instead:** `"dev": "vite dev --port $TURBO_MFE_PORT"`
 
-### Anti-Pattern 3: Running All Services in Docker
+### Anti-Pattern 2: Omitting `base` in Vite Config for Sub-Path Apps
 
-**What people do:** Add `apps/api` and `apps/web` to docker-compose alongside postgres and redis.
-**Why it's wrong:** Volume mounts for `node_modules` in a pnpm workspace are complex. Hot reload is unreliable. Adds ~30s to each code change cycle.
-**Do this instead:** Run stateful services (postgres, redis, otel) in Docker; run apps on the host with `turbo run dev`.
+**What people do:** Ship `apps/admin` with default `base: "/"` in vite.config.ts
 
-### Anti-Pattern 4: Single Compiled Build Step for JIT Packages
+**Why it's wrong:** All asset paths (`/assets/index-abc123.js`) are root-relative. When Caddy serves the app at `/admin/*`, the browser requests `/assets/…` (not `/admin/assets/…`) — 404 on all JS and CSS.
 
-**What people do:** Add `"build": "tsc"` to `packages/api-schemas` and make apps wait for it to compile.
-**Why it's wrong:** Adds unnecessary build latency; JIT packages don't need a build step when all consumers use bundlers or tsx.
-**Do this instead:** Export TypeScript source directly from `packages/api-schemas/src/*.ts`. Only add a build step if the package needs to be published to npm or consumed by a non-bundler tool.
+**Do this instead:** Set `base: "/admin"` in `vite.config.ts` and matching `basename="/admin"` in the SPA router.
 
-### Anti-Pattern 5: Shared Cookie Domain Without Proxy in Local Dev
+### Anti-Pattern 3: Duplicating shadcn Components Across Apps
 
-**What people do:** Configure `SameSite=None; Secure` cookies for `localhost:3000` ↔ `localhost:3001`.
-**Why it's wrong:** Browsers do not enforce `Secure` on localhost reliably; this configuration is for cross-origin prod, not local dev. Results in confusing auth failures.
-**Do this instead:** Use a local reverse proxy (Caddy or nginx) to serve both web (`localhost:3000`) and api (`localhost:3001`) under `api.localhost` and `app.localhost`, or configure Better Auth trusted origins to include `http://localhost:3000` and use standard session cookies.
+**What people do:** Run `npx shadcn add button` independently in both `apps/web` and `apps/admin`
+
+**Why it's wrong:** Components diverge immediately. Two copies of Button, two sets of CSS variables, two versions to maintain and keep in sync.
+
+**Do this instead:** Run `npx shadcn add button --cwd packages/ui`. Both apps import `@kubeasy/ui/components/button`.
+
+### Anti-Pattern 4: Keeping `api.kubeasy.dev` Custom Domain After Caddy Migration
+
+**What people do:** Leave `apps/api` with its own `api.kubeasy.dev` Railway custom domain AND expose it via Caddy at `kubeasy.dev/api/*`
+
+**Why it's wrong:** Better Auth OAuth redirects conflict. Cookie domains are inconsistent. Two public entry points for the same service create CORS and auth confusion.
+
+**Do this instead:** Remove the `api.kubeasy.dev` custom domain from the `api` Railway service after Caddy is routing `/api/*`. The API becomes private-network only; Caddy is the single public entry point.
+
+### Anti-Pattern 5: Forgetting `flush_interval -1` for SSE Through Caddy
+
+**What people do:** Standard `reverse_proxy` config for all paths including `/api/*`
+
+**Why it's wrong:** Caddy buffers responses by default. SSE streams stall until the buffer fills — clients never receive real-time events.
+
+**Do this instead:** Add `flush_interval -1` to the `/api/*` handle block in the Caddyfile.
 
 ---
 
@@ -543,27 +427,28 @@ Services:
 
 | Scale | Architecture Adjustments |
 |-------|--------------------------|
-| Current (< 10k users) | Single `apps/api` process handles REST, SSE, BullMQ workers, and auth. Redis pub/sub scales SSE horizontally if needed. |
-| 10k–100k users | Extract `packages/jobs` workers into `apps/worker` (already prepared). Add read replicas for PostgreSQL. API remains stateless. |
-| 100k+ users | Horizontal scaling of `apps/api` is natural (stateless + Redis broker). SSE scales because any replica handles any channel via Redis. Consider dedicated auth service if Better Auth becomes bottleneck. |
+| Current (< 1k users) | Caddy + 3 Railway services is sufficient. Caddy adds ~1ms latency vs direct routing — negligible. |
+| 1k–50k users | Extract BullMQ workers from `apps/api` into a dedicated Railway service using existing `packages/jobs` abstraction. Caddy is unaffected. |
+| 50k+ users | Static assets for `apps/admin` and `apps/web` SSG pages move to CDN (Cloudflare). Caddy handles dynamic routing only. |
 
-**First bottleneck:** PostgreSQL connection pool exhaustion. Hono on Node.js holds connections. Use PgBouncer or connection pooling built into Railway/Neon if this becomes a problem before extracting the worker.
+### Scaling Priorities
+
+1. **First bottleneck:** `apps/api` CPU/memory under concurrent BullMQ workers + HTTP load. Mitigation: extract workers to separate service (already architected in `packages/jobs`).
+2. **Second bottleneck:** PostgreSQL connection pool exhaustion. Mitigation: PgBouncer or Railway's connection pooling addon.
 
 ---
 
 ## Sources
 
-- [Turborepo Structuring a Repository](https://turborepo.dev/docs/crafting-your-repository/structuring-a-repository) — HIGH confidence
-- [Turborepo Internal Packages (JIT vs Compiled)](https://turborepo.dev/docs/core-concepts/internal-packages) — HIGH confidence
-- [Turborepo Configuring Tasks (dependsOn, persistent)](https://turborepo.dev/docs/crafting-your-repository/configuring-tasks) — HIGH confidence
-- [Hono Best Practices (route modules, app.route())](https://hono.dev/docs/guides/best-practices) — HIGH confidence
-- [Hono Streaming Helper (streamSSE)](https://hono.dev/docs/helpers/streaming) — HIGH confidence
-- [Better Auth Hono Integration](https://better-auth.com/docs/integrations/hono) — HIGH confidence
-- [Railway Monorepo Deployment](https://docs.railway.com/guides/monorepo) — HIGH confidence
-- [Turborepo + Hono template (mono-f7)](https://github.com/makyinmars/mono-f7) — MEDIUM confidence (community example)
-- [TanStack Start Overview](https://tanstack.com/start/latest/docs/framework/react/overview) — HIGH confidence
+- Turborepo microfrontends guide (official): https://turborepo.dev/docs/guides/microfrontends — HIGH confidence
+- Turborepo Vite framework guide (official): https://turborepo.dev/docs/guides/frameworks/vite — HIGH confidence
+- shadcn/ui monorepo docs (official): https://ui.shadcn.com/docs/monorepo — HIGH confidence
+- Caddy reverse proxy patterns (official): https://caddyserver.com/docs/caddyfile/patterns — HIGH confidence
+- Caddy reverse_proxy directive (official): https://caddyserver.com/docs/caddyfile/directives/reverse_proxy — HIGH confidence
+- Railway Caddy deployment template: https://railway.com/deploy/caddy-backend-proxy — MEDIUM confidence
+- Path-based Caddy proxying example: https://dev.to/vizalo/path-based-reverse-proxying-with-caddy-3gjm — MEDIUM confidence (verified against official Caddy docs)
 
 ---
 
-*Architecture research for: Turborepo monorepo — Hono API + Tanstack Start*
-*Researched: 2026-03-18*
+*Architecture research for: Kubeasy monorepo v1.1 micro-frontend + shared UI + admin SPA*
+*Researched: 2026-03-24*
