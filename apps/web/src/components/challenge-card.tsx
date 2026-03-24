@@ -2,14 +2,14 @@ import type { ChallengeListItem } from "@kubeasy/api-schemas/challenges";
 import { Link } from "@tanstack/react-router";
 import { CheckCircle2, Circle, Clock, PlayCircle, Users } from "lucide-react";
 import { DifficultyBadge } from "@/components/difficulty-badge";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@kubeasy/ui/badge";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@kubeasy/ui/card";
 import { cn } from "@/lib/utils";
 
 type ChallengeStatus = "not_started" | "in_progress" | "completed";

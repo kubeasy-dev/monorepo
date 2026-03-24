@@ -1,8 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { User } from "better-auth";
 import { LogOut } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@kubeasy/ui/avatar";
+import { Button } from "@kubeasy/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@kubeasy/ui/dropdown-menu";
 import { signOut } from "@/lib/auth-client";
 
 export function UserDropdown({

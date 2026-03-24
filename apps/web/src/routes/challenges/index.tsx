@@ -7,7 +7,7 @@ import { z } from "zod";
 import { ChallengesFilters } from "@/components/challenges-filters";
 import { ChallengesGrid } from "@/components/challenges-grid";
 import { ChallengesQuickStartCTA } from "@/components/challenges-quick-start-cta";
-import { Button } from "@/components/ui/button";
+import { Button } from "@kubeasy/ui/button";
 import { authClient } from "@/lib/auth-client";
 import {
   challengeListOptions,

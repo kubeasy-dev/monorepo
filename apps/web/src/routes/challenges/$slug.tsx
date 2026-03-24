@@ -3,9 +3,9 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Clock } from "lucide-react";
 import { ChallengeMission } from "@/components/challenge-mission";
 import { DifficultyBadge } from "@/components/difficulty-badge";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@kubeasy/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@kubeasy/ui/card";
+import { Separator } from "@kubeasy/ui/separator";
 import {
   challengeDetailOptions,
   challengeObjectivesOptions,

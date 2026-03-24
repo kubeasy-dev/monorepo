@@ -1,5 +1,5 @@
 import { GitFork, Github, Heart, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@kubeasy/ui/button";
 
 export function OpenSourceSection() {
   return (

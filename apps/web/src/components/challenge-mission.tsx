@@ -9,8 +9,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@kubeasy/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@kubeasy/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@kubeasy/ui/dialog";
 import { useInvalidateCacheSSE } from "@/hooks/use-invalidate-cache-sse";
 import type { SubmissionsOutput } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";

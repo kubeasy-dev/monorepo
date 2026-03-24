@@ -1,13 +1,13 @@
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@kubeasy/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@kubeasy/ui/card";
 import { signInWithSocialProvider } from "@/lib/auth-client";
 
 type SocialProvider = "github" | "google" | "microsoft";

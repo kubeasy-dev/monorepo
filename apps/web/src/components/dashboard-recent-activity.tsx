@@ -2,14 +2,14 @@ import type { XpTransaction } from "@kubeasy/api-schemas/xp";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Clock, History, Trophy, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@kubeasy/ui/button";
 import {
   Dialog,
   DialogClose,
   DialogContent,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@kubeasy/ui/dialog";
 import { xpTransactionsOptions } from "@/lib/query-options";
 import { cn } from "@/lib/utils";
 

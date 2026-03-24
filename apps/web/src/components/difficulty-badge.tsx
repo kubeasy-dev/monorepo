@@ -1,5 +1,5 @@
 import type { ChallengeDifficulty } from "@kubeasy/api-schemas/challenges";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@kubeasy/ui/badge";
 import { cn } from "@/lib/utils";
 
 const difficultyColors: Record<ChallengeDifficulty, string> = {

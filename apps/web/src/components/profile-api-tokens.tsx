@@ -2,8 +2,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertCircle, Check, Copy, Key, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@kubeasy/ui/alert";
+import { Button } from "@kubeasy/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,15 +11,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@kubeasy/ui/dialog";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
+} from "@kubeasy/ui/empty";
+import { Input } from "@kubeasy/ui/input";
 import { trackApiTokenCopied, trackApiTokenCreated } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 

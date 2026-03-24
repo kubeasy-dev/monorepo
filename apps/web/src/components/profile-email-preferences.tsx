@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { List, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { Empty, EmptyHeader, EmptyMedia } from "@/components/ui/empty";
-import { Switch } from "@/components/ui/switch";
+import { Empty, EmptyHeader, EmptyMedia } from "@kubeasy/ui/empty";
+import { Switch } from "@kubeasy/ui/switch";
 import {
   getEmailTopicsFn,
   updateEmailSubscriptionFn,

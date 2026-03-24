@@ -2,14 +2,14 @@ import type { ChallengeListInput } from "@kubeasy/api-schemas/challenges";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
+import { Input } from "@kubeasy/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@kubeasy/ui/select";
 import type { ChallengeTypeItem } from "@/lib/api-client";
 import { difficulties } from "@/lib/constants";
 import { themeListOptions, typeListOptions } from "@/lib/query-options";
