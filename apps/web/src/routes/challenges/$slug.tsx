@@ -4,6 +4,7 @@ import { ArrowLeft, Clock } from "lucide-react";
 import { ChallengeMission } from "@/components/challenge-mission";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { Badge } from "@kubeasy/ui/badge";
+import { Button } from "@kubeasy/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@kubeasy/ui/card";
 import { Separator } from "@kubeasy/ui/separator";
 import {
@@ -48,13 +49,16 @@ function ChallengeDetailPage() {
   return (
     <div className="container mx-auto max-w-4xl">
       {/* Back Button */}
-      <Link
-        to="/challenges"
-        className="mb-6 inline-flex items-center neo-border-thick neo-shadow hover:neo-shadow-sm hover:translate-x-[2px] hover:translate-y-[2px] transition-all px-4 py-2 font-bold"
+      <Button
+        variant="ghost"
+        className="mb-6 neo-border-thick neo-shadow hover:neo-shadow-sm hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+        asChild
       >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Challenges
-      </Link>
+        <Link to="/challenges">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Challenges
+        </Link>
+      </Button>
 
       {/* Challenge Header */}
       <div className="space-y-6 mb-8">

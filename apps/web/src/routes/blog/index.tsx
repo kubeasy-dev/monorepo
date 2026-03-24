@@ -1,6 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { FileText } from "lucide-react";
-import type { BlogPost } from "@/lib/notion";
+import { useState } from "react";
+import { BlogCard } from "@/components/blog-card";
+import { cn } from "@/lib/utils";
 import { getBlogPosts } from "@/lib/notion";
 
 export const Route = createFileRoute("/blog/")({
@@ -16,76 +18,32 @@ export const Route = createFileRoute("/blog/")({
   component: BlogListingPage,
 });
 
-function BlogCard({ post }: { post: BlogPost }) {
-  const formattedDate = new Date(post.publishedAt).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  return (
-    <Link
-      to="/blog/$slug"
-      params={{ slug: post.slug }}
-      className="group block p-6 rounded-xl neo-border-thick neo-shadow hover:translate-x-[-2px] hover:translate-y-[-2px] hover:neo-shadow-xl transition-all bg-card"
-    >
-      {post.cover && (
-        <div className="mb-4 overflow-hidden rounded-lg aspect-video">
-          <img
-            src={post.cover}
-            alt={post.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        </div>
-      )}
-
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2 py-1 text-xs font-bold bg-primary/10 text-primary neo-border rounded">
-            {post.category.name}
-          </span>
-          {post.isPinned && (
-            <span className="inline-flex items-center px-2 py-1 text-xs font-bold bg-secondary neo-border rounded">
-              Pinned
-            </span>
-          )}
-        </div>
-
-        <h2 className="text-xl font-black group-hover:text-primary transition-colors leading-tight">
-          {post.title}
-        </h2>
-
-        {post.description && (
-          <p className="text-sm text-muted-foreground font-medium line-clamp-2">
-            {post.description}
-          </p>
-        )}
-
-        <div className="flex items-center justify-between text-xs text-muted-foreground font-medium pt-2">
-          <div className="flex items-center gap-2">
-            {post.author.avatar ? (
-              <img
-                src={post.author.avatar}
-                alt={post.author.name}
-                className="w-5 h-5 rounded-full"
-              />
-            ) : (
-              <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-black">
-                {post.author.name.charAt(0)}
-              </div>
-            )}
-            <span>{post.author.name}</span>
-          </div>
-          <time dateTime={post.publishedAt}>{formattedDate}</time>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 function BlogListingPage() {
   const { posts } = Route.useLoaderData();
   const totalPosts = posts.length;
+
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Derive categories from post list
+  const categories = [
+    ...new Set(posts.map((p) => p.category?.name).filter(Boolean)),
+  ] as string[];
+
+  // Separate pinned and regular posts
+  const pinnedPosts = posts.filter((p) => p.isPinned);
+  const allRegularPosts = posts.filter((p) => !p.isPinned);
+
+  // Apply category filter to regular posts
+  const regularPosts = selectedCategory
+    ? allRegularPosts.filter((p) => p.category?.name === selectedCategory)
+    : allRegularPosts;
+
+  // Also filter pinned posts if category is selected
+  const displayedPinnedPosts = selectedCategory
+    ? pinnedPosts.filter((p) => p.category?.name === selectedCategory)
+    : pinnedPosts;
+
+  const hasResults = displayedPinnedPosts.length > 0 || regularPosts.length > 0;
 
   return (
     <div className="w-full overflow-x-hidden">
@@ -105,8 +63,46 @@ function BlogListingPage() {
           </p>
         </div>
 
+        {/* Category filter badges */}
+        {categories.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-6 sm:mb-8">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory(null)}
+              className={cn(
+                "px-3 py-1 text-xs font-black uppercase tracking-wider neo-border-thick cursor-pointer transition-all",
+                selectedCategory === null
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background hover:bg-secondary",
+              )}
+            >
+              All ({totalPosts})
+            </button>
+            {categories.map((cat) => {
+              const count = posts.filter((p) => p.category?.name === cat).length;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() =>
+                    setSelectedCategory(selectedCategory === cat ? null : cat)
+                  }
+                  className={cn(
+                    "px-3 py-1 text-xs font-black uppercase tracking-wider neo-border-thick cursor-pointer transition-all",
+                    selectedCategory === cat
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background hover:bg-secondary",
+                  )}
+                >
+                  {cat} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Blog grid */}
-        {posts.length === 0 ? (
+        {!hasResults ? (
           <div className="py-24 text-center">
             <h2 className="text-2xl font-black mb-4">No articles yet</h2>
             <p className="text-muted-foreground">
@@ -115,7 +111,17 @@ function BlogListingPage() {
           </div>
         ) : (
           <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
+            {/* Featured/Pinned posts */}
+            {displayedPinnedPosts.map((post, index) => (
+              <BlogCard
+                key={post.id}
+                post={post}
+                featured={index === 0 && pinnedPosts.length === 1}
+              />
+            ))}
+
+            {/* Regular posts */}
+            {regularPosts.map((post) => (
               <BlogCard key={post.id} post={post} />
             ))}
           </div>
