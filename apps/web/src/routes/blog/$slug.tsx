@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Calendar, ChevronLeft, Clock } from "lucide-react";
+import { AuthorCard } from "@/components/author-card";
+import { RelatedPosts } from "@/components/related-posts";
+import { TableOfContentsClient } from "@/components/table-of-contents";
 import type { NotionBlock, RichTextItem } from "@/lib/notion";
-import { getBlogPostWithContent } from "@/lib/notion";
+import { getBlogPostWithContent, getRelatedBlogPosts } from "@/lib/notion";
 
 export const Route = createFileRoute("/blog/$slug")({
   headers: () => ({
@@ -11,7 +14,8 @@ export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
     const post = await getBlogPostWithContent(params.slug);
     if (!post) throw new Error(`Blog post not found: ${params.slug}`);
-    return { post };
+    const relatedPosts = await getRelatedBlogPosts(post, 3);
+    return { post, relatedPosts };
   },
   component: BlogArticlePage,
 });
@@ -203,7 +207,7 @@ function BlockItem({ block }: { block: NotionBlock }) {
 // ---- Page component ----
 
 function BlogArticlePage() {
-  const { post } = Route.useLoaderData();
+  const { post, relatedPosts } = Route.useLoaderData();
 
   const wordCount = post.blocks
     .filter((b) => b.type === "paragraph" && b.paragraph)
@@ -220,6 +224,8 @@ function BlogArticlePage() {
     day: "numeric",
   });
 
+  const headings = post.headings;
+
   return (
     <article className="w-full overflow-x-clip">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
@@ -234,13 +240,18 @@ function BlogArticlePage() {
           </Link>
         </div>
 
-        {/* Article header */}
+        {/* Article header - Centered */}
         <header className="mb-8 sm:mb-12 text-center">
-          <div className="inline-block mb-4 sm:mb-6">
-            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary text-primary-foreground neo-border-thick font-bold shadow sm:neo-shadow text-xs sm:text-sm">
+          {/* Category badge - clickable link */}
+          <Link
+            to="/blog"
+            search={{ category: post.category.name }}
+            className="inline-block mb-4 sm:mb-6"
+          >
+            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary text-primary-foreground neo-border-thick font-bold shadow sm:neo-shadow text-xs sm:text-sm hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all">
               {post.category.name}
             </span>
-          </div>
+          </Link>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-balance leading-tight mb-4 sm:mb-6">
             {post.title}
@@ -299,38 +310,38 @@ function BlogArticlePage() {
           )}
         </header>
 
-        {/* Article content */}
-        <div className="max-w-none prose-lg">
-          <BlockRenderer blocks={post.blocks} />
-        </div>
-
-        {/* Author bio */}
-        <div className="mt-12 p-6 bg-secondary neo-border-thick rounded-xl">
-          <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-            <span className="inline-block w-6 sm:w-8 h-1 bg-primary" />
-            Written by
-          </h2>
-          <div className="flex items-start gap-4">
-            {post.author.avatar ? (
-              <img
-                src={post.author.avatar}
-                alt={post.author.name}
-                className="w-16 h-16 rounded-full neo-border"
-              />
-            ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground font-black neo-border text-xl">
-                {post.author.name.charAt(0)}
-              </div>
-            )}
-            <div>
-              <p className="font-black text-lg">{post.author.name}</p>
-              {post.author.bio && (
-                <p className="text-muted-foreground font-medium text-sm mt-1">
-                  {post.author.bio}
-                </p>
-              )}
-            </div>
+        {/* Mobile Table of Contents */}
+        {headings.length > 0 && (
+          <div className="lg:hidden mb-8">
+            <TableOfContentsClient headings={headings} collapsible />
           </div>
+        )}
+
+        {/* Main content layout */}
+        <div className="grid gap-8 sm:gap-12 lg:grid-cols-[1fr_250px] items-start">
+          {/* Article content */}
+          <div className="prose-neo max-w-none min-w-0">
+            <BlockRenderer blocks={post.blocks} />
+
+            {/* Author bio */}
+            <div className="mt-10">
+              <h2 className="text-lg sm:text-xl font-black mb-4 sm:mb-6 flex items-center gap-2">
+                <span className="inline-block w-6 sm:w-8 h-1 bg-primary" />
+                Written by
+              </h2>
+              <AuthorCard author={post.author} />
+            </div>
+
+            {/* Related posts */}
+            <RelatedPosts posts={relatedPosts} />
+          </div>
+
+          {/* Sidebar - Table of Contents (Desktop only) */}
+          {headings.length > 0 && (
+            <aside className="hidden lg:block sticky top-28">
+              <TableOfContentsClient headings={headings} />
+            </aside>
+          )}
         </div>
       </div>
     </article>
