@@ -4,7 +4,7 @@ Shared structured logger for Kubeasy backend services.
 
 ## Purpose
 
-Provides a single, pre-configured `logger` instance backed by **Pino** with **OpenTelemetry** log bridge support. All server-side code should use this instead of `console.*`.
+Provides a single, pre-configured `logger` instance backed by **Pino**. All server-side code should use this instead of `console.*`.
 
 ## Usage
 
@@ -23,13 +23,15 @@ logger.debug("Detailed trace", { key: "value" });
 
 | Environment | Output |
 |---|---|
-| Development (local) | Pretty-printed console output via `pino-pretty` |
-| Production (`VERCEL=true`) | JSON logs sent via OpenTelemetry OTLP (to PostHog) |
+| Development (`NODE_ENV !== "production"`) | Pretty-printed console output via `pino-pretty` |
+| Production (`NODE_ENV=production`) | Plain JSON to stdout |
+
+The OpenTelemetry log bridge (`PinoInstrumentation`) is set up in each app's `instrumentation.ts` — it intercepts pino calls and emits OTel log records (with `trace_id`/`span_id` correlation) in **both** environments. The logger package itself has no OTel dependency.
 
 ## Exports
 
 ```
-@kubeasy/logger   # Single default export: logger instance
+@kubeasy/logger   # Named export: logger
 ```
 
 ## Commands
@@ -44,9 +46,6 @@ pnpm typecheck   # Type-check this package
 |---|---|
 | `pino` | Core structured logger |
 | `pino-pretty` | Human-readable formatting for dev |
-| `@opentelemetry/api-logs` | OTel log bridge (forwards logs to OTLP) |
-
-**Peer dependency**: `@opentelemetry/api >=1.3.0 <2.0.0` — must be provided by the consuming app (both `apps/web` and `apps/api` already include it).
 
 ## Key Rules
 

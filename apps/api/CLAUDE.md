@@ -83,11 +83,18 @@ src/
   services/         # Business logic (XP calculation, etc.)
   middleware/
     session.ts        # Sets c.var.user and c.var.session from Better Auth
+    admin.ts          # Enforces admin role (compose after session middleware)
+    api-key.ts        # API key authentication (used by CLI routes)
+    rate-limit.ts     # Rate limiting
   lib/
-    auth.ts           # Better Auth server config
-    cors.ts           # Allowed origins list
-    redis.ts          # Shared ioredis client
+    auth.ts               # Better Auth server config
+    cors.ts               # Allowed origins list
+    redis.ts              # Shared ioredis client
+    analytics-server.ts   # PostHog server-side event tracking
+    resend.ts             # Resend email client
+    env.ts                # Environment variable validation
   schemas/          # Zod schemas for request/response bodies
+  __tests__/        # Vitest test files (7 files: auth, challenges, cli, middleware, etc.)
 ```
 
 ## Adding a New Route
@@ -190,5 +197,7 @@ GOOGLE_CLIENT_SECRET=
 MICROSOFT_CLIENT_ID=
 MICROSOFT_CLIENT_SECRET=
 RESEND_API_KEY=        # Transactional email
+POSTHOG_KEY=           # PostHog project API key (analytics disabled if missing)
+POSTHOG_HOST=          # PostHog host (e.g. https://eu.i.posthog.com)
 PORT=3001              # HTTP server port (optional, defaults to 3001)
 ```
