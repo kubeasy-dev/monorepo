@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@better-auth/api-key": "1.5.5",
+    "@better-auth/api-key": "1.5.6",
     "@fontsource-variable/geist": "5.2.8",
     "@kubeasy/api-schemas": "workspace:*",
     "@kubeasy/logger": "workspace:*",
@@ -33,12 +33,12 @@
     "@radix-ui/react-separator": "1.1.8",
     "@radix-ui/react-slot": "1.2.4",
     "@radix-ui/react-switch": "1.2.6",
-    "@tanstack/react-query": "5.91.3",
-    "@tanstack/react-router": "1.168.1",
-    "@tanstack/react-start": "1.167.2",
+    "@tanstack/react-query": "5.95.2",
+    "@tanstack/react-router": "1.168.3",
+    "@tanstack/react-start": "1.167.5",
     "@unpic/react": "1.0.2",
-    "better-auth": "1.5.5",
-    "posthog-js": "1.363.1",
+    "better-auth": "1.5.6",
+    "posthog-js": "1.363.3",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "0.577.0",
@@ -61,12 +61,12 @@
     "@types/react-dom": "19.2.3",
     "@tailwindcss/vite": "4.2.2",
     "@vitejs/plugin-react": "6.0.1",
-    "nitro": "npm:nitro-nightly@3.0.1-20260322-095631-ffdd706a",
+    "nitro": "npm:nitro-nightly@3.0.1-20260323-230955-3f162339",
     "pino-pretty": "13.1.3",
     "tailwindcss": "4.2.2",
     "tsx": "4.21.0",
     "typescript": "5.9.3",
-    "vite": "8.0.1",
-    "vitest": "4.1.0"
+    "vite": "8.0.2",
+    "vitest": "4.1.1"
   }
 }
