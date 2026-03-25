@@ -32,7 +32,7 @@ Full details: `.planning/milestones/v1.0-ROADMAP.md`
 - [x] **Phase 9: UI Parity** — Audit and correct all visual differences between `apps/web` and `../website` across all 4 page groups (completed 2026-03-24)
 - [x] **Phase 10: Micro-Frontend Dev Proxy + Admin Scaffold** — Configure `microfrontends.json`, scaffold `apps/admin` Vite SPA with auth guard and draft Caddyfile (completed 2026-03-24)
 - [x] **Phase 11: Admin Features** — Build admin challenge management and user management pages, add all Hono admin API endpoints (completed 2026-03-25)
-- [ ] **Phase 12: Caddy Production + Railway Deployment** — Deploy Caddy service on Railway, DNS cutover to unified `kubeasy.dev`, update OAuth redirect URIs
+- [x] **Phase 12: Caddy Production + Railway Deployment** — Deploy Caddy service on Railway, DNS cutover to unified `kubeasy.dev`, update OAuth redirect URIs (completed 2026-03-25)
 
 ## Phase Details
 
@@ -110,7 +110,7 @@ Plans:
   2. SSE-based real-time validation updates work in production — the `flush_interval -1` Caddy directive is confirmed by a successful challenge submission and live status update
   3. OAuth login flow works end-to-end in production via the new same-origin domain — GitHub, Google, and Microsoft redirect URIs are updated and functional
   4. `apps/admin` is deployed as an independent Railway service — Railway dashboard shows a dedicated admin service with its own Dockerfile build
-**Plans:** 0/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 12-01-PLAN.md — Caddyfile update + Caddy/admin Dockerfiles + nginx.conf + railway.json configs
 - [ ] 12-02-PLAN.md — Railway deployment, OAuth redirect URI cutover, DNS switch, production verification
@@ -132,4 +132,4 @@ Plans:
 | 9. UI Parity | v1.1 | 4/4 | Complete   | 2026-03-24 |
 | 10. Micro-Frontend Dev Proxy + Admin Scaffold | v1.1 | 2/2 | Complete    | 2026-03-24 |
 | 11. Admin Features | v1.1 | 3/3 | Complete    | 2026-03-25 |
-| 12. Caddy Production + Railway Deployment | v1.1 | 0/2 | Planned    |  |
+| 12. Caddy Production + Railway Deployment | v1.1 | 0/2 | Complete    | 2026-03-25 |
