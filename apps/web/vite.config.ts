@@ -50,9 +50,6 @@ export default defineConfig(async () => {
     resolve: {
       alias: { "@": new URL("./src", import.meta.url).pathname },
     },
-    ssr: {
-      noExternal: ["recharts"],
-    },
     plugins: [
       tanstackStart({
         server: { entry: "./src/server.tsx" },
