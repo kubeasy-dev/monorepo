@@ -228,7 +228,7 @@ Scope: UI parity restoration, shared shadcn/ui package, Turborepo micro-frontend
 
 ### Admin Deployment
 
-- [x] **ADMIN-18**: `apps/admin` est déployé comme service Railway séparé avec son propre Dockerfile (pattern `turbo prune --docker`)
+- [x] **ADMIN-18**: `apps/admin` est buildé statiquement et servi directement depuis le container Caddy (multi-stage Dockerfile — pas de service Railway séparé, décision architecturale délibérée pour simplifier le déploiement)
 
 ---
 
