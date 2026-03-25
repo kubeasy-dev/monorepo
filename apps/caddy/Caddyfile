@@ -6,6 +6,11 @@
 }
 
 :8080 {
+	# Internal healthcheck — responds without hitting any upstream
+	handle /healthz {
+		respond "OK" 200
+	}
+
 	# API routes — SSE requires immediate flush for real-time validation updates
 	handle /api/* {
 		reverse_proxy {$API_UPSTREAM} {
