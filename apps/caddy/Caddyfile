@@ -3,10 +3,9 @@
 # Local dev uses Turborepo MFE proxy (microfrontends.json), not this file.
 {
 	admin off
-	# debug
 }
 
-http://${RAILWAY_PUBLIC_DOMAIN} {
+:8080 {
 	# API routes — SSE requires immediate flush for real-time validation updates
 	handle /api/* {
 		reverse_proxy {$API_UPSTREAM} {
@@ -14,9 +13,20 @@ http://${RAILWAY_PUBLIC_DOMAIN} {
 		}
 	}
 
-	# Admin SPA — served from nginx
-	handle /admin/* {
-		reverse_proxy {$ADMIN_UPSTREAM}
+	# Admin SPA — served from static files
+	@admin path /admin /admin/*
+	handle @admin {
+		uri strip_prefix /admin
+		root * /admin
+
+		# Add cache headers for static assets (mimics nginx.conf)
+		@staticFiles path *.js *.css *.woff2 *.png *.svg *.ico
+		header @staticFiles Cache-Control "public, max-age=31536000, immutable"
+
+		# SPA support: try to find file, then directory, finally fallback to index.html
+		file_server {
+			try_files {path} {path}/ /index.html
+		}
 	}
 
 	# Web app — catch-all for all other routes
