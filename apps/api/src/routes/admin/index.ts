@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { requireAdmin } from "../../middleware/admin";
 import { apiKeyMiddleware } from "../../middleware/api-key";
+import { adminChallenges } from "./challenges";
 import { challengesSync } from "./challenges-sync";
 
 /**
@@ -19,5 +20,6 @@ admin.use("/challenges/sync/*", apiKeyMiddleware);
 admin.use("/*", requireAdmin);
 
 admin.route("/challenges/sync", challengesSync);
+admin.route("/challenges", adminChallenges);
 
 export { admin };
