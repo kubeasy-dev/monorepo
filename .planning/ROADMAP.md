@@ -110,7 +110,10 @@ Plans:
   2. SSE-based real-time validation updates work in production — the `flush_interval -1` Caddy directive is confirmed by a successful challenge submission and live status update
   3. OAuth login flow works end-to-end in production via the new same-origin domain — GitHub, Google, and Microsoft redirect URIs are updated and functional
   4. `apps/admin` is deployed as an independent Railway service — Railway dashboard shows a dedicated admin service with its own Dockerfile build
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 12-01-PLAN.md — Caddyfile update + Caddy/admin Dockerfiles + nginx.conf + railway.json configs
+- [ ] 12-02-PLAN.md — Railway deployment, OAuth redirect URI cutover, DNS switch, production verification
 
 ## Progress
 
@@ -129,4 +132,4 @@ Plans:
 | 9. UI Parity | v1.1 | 4/4 | Complete   | 2026-03-24 |
 | 10. Micro-Frontend Dev Proxy + Admin Scaffold | v1.1 | 2/2 | Complete    | 2026-03-24 |
 | 11. Admin Features | v1.1 | 3/3 | Complete    | 2026-03-25 |
-| 12. Caddy Production + Railway Deployment | v1.1 | 0/? | Not started | — |
+| 12. Caddy Production + Railway Deployment | v1.1 | 0/2 | Planning | — |
