@@ -96,9 +96,9 @@ Plans:
   5. All admin API endpoints (`GET /api/admin/challenges`, `GET /api/admin/challenges/stats`, `PATCH /api/admin/challenges/:id/available`, `GET /api/admin/users`, `GET /api/admin/users/stats`) return correct data and are protected by admin middleware; user mutations (ban/unban/role change) go through Better Auth adminClient (`POST /api/auth/admin/ban-user`, `POST /api/auth/admin/unban-user`, `POST /api/auth/admin/set-role`) per D-01
 **Plans:** 3 plans
 Plans:
-- [ ] 11-01-PLAN.md — API endpoints: 5 Hono admin routes + user schemas in api-schemas + test stubs
-- [ ] 11-02-PLAN.md — Challenges page UI: api-client, query-options, stats cards, table with toggle
-- [ ] 11-03-PLAN.md — Users page UI: stats cards, paginated table, role/ban dropdown, ban dialog
+- [x] 11-01-PLAN.md — API endpoints: 5 Hono admin routes + user schemas in api-schemas + test stubs
+- [x] 11-02-PLAN.md — Challenges page UI: api-client, query-options, stats cards, table with toggle
+- [x] 11-03-PLAN.md — Users page UI: stats cards, paginated table, role/ban dropdown, ban dialog
 **UI hint**: yes
 
 ### Phase 12: Caddy Production + Railway Deployment
