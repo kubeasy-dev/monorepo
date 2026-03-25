@@ -17,7 +17,8 @@ L'API Hono est la source de vérité unique (auth, données, temps réel). Le we
 **Target features:**
 - ~~Phase 8 — Shared UI Package~~ ✓ Validated in Phase 8: packages/ui created with 17 shadcn components, CSS design tokens, sub-path exports; apps/web migrated to @kubeasy/ui
 - ~~Phase 9 — UI Parity~~ ✓ Validated in Phase 9: blog components (BlogCard, ToC, AuthorCard, RelatedPosts), landing page button parity, challenges/themes/types routes verified, dashboard stat cards + chart fixed
-- Phase 10 — Admin App : nouvelle app Vite + React client-side dans apps/admin, consommant apps/api, migration de l'interface admin existante
+- ~~Phase 10 — Admin App~~ ✓ Validated in Phase 10: apps/admin Vite + React SPA, TanStack Router, Better Auth admin client, protected routes
+- ~~Phase 11 — Admin Features~~ ✓ Validated in Phase 11: 5 Hono admin endpoints with Drizzle aggregates, challenges page (stats + optimistic toggle table), users page (paginated + role/ban actions via Better Auth adminClient)
 
 ---
 
@@ -137,4 +138,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-24 — Milestone v1.1 started*
+*Last updated: 2026-03-25 — Phase 11 complete: admin features shipped*
