@@ -31,7 +31,7 @@ Full details: `.planning/milestones/v1.0-ROADMAP.md`
 - [ ] **Phase 8: Shared UI Package** — Extract all shadcn/ui components into `packages/ui`, wire Tailwind v4 `@source`, refactor `apps/web` imports
 - [x] **Phase 9: UI Parity** — Audit and correct all visual differences between `apps/web` and `../website` across all 4 page groups (completed 2026-03-24)
 - [x] **Phase 10: Micro-Frontend Dev Proxy + Admin Scaffold** — Configure `microfrontends.json`, scaffold `apps/admin` Vite SPA with auth guard and draft Caddyfile (completed 2026-03-24)
-- [ ] **Phase 11: Admin Features** — Build admin challenge management and user management pages, add all Hono admin API endpoints
+- [x] **Phase 11: Admin Features** — Build admin challenge management and user management pages, add all Hono admin API endpoints (completed 2026-03-25)
 - [ ] **Phase 12: Caddy Production + Railway Deployment** — Deploy Caddy service on Railway, DNS cutover to unified `kubeasy.dev`, update OAuth redirect URIs
 
 ## Phase Details
@@ -94,7 +94,7 @@ Plans:
   3. Admin can view the users page with 4 stats cards (total, active, banned, admins) and a paginated table (50/page) showing avatar, role badge, XP, and ban status
   4. Admin can change a user's role (make admin / remove admin) and ban/unban a user with a reason dialog — self-action is blocked by the UI and the API
   5. All admin API endpoints (`GET /api/admin/challenges`, `GET /api/admin/challenges/stats`, `PATCH /api/admin/challenges/:id/available`, `GET /api/admin/users`, `GET /api/admin/users/stats`) return correct data and are protected by admin middleware; user mutations (ban/unban/role change) go through Better Auth adminClient (`POST /api/auth/admin/ban-user`, `POST /api/auth/admin/unban-user`, `POST /api/auth/admin/set-role`) per D-01
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 11-01-PLAN.md — API endpoints: 5 Hono admin routes + user schemas in api-schemas + test stubs
 - [x] 11-02-PLAN.md — Challenges page UI: api-client, query-options, stats cards, table with toggle
@@ -128,5 +128,5 @@ Plans:
 | 8. Shared UI Package | v1.1 | 0/2 | Planning | — |
 | 9. UI Parity | v1.1 | 4/4 | Complete   | 2026-03-24 |
 | 10. Micro-Frontend Dev Proxy + Admin Scaffold | v1.1 | 2/2 | Complete    | 2026-03-24 |
-| 11. Admin Features | v1.1 | 2/3 | In Progress|  |
+| 11. Admin Features | v1.1 | 3/3 | Complete   | 2026-03-25 |
 | 12. Caddy Production + Railway Deployment | v1.1 | 0/? | Not started | — |

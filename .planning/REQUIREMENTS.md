@@ -210,11 +210,11 @@ Scope: UI parity restoration, shared shadcn/ui package, Turborepo micro-frontend
 
 ### Admin App — Users Page (/admin/users)
 
-- [ ] **ADMIN-06**: L'utilisateur admin voit 4 stats cards utilisateurs — total users, active, banned, admins count
-- [ ] **ADMIN-07**: L'utilisateur admin voit la table paginée des utilisateurs (50/page) avec : avatar+nom+email, rôle badge, challenges complétés, XP total, date inscription, statut (actif/banni+raison)
-- [ ] **ADMIN-08**: L'utilisateur admin peut changer le rôle d'un utilisateur (Make admin / Remove admin) via le menu dropdown
-- [ ] **ADMIN-09**: L'utilisateur admin peut bannir un utilisateur avec une raison optionnelle (dialog de confirmation) et débannir un utilisateur banni
-- [ ] **ADMIN-10**: La table affiche les utilisateurs bannis avec apparence atténuée (faded) et une protection anti-self-action (ne peut pas se bannir/changer son propre rôle)
+- [x] **ADMIN-06**: L'utilisateur admin voit 4 stats cards utilisateurs — total users, active, banned, admins count
+- [x] **ADMIN-07**: L'utilisateur admin voit la table paginée des utilisateurs (50/page) avec : avatar+nom+email, rôle badge, challenges complétés, XP total, date inscription, statut (actif/banni+raison)
+- [x] **ADMIN-08**: L'utilisateur admin peut changer le rôle d'un utilisateur (Make admin / Remove admin) via le menu dropdown
+- [x] **ADMIN-09**: L'utilisateur admin peut bannir un utilisateur avec une raison optionnelle (dialog de confirmation) et débannir un utilisateur banni
+- [x] **ADMIN-10**: La table affiche les utilisateurs bannis avec apparence atténuée (faded) et une protection anti-self-action (ne peut pas se bannir/changer son propre rôle)
 
 ### Admin API — Hono Endpoints (à ajouter dans apps/api)
 
@@ -222,9 +222,9 @@ Scope: UI parity restoration, shared shadcn/ui package, Turborepo micro-frontend
 - [x] **ADMIN-12**: `GET /api/admin/challenges/stats` retourne les stats globales challenges (totalSubmissions, successfulSubmissions, successRate, totalStarts, totalCompletions, completionRate)
 - [x] **ADMIN-13**: `GET /api/admin/users` retourne la liste paginée des utilisateurs avec métriques (completedChallenges, totalXp, banned, banReason, role, createdAt)
 - [x] **ADMIN-14**: `GET /api/admin/users/stats` retourne les stats globales utilisateurs (total, active, banned, admins)
-- [ ] **ADMIN-15**: `PATCH /api/admin/users/:id/ban` bannit un utilisateur (raison optionnelle) — interdit le self-ban
-- [ ] **ADMIN-16**: `PATCH /api/admin/users/:id/unban` débanit un utilisateur
-- [ ] **ADMIN-17**: `PATCH /api/admin/users/:id/role` modifie le rôle d'un utilisateur (`admin` | `user`) — interdit le self-role-change
+- [x] **ADMIN-15**: `PATCH /api/admin/users/:id/ban` bannit un utilisateur (raison optionnelle) — interdit le self-ban
+- [x] **ADMIN-16**: `PATCH /api/admin/users/:id/unban` débanit un utilisateur
+- [x] **ADMIN-17**: `PATCH /api/admin/users/:id/role` modifie le rôle d'un utilisateur (`admin` | `user`) — interdit le self-role-change
 
 ### Admin Deployment
 
@@ -260,18 +260,18 @@ Scope: UI parity restoration, shared shadcn/ui package, Turborepo micro-frontend
 | ADMIN-03 | Phase 11 | Complete |
 | ADMIN-04 | Phase 11 | Complete |
 | ADMIN-05 | Phase 11 | Complete |
-| ADMIN-06 | Phase 11 | Pending |
-| ADMIN-07 | Phase 11 | Pending |
-| ADMIN-08 | Phase 11 | Pending |
-| ADMIN-09 | Phase 11 | Pending |
-| ADMIN-10 | Phase 11 | Pending |
+| ADMIN-06 | Phase 11 | Complete |
+| ADMIN-07 | Phase 11 | Complete |
+| ADMIN-08 | Phase 11 | Complete |
+| ADMIN-09 | Phase 11 | Complete |
+| ADMIN-10 | Phase 11 | Complete |
 | ADMIN-11 | Phase 11 | Complete |
 | ADMIN-12 | Phase 11 | Complete |
 | ADMIN-13 | Phase 11 | Complete |
 | ADMIN-14 | Phase 11 | Complete |
-| ADMIN-15 | Phase 11 | Pending |
-| ADMIN-16 | Phase 11 | Pending |
-| ADMIN-17 | Phase 11 | Pending |
+| ADMIN-15 | Phase 11 | Complete |
+| ADMIN-16 | Phase 11 | Complete |
+| ADMIN-17 | Phase 11 | Complete |
 | ADMIN-18 | Phase 12 | Pending |
 | MFE-03 | Phase 12 | Pending |
 | MFE-04 | Phase 12 | Pending |
