@@ -94,7 +94,7 @@ Plans:
   3. Admin can view the users page with 4 stats cards (total, active, banned, admins) and a paginated table (50/page) showing avatar, role badge, XP, and ban status
   4. Admin can change a user's role (make admin / remove admin) and ban/unban a user with a reason dialog — self-action is blocked by the UI and the API
   5. All admin API endpoints (`GET /api/admin/challenges`, `GET /api/admin/challenges/stats`, `PATCH /api/admin/challenges/:id/available`, `GET /api/admin/users`, `GET /api/admin/users/stats`) return correct data and are protected by admin middleware; user mutations (ban/unban/role change) go through Better Auth adminClient (`POST /api/auth/admin/ban-user`, `POST /api/auth/admin/unban-user`, `POST /api/auth/admin/set-role`) per D-01
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 Plans:
 - [x] 11-01-PLAN.md — API endpoints: 5 Hono admin routes + user schemas in api-schemas + test stubs
 - [x] 11-02-PLAN.md — Challenges page UI: api-client, query-options, stats cards, table with toggle
@@ -128,5 +128,5 @@ Plans:
 | 8. Shared UI Package | v1.1 | 0/2 | Planning | — |
 | 9. UI Parity | v1.1 | 4/4 | Complete   | 2026-03-24 |
 | 10. Micro-Frontend Dev Proxy + Admin Scaffold | v1.1 | 2/2 | Complete    | 2026-03-24 |
-| 11. Admin Features | v1.1 | 1/3 | In Progress|  |
+| 11. Admin Features | v1.1 | 2/3 | In Progress|  |
 | 12. Caddy Production + Railway Deployment | v1.1 | 0/? | Not started | — |
