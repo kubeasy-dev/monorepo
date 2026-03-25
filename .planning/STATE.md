@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI Parity + Micro-Frontend + Admin
-status: Ready to plan
-stopped_at: Completed 10-02-PLAN.md — Phase 10 fully complete
-last_updated: "2026-03-24T23:03:28.959Z"
+status: Ready to execute
+stopped_at: Phase 11 planned — 3 plans created
+last_updated: "2026-03-25T00:00:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 8
+  total_plans: 11
   completed_plans: 8
 ---
 
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** API Hono source de vérité unique, web TanStack Start client hybride, BullMQ découplé pour extraction future
-**Current focus:** Phase 10 — micro-frontend-dev-proxy-admin-scaffold
+**Current focus:** Phase 11 — admin-features
 
 ## Current Position
 
 Phase: 11
-Plan: Not started
+Plan: Not started (3 plans ready)
 
 ## Performance Metrics
 
@@ -78,18 +78,25 @@ v1.1 key constraints:
 - [Phase 10-micro-frontend-dev-proxy-admin-scaffold]: Caddyfile created in apps/caddy/ as reference template only — not wired to docker-compose yet (Phase 12)
 - [Phase 10-micro-frontend-dev-proxy-admin-scaffold]: Auth guard redirects use relative paths (/login, /) when all apps share the same origin via MFE proxy
 - [Phase 10-micro-frontend-dev-proxy-admin-scaffold]: Admin top-nav style aligned with web app header (h-20, font-black, neo-border-thick) post-verification
+- [Phase 11-admin-features]: D-01 — Better Auth adminClient() used for all user mutations (ban/unban/setRole) — no custom Hono PATCH endpoints for ADMIN-15/16/17
+- [Phase 11-admin-features]: D-02 — TanStack Query already installed and QueryClient wired in apps/admin/src/main.tsx — no new installation needed
+- [Phase 11-admin-features]: D-03 — PATCH /api/admin/challenges/:id/available added as part of plan 11-01 alongside GET endpoints
+- [Phase 11-admin-features]: D-04 — No sessionMiddleware added to admin router — global middleware in app.ts on /api/* already handles it; adding again would double-apply
+- [Phase 11-admin-features]: D-05 — 3-plan split: API layer (11-01) → Challenges UI (11-02) and Users UI (11-03) both in Wave 2 (parallel, no file conflicts)
+- [Phase 11-admin-features]: avgAttempts stat derived in UI as totalSubmissions/totalStarts — AdminStatsOutputSchema unchanged (no new field needed)
+- [Phase 11-admin-features]: Self-action guard — UI layer enforces it (session.user.id === target.id → disable dropdown items); Better Auth may enforce additionally but UI guard is the primary protection
+- [Phase 11-admin-features]: query-options.ts is additive — plan 11-02 adds challenge factories, plan 11-03 appends user factories to same file (no conflict since sequential wavewise)
 
 ### Pending Todos
 
-- Phase 11 start: audit `apps/api/src/routes/admin/` to confirm which Hono admin endpoints already exist vs. need adding before writing UI
+None — Phase 11 audit completed during planning (confirmed 0 existing admin GET endpoints, only challenges-sync with API key auth).
 
-### Phase 10 Key Decisions
+### Phase 11 Key Decisions
 
-- [Phase 10]: Turborepo built-in proxy for unified localhost:3024 — researcher to investigate exact 2.x API
-- [Phase 10]: apps/admin = pure Vite CSR SPA + TanStack Router (no SSR)
-- [Phase 10]: Admin auth guard client-side in __root.tsx via Better Auth useSession(), redirects to VITE_WEB_URL
-- [Phase 10]: Admin shell = top nav with Challenges/Users/Settings placeholder + neo-brutalist @kubeasy/ui
-- [Phase 10]: Caddyfile is a reference template only (prod routing docs, not used locally)
+- [Phase 11]: No migration needed — challenge.available, user.banned, user.banReason, user.role all exist in DB schema
+- [Phase 11]: Wave 2 plans (11-02 and 11-03) can run in parallel — they touch different files (only query-options.ts is shared, handled additively)
+- [Phase 11]: Challenge theme/type display: JOIN with challengeTheme and challengeType tables to return display names (not slugs) in the API response
+- [Phase 11]: Pagination: server-side 50/page with page query param; client manages page state with useState
 
 ### Blockers/Concerns
 
@@ -97,6 +104,6 @@ None — v1.0 in production, v1.1 scope defined.
 
 ## Session Continuity
 
-Last session: 2026-03-24T22:57:21.743Z
-Stopped at: Completed 10-02-PLAN.md — Phase 10 fully complete
+Last session: 2026-03-25T00:00:00.000Z
+Stopped at: Phase 11 planned — 3 PLAN.md files written, ROADMAP.md updated
 Resume file: None
