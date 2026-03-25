@@ -1,24 +1,24 @@
-# Kubeasy Production Reverse Proxy — Reference Template
-# This file documents intended production routing for Phase 12.
-# NOT used locally — local dev uses Turborepo MFE proxy (microfrontends.json).
+# Kubeasy Production Reverse Proxy
+# Upstream addresses injected via Railway env vars at runtime.
+# Local dev uses Turborepo MFE proxy (microfrontends.json), not this file.
 
 kubeasy.dev {
     auto_https off
 
     # API routes — SSE requires immediate flush for real-time validation updates
     handle /api/* {
-        reverse_proxy api:3001 {
+        reverse_proxy {$API_UPSTREAM} {
             flush_interval -1
         }
     }
 
-    # Admin SPA — served from separate Vite build
+    # Admin SPA — served from nginx
     handle /admin/* {
-        reverse_proxy admin:3002
+        reverse_proxy {$ADMIN_UPSTREAM}
     }
 
     # Web app — catch-all for all other routes
     handle {
-        reverse_proxy web:3000
+        reverse_proxy {$WEB_UPSTREAM}
     }
 }
