@@ -93,7 +93,7 @@ Plans:
   2. Admin can toggle a challenge's availability with an optimistic update — the UI reflects the change immediately and reverts if the API call fails
   3. Admin can view the users page with 4 stats cards (total, active, banned, admins) and a paginated table (50/page) showing avatar, role badge, XP, and ban status
   4. Admin can change a user's role (make admin / remove admin) and ban/unban a user with a reason dialog — self-action is blocked by the UI and the API
-  5. All admin API endpoints (`GET /api/admin/challenges`, `GET /api/admin/challenges/stats`, `GET /api/admin/users`, `GET /api/admin/users/stats`, `PATCH /api/admin/users/:id/ban`, `PATCH /api/admin/users/:id/unban`, `PATCH /api/admin/users/:id/role`) return correct data and are protected by admin middleware
+  5. All admin API endpoints (`GET /api/admin/challenges`, `GET /api/admin/challenges/stats`, `PATCH /api/admin/challenges/:id/available`, `GET /api/admin/users`, `GET /api/admin/users/stats`) return correct data and are protected by admin middleware; user mutations (ban/unban/role change) go through Better Auth adminClient (`POST /api/auth/admin/ban-user`, `POST /api/auth/admin/unban-user`, `POST /api/auth/admin/set-role`) per D-01
 **Plans:** 3 plans
 Plans:
 - [ ] 11-01-PLAN.md — API endpoints: 5 Hono admin routes + user schemas in api-schemas + test stubs
