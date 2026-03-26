@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/index";
 import { user } from "../db/schema/auth";
 import {
-  identifyUserServer,
+  setUserPropertiesServer,
   trackUserSignupServer,
 } from "../lib/analytics-server";
 import { redisConfig } from "../lib/redis";
@@ -22,7 +22,7 @@ export function createUserSigninWorker() {
       // Run all 3 operations in parallel with better-all
       const { resendResult } = await all({
         async identify() {
-          await identifyUserServer(userId, { email });
+          await setUserPropertiesServer(userId, { email });
         },
         async resendResult() {
           try {

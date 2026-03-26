@@ -253,7 +253,7 @@ export async function trackChallengeSubmissionSentServer(
  * @param userId - The unique user ID
  * @param properties - User properties
  */
-export async function identifyUserServer(
+export async function setUserPropertiesServer(
   userId: string,
   properties?: {
     email?: string;
@@ -262,7 +262,7 @@ export async function identifyUserServer(
   },
 ) {
   await safePostHogOperation(
-    "identifyUserServer",
+    "setUserPropertiesServer",
     async () => {
       posthogClient?.identify({
         distinctId: userId,
