@@ -1,4 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { trackOnboardingStarted } from "@/lib/analytics";
 import { getSessionFn } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/onboarding")({
@@ -18,6 +20,10 @@ export const Route = createFileRoute("/onboarding")({
 function OnboardingPage() {
   const { user } = Route.useRouteContext();
   const firstName = user.name?.split(" ")[0] || "there";
+
+  useEffect(() => {
+    trackOnboardingStarted();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-8">

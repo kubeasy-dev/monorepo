@@ -11,6 +11,10 @@ import {
   userProgress,
   userSubmission,
 } from "../db/schema/index";
+import {
+  trackChallengeSubmissionSentServer,
+  trackChallengeValidationFailedServer,
+} from "../lib/analytics-server";
 import { redis } from "../lib/redis";
 import { slidingWindowRateLimit } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/session";
@@ -144,7 +148,18 @@ submit.post(
       objectives,
     });
 
-    // 7.5 Publish generic cache-invalidation SSE event (fire-and-forget — both validated and not-validated paths)
+    // 7.5 Track submission sent (fire-and-forget)
+    trackChallengeSubmissionSentServer(
+      userId,
+      challengeData.id,
+      challengeSlug,
+    ).catch((err) => {
+      console.error("[submit] submission_sent tracking failed", {
+        error: String(err),
+      });
+    });
+
+    // 7.6 Publish generic cache-invalidation SSE event (fire-and-forget — both validated and not-validated paths)
     const sseChannel = `invalidate-cache:${userId}`;
     const ssePayload = JSON.stringify({
       queryKey: queryKeys.submissions.latest(challengeSlug),
@@ -156,18 +171,28 @@ submit.post(
       });
     });
 
-    // 8. If validation failed, return failure response
+    // 8. If validation failed, track and return failure response
     if (!validated) {
+      const failedObjectives = objectives.filter((obj) => !obj.passed);
+      trackChallengeValidationFailedServer(
+        userId,
+        challengeData.id,
+        challengeSlug,
+        failedObjectives.length,
+        failedObjectives.map((obj) => obj.id),
+      ).catch((err) => {
+        console.error("[submit] validation_failed tracking failed", {
+          error: String(err),
+        });
+      });
       return c.json({
         success: false,
         objectives,
-        failedObjectives: objectives
-          .filter((obj) => !obj.passed)
-          .map((obj) => ({
-            id: obj.id,
-            name: obj.name,
-            message: obj.message,
-          })),
+        failedObjectives: failedObjectives.map((obj) => ({
+          id: obj.id,
+          name: obj.name,
+          message: obj.message,
+        })),
       });
     }
 

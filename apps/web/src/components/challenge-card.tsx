@@ -1,7 +1,4 @@
 import type { ChallengeListItem } from "@kubeasy/api-schemas/challenges";
-import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Circle, Clock, PlayCircle, Users } from "lucide-react";
-import { DifficultyBadge } from "@/components/difficulty-badge";
 import { Badge } from "@kubeasy/ui/badge";
 import {
   Card,
@@ -10,6 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@kubeasy/ui/card";
+import { Link } from "@tanstack/react-router";
+import { CheckCircle2, Circle, Clock, PlayCircle, Users } from "lucide-react";
+import { DifficultyBadge } from "@/components/difficulty-badge";
+import { trackChallengeCardClicked } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 type ChallengeStatus = "not_started" | "in_progress" | "completed";
@@ -121,7 +122,17 @@ export function ChallengeCard({
   );
 
   return (
-    <Link to="/challenges/$slug" params={{ slug: challenge.slug }}>
+    <Link
+      to="/challenges/$slug"
+      params={{ slug: challenge.slug }}
+      onClick={() =>
+        trackChallengeCardClicked(
+          challenge.slug,
+          challenge.difficulty,
+          "challenges_list",
+        )
+      }
+    >
       {card}
     </Link>
   );

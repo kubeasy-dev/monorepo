@@ -222,6 +222,33 @@ export async function trackChallengeCompletedServer(
 }
 
 /**
+ * Track challenge submission sent event (server-side)
+ * Fired on every submission attempt, regardless of pass/fail outcome
+ * @param userId - The user ID
+ * @param challengeId - The ID of the challenge
+ * @param challengeSlug - The slug of the challenge
+ */
+export async function trackChallengeSubmissionSentServer(
+  userId: string,
+  challengeId: number,
+  challengeSlug: string,
+) {
+  const properties = { challengeId, challengeSlug, source: "cli" };
+  await safePostHogOperation(
+    "trackChallengeSubmissionSentServer",
+    async () => {
+      posthogClient?.capture({
+        distinctId: userId,
+        event: "challenge_submission_sent",
+        properties,
+      });
+      await posthogClient?.flush();
+    },
+    { event: "challenge_submission_sent", properties },
+  );
+}
+
+/**
  * Identify a user in PostHog (server-side)
  * @param userId - The unique user ID
  * @param properties - User properties

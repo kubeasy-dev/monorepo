@@ -8,9 +8,13 @@ import {
   Scripts,
   useRouterState,
 } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import posthog from "posthog-js";
+import { PostHogProvider } from "posthog-js/react";
+import { type ReactNode, useEffect } from "react";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { identifyUser } from "@/lib/analytics";
+import { authClient } from "@/lib/auth-client";
 import globalsCss from "@/styles/globals.css?url";
 
 interface RouterContext {
@@ -49,14 +53,41 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 
+function PostHogIdentify() {
+  const { data: session } = authClient.useSession();
+
+  const userId = session?.user?.id;
+  const userEmail = session?.user?.email;
+  const userName = session?.user?.name;
+
+  useEffect(() => {
+    if (userId) {
+      identifyUser(userId, {
+        email: userEmail ?? undefined,
+        name: userName ?? undefined,
+      });
+    }
+  }, [userId, userEmail, userName]);
+
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const isLogin = useRouterState({
     select: (s) => s.location.pathname === "/login",
   });
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname triggers pageview on route change
+  useEffect(() => {
+    posthog.capture("$pageview", { $current_url: window.location.href });
+  }, [pathname]);
+
   return (
     <RootDocument>
       <QueryClientProvider client={queryClient}>
+        <PostHogIdentify />
         {!isLogin && <Header />}
         <main className={isLogin ? undefined : "pt-32 pb-20"}>
           <Outlet />
@@ -74,7 +105,20 @@ function RootDocument({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <PostHogProvider
+          apiKey={import.meta.env.VITE_POSTHOG_KEY ?? ""}
+          options={{
+            api_host:
+              import.meta.env.VITE_POSTHOG_HOST ?? "https://eu.i.posthog.com",
+            capture_pageview: false,
+            capture_pageleave: true,
+            loaded: (ph) => {
+              if (import.meta.env.DEV) ph.debug();
+            },
+          }}
+        >
+          {children}
+        </PostHogProvider>
         <Scripts />
       </body>
     </html>
