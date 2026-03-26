@@ -18,7 +18,7 @@ export function createUserSignupWorker() {
 
       // fetchProvider and resendResult start immediately in parallel.
       // identify and trackSignup depend on fetchProvider via this.$.fetchProvider.
-      const { resendResult } = await all({
+      await all({
         async fetchProvider() {
           const [userAccount] = await db
             .select({ providerId: account.providerId })
@@ -50,15 +50,16 @@ export function createUserSignupWorker() {
           const provider = await this.$.fetchProvider;
           await trackUserSignup(userId, provider, email);
         },
+        async updateResendContact() {
+          const resendResult = await this.$.resendResult;
+          if (resendResult?.contactId) {
+            await db
+              .update(user)
+              .set({ resendContactId: resendResult.contactId })
+              .where(eq(user.id, userId));
+          }
+        },
       });
-
-      // Store Resend contactId on user record if available
-      if (resendResult?.contactId) {
-        await db
-          .update(user)
-          .set({ resendContactId: resendResult.contactId })
-          .where(eq(user.id, userId));
-      }
     },
     { connection, concurrency: 5 },
   );
