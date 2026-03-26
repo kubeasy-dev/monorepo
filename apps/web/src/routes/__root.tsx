@@ -111,6 +111,9 @@ function RootDocument({ children }: { children: ReactNode }) {
             options={{
               api_host:
                 import.meta.env.VITE_POSTHOG_HOST ?? "https://eu.i.posthog.com",
+              ...(import.meta.env.VITE_POSTHOG_UI_HOST && {
+                ui_host: import.meta.env.VITE_POSTHOG_UI_HOST,
+              }),
               capture_pageview: false,
               capture_pageleave: true,
               loaded: (ph) => {
