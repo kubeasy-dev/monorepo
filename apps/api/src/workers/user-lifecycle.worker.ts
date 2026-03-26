@@ -1,5 +1,6 @@
 import { QUEUE_NAMES, type UserSignupPayload } from "@kubeasy/jobs";
-import { all } from "better-all";
+import { logger } from "@kubeasy/logger";
+import { allSettled } from "better-all";
 import { Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import { db } from "../db/index";
@@ -17,8 +18,10 @@ export function createUserSignupWorker() {
       const { userId, email } = job.data;
 
       // fetchProvider and resendResult start immediately in parallel.
-      // identify and trackSignup depend on fetchProvider via this.$.fetchProvider.
-      await all({
+      // identify, trackSignup and updateResendContact declare their deps via this.$.
+      // allSettled: individual failures are logged without failing the whole job
+      // (avoids BullMQ retries that could produce duplicate Resend contacts).
+      const results = await allSettled({
         async fetchProvider() {
           const [userAccount] = await db
             .select({ providerId: account.providerId })
@@ -31,16 +34,7 @@ export function createUserSignupWorker() {
             | "microsoft";
         },
         async resendResult() {
-          try {
-            return await createResendContact({ email, userId });
-          } catch (err) {
-            // Log and continue -- Resend failure should not block other operations
-            console.error("[user-signup] Resend contact creation failed", {
-              userId,
-              error: String(err),
-            });
-            return null;
-          }
+          return createResendContact({ email, userId });
         },
         async identify() {
           const provider = await this.$.fetchProvider;
@@ -60,6 +54,15 @@ export function createUserSignupWorker() {
           }
         },
       });
+
+      for (const [task, result] of Object.entries(results)) {
+        if (result.status === "rejected") {
+          logger.error(`[user-signup] task "${task}" failed`, {
+            userId,
+            error: String(result.reason),
+          });
+        }
+      }
     },
     { connection, concurrency: 5 },
   );
