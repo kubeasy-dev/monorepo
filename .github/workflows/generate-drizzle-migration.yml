@@ -78,9 +78,6 @@ jobs:
 
       - name: Generate migration
         working-directory: apps/api
-        # DATABASE_URL is required by env.ts at import time but not used by drizzle-kit generate
-        env:
-          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
         run: pnpm db:generate
 
       - name: Commit and push migration
