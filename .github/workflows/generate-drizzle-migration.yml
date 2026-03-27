@@ -1,0 +1,96 @@
+name: Generate Drizzle Migration
+
+on:
+  pull_request:
+    paths:
+      - 'apps/api/src/db/schema/**'
+      - 'packages/api-schemas/src/objectives.ts'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Generate GitHub App token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3
+        id: app-token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Get GitHub App User ID
+        id: get-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Checkout PR branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '24.14.0'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure git
+        run: |
+          git config --local user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config --local user.email "${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+
+      - name: Squash existing branch migrations
+        run: |
+          BASE=${{ github.base_ref }}
+
+          # Find .sql migration files added on this branch (not in base)
+          ADDED_SQL=$(git diff origin/$BASE...HEAD --name-only --diff-filter=A -- 'apps/api/drizzle/*.sql')
+
+          if [ -n "$ADDED_SQL" ]; then
+            echo "Found existing branch migrations, squashing:"
+            echo "$ADDED_SQL"
+
+            # Remove added SQL files
+            echo "$ADDED_SQL" | xargs rm -f
+
+            # Remove corresponding snapshot files
+            ADDED_SNAPSHOTS=$(git diff origin/$BASE...HEAD --name-only --diff-filter=A -- 'apps/api/drizzle/meta/*_snapshot.json')
+            if [ -n "$ADDED_SNAPSHOTS" ]; then
+              echo "$ADDED_SNAPSHOTS" | xargs rm -f
+            fi
+
+            # Reset _journal.json to base state so the next generate picks the right index
+            git checkout origin/$BASE -- apps/api/drizzle/meta/_journal.json
+          else
+            echo "No existing branch migrations found, generating fresh."
+          fi
+
+      - name: Generate migration
+        working-directory: apps/api
+        # DATABASE_URL is required by env.ts at import time but not used by drizzle-kit generate
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+        run: pnpm db:generate
+
+      - name: Commit and push migration
+        run: |
+          git add apps/api/drizzle/
+
+          if git diff --staged --quiet; then
+            echo "No migration changes to commit"
+            exit 0
+          fi
+
+          git commit -m "chore(db): regenerate drizzle migration"
+          git push origin ${{ github.head_ref }}
