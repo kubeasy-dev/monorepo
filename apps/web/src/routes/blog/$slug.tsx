@@ -4,7 +4,11 @@ import { AuthorCard } from "@/components/author-card";
 import { RelatedPosts } from "@/components/related-posts";
 import { TableOfContentsClient } from "@/components/table-of-contents";
 import type { NotionBlock, RichTextItem } from "@/lib/notion";
-import { getBlogPostWithContent, getRelatedBlogPosts } from "@/lib/notion";
+import {
+  getBlogPosts,
+  getBlogPostWithContent,
+  getRelatedBlogPosts,
+} from "@/lib/notion";
 
 export const Route = createFileRoute("/blog/$slug")({
   headers: () => ({
@@ -12,9 +16,12 @@ export const Route = createFileRoute("/blog/$slug")({
       "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
   }),
   loader: async ({ params }) => {
-    const post = await getBlogPostWithContent(params.slug);
+    const [post, allPosts] = await Promise.all([
+      getBlogPostWithContent(params.slug),
+      getBlogPosts(),
+    ]);
     if (!post) throw new Error(`Blog post not found: ${params.slug}`);
-    const relatedPosts = await getRelatedBlogPosts(post, 3);
+    const relatedPosts = await getRelatedBlogPosts(post, 3, allPosts);
     return { post, relatedPosts };
   },
   component: BlogArticlePage,
