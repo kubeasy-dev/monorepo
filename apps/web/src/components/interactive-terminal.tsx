@@ -53,7 +53,7 @@ const terminalSequences = [
   },
 ];
 
-export function InteractiveTerminal() {
+export default function InteractiveTerminal() {
   const [currentSequence, setCurrentSequence] = useState(0);
   const [displayedCommand, setDisplayedCommand] = useState("");
   const [displayedOutputs, setDisplayedOutputs] = useState<string[]>([]);

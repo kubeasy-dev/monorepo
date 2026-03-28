@@ -1,6 +1,8 @@
 import { ArrowRight, Terminal } from "lucide-react";
-import { InteractiveTerminal } from "./interactive-terminal";
+import { lazy, Suspense } from "react";
 import { TypewriterText } from "./typewriter-text";
+
+const InteractiveTerminal = lazy(() => import("./interactive-terminal"));
 
 export function HeroSection() {
   return (
@@ -47,7 +49,9 @@ export function HeroSection() {
           </div>
 
           <div className="flex-1 w-full">
-            <InteractiveTerminal />
+            <Suspense fallback={<div className="min-h-[250px]" />}>
+              <InteractiveTerminal />
+            </Suspense>
           </div>
         </div>
       </div>

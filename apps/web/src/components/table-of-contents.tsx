@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 import type { TableOfContentsItem } from "@/lib/notion";
+import { cn } from "@/lib/utils";
 
 interface TableOfContentsClientProps {
   headings: TableOfContentsItem[];
@@ -17,7 +17,7 @@ function slugify(text: string): string {
     .trim();
 }
 
-export function TableOfContentsClient({
+export default function TableOfContentsClient({
   headings,
   collapsible = false,
 }: TableOfContentsClientProps) {

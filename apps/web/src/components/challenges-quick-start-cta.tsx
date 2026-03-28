@@ -1,23 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Terminal } from "lucide-react";
-import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
 /**
  * Quick start CTA shown only to unauthenticated users
  */
 export function ChallengesQuickStartCTA() {
-  const [mounted, setMounted] = useState(false);
   const { data: session, isPending } = authClient.useSession();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Don't render on server to avoid hydration mismatch
-  if (!mounted) {
-    return <div className="mb-8" />;
-  }
 
   // Don't show while loading or if user is authenticated
   if (isPending || session) {

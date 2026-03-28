@@ -1,14 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Calendar, ChevronLeft, Clock } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { AuthorCard } from "@/components/author-card";
 import { RelatedPosts } from "@/components/related-posts";
-import { TableOfContentsClient } from "@/components/table-of-contents";
 import type { NotionBlock, RichTextItem } from "@/lib/notion";
 import {
   getBlogPosts,
   getBlogPostWithContent,
   getRelatedBlogPosts,
 } from "@/lib/notion";
+
+const TableOfContentsClient = lazy(
+  () => import("@/components/table-of-contents"),
+);
 
 export const Route = createFileRoute("/blog/$slug")({
   headers: () => ({
@@ -33,16 +37,13 @@ function renderRichText(items: RichTextItem[]): React.ReactNode {
   return items.map((item, i) => {
     let content: React.ReactNode = item.plain_text;
 
-    if (item.annotations.bold) content = <strong key={i}>{content}</strong>;
-    if (item.annotations.italic) content = <em key={i}>{content}</em>;
-    if (item.annotations.strikethrough) content = <s key={i}>{content}</s>;
-    if (item.annotations.underline) content = <u key={i}>{content}</u>;
+    if (item.annotations.bold) content = <strong>{content}</strong>;
+    if (item.annotations.italic) content = <em>{content}</em>;
+    if (item.annotations.strikethrough) content = <s>{content}</s>;
+    if (item.annotations.underline) content = <u>{content}</u>;
     if (item.annotations.code)
       content = (
-        <code
-          key={i}
-          className="bg-muted px-1 py-0.5 rounded text-sm font-mono"
-        >
+        <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono">
           {content}
         </code>
       );
@@ -50,7 +51,6 @@ function renderRichText(items: RichTextItem[]): React.ReactNode {
     if (item.text?.link?.url) {
       content = (
         <a
-          key={i}
           href={item.text.link.url}
           target="_blank"
           rel="noopener noreferrer"
@@ -67,14 +67,50 @@ function renderRichText(items: RichTextItem[]): React.ReactNode {
 
 // ---- Block renderer ----
 
+/**
+ * Groups consecutive list items into <ul>/<ol> wrappers and renders
+ * all other blocks individually.
+ */
 function BlockRenderer({ blocks }: { blocks: NotionBlock[] }) {
-  return (
-    <div className="space-y-4">
-      {blocks.map((block) => (
-        <BlockItem key={block.id} block={block} />
-      ))}
-    </div>
-  );
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+
+  while (i < blocks.length) {
+    const block = blocks[i];
+
+    if (block.type === "bulleted_list_item") {
+      const items: NotionBlock[] = [];
+      while (i < blocks.length && blocks[i].type === "bulleted_list_item") {
+        items.push(blocks[i]);
+        i++;
+      }
+      elements.push(
+        <ul key={items[0].id} className="space-y-1">
+          {items.map((item) => (
+            <BlockItem key={item.id} block={item} />
+          ))}
+        </ul>,
+      );
+    } else if (block.type === "numbered_list_item") {
+      const items: NotionBlock[] = [];
+      while (i < blocks.length && blocks[i].type === "numbered_list_item") {
+        items.push(blocks[i]);
+        i++;
+      }
+      elements.push(
+        <ol key={items[0].id} className="space-y-1">
+          {items.map((item) => (
+            <BlockItem key={item.id} block={item} />
+          ))}
+        </ol>,
+      );
+    } else {
+      elements.push(<BlockItem key={block.id} block={block} />);
+      i++;
+    }
+  }
+
+  return <div className="space-y-4">{elements}</div>;
 }
 
 function BlockItem({ block }: { block: NotionBlock }) {
@@ -87,6 +123,7 @@ function BlockItem({ block }: { block: NotionBlock }) {
         </p>
       );
 
+    // Notion heading levels are shifted down by one since the page <h1> is the article title
     case "heading_1":
       if (!block.heading_1) return null;
       return (
@@ -320,7 +357,13 @@ function BlogArticlePage() {
         {/* Mobile Table of Contents */}
         {headings.length > 0 && (
           <div className="lg:hidden mb-8">
-            <TableOfContentsClient headings={headings} collapsible />
+            <Suspense
+              fallback={
+                <div className="neo-border-thick bg-secondary p-4 h-12" />
+              }
+            >
+              <TableOfContentsClient headings={headings} collapsible />
+            </Suspense>
           </div>
         )}
 
@@ -346,7 +389,13 @@ function BlogArticlePage() {
           {/* Sidebar - Table of Contents (Desktop only) */}
           {headings.length > 0 && (
             <aside className="hidden lg:block sticky top-28">
-              <TableOfContentsClient headings={headings} />
+              <Suspense
+                fallback={
+                  <div className="neo-border-thick bg-secondary p-6 h-48" />
+                }
+              >
+                <TableOfContentsClient headings={headings} />
+              </Suspense>
             </aside>
           )}
         </div>
