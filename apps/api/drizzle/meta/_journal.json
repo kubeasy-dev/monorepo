@@ -12,8 +12,8 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1774764419895,
-      "tag": "0001_worthless_blob",
+      "when": 1774764468801,
+      "tag": "0001_stale_karnak",
       "breakpoints": true
     }
   ]
