@@ -1,6 +1,3 @@
-import { useNavigate } from "@tanstack/react-router";
-import type { User } from "better-auth";
-import { LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@kubeasy/ui/avatar";
 import { Button } from "@kubeasy/ui/button";
 import {
@@ -12,6 +9,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@kubeasy/ui/dropdown-menu";
+import { useNavigate } from "@tanstack/react-router";
+import type { User } from "better-auth";
+import { LogOut } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 
 export function UserDropdown({
@@ -63,7 +63,7 @@ export function UserDropdown({
           {isAdmin && (
             <DropdownMenuItem
               onClick={() => {
-                window.location.href = "/admin/challenges";
+                window.location.href = "/admin/";
               }}
             >
               Admin

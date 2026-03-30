@@ -1,8 +1,4 @@
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@kubeasy/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@kubeasy/ui/avatar";
 import { Button } from "@kubeasy/ui/button";
 import {
   DropdownMenu,
@@ -79,19 +75,15 @@ export function TopNav({ user }: TopNavProps) {
               </Link>
             );
           })}
-          {/* Settings — disabled placeholder */}
-          <span
-            className="inline-flex h-9 cursor-not-allowed items-center justify-center rounded-lg px-4 py-2 text-base font-bold text-muted-foreground/50"
-            aria-disabled="true"
-          >
-            Settings
-          </span>
         </nav>
 
         {/* User slot — far right */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-xl neo-border p-0">
+            <Button
+              variant="ghost"
+              className="relative h-10 w-10 rounded-xl neo-border p-0"
+            >
               <Avatar className="h-full w-full rounded-lg">
                 {user.image && <AvatarImage src={user.image} alt={user.name} />}
                 <AvatarFallback className="bg-primary text-primary-foreground font-black rounded-lg">
@@ -110,6 +102,13 @@ export function TopNav({ user }: TopNavProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                window.location.href = "/";
+              }}
+            >
+              Back to Kubeasy
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleSignOut}
               className="text-destructive focus:text-destructive font-bold"
