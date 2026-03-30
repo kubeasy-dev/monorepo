@@ -1,25 +1,24 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { FileText } from "lucide-react";
 import { useState } from "react";
 import { BlogCard } from "@/components/blog-card";
+import { blogListOptions } from "@/lib/query-options";
 import { cn } from "@/lib/utils";
-import { getBlogPosts } from "@/lib/notion";
 
 export const Route = createFileRoute("/blog/")({
   headers: () => ({
     "Cache-Control":
       "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
   }),
-  loader: async () => {
-    // Throws on Notion API failure — causes SSG build failure (locked decision)
-    const posts = await getBlogPosts();
-    return { posts };
+  loader: async ({ context: { queryClient } }) => {
+    await queryClient.ensureQueryData(blogListOptions());
   },
   component: BlogListingPage,
 });
 
 function BlogListingPage() {
-  const { posts } = Route.useLoaderData();
+  const { data: posts } = useSuspenseQuery(blogListOptions());
   const totalPosts = posts.length;
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -79,7 +78,9 @@ function BlogListingPage() {
               All ({totalPosts})
             </button>
             {categories.map((cat) => {
-              const count = posts.filter((p) => p.category?.name === cat).length;
+              const count = posts.filter(
+                (p) => p.category?.name === cat,
+              ).length;
               return (
                 <button
                   key={cat}

@@ -1,6 +1,7 @@
 import type { ChallengeListInput } from "@kubeasy/api-schemas/challenges";
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "./api-client";
+import { fetchBlogPostDetailFn, fetchBlogPostsFn } from "./blog.functions";
 
 // --- Challenges ---
 
@@ -139,6 +140,24 @@ export function xpTransactionsOptions() {
   return queryOptions({
     queryKey: ["xp", "transactions"],
     queryFn: () => api.xp.transactions(),
+  });
+}
+
+// --- Blog ---
+
+export function blogListOptions() {
+  return queryOptions({
+    queryKey: ["blog", "list"],
+    queryFn: () => fetchBlogPostsFn(),
+    staleTime: 10 * 60 * 1000, // 10 min — blog content changes infrequently
+  });
+}
+
+export function blogPostDetailOptions(slug: string) {
+  return queryOptions({
+    queryKey: ["blog", "detail", slug],
+    queryFn: () => fetchBlogPostDetailFn({ data: slug }),
+    staleTime: 10 * 60 * 1000,
   });
 }
 

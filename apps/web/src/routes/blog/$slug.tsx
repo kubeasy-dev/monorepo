@@ -1,14 +1,11 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Calendar, ChevronLeft, Clock } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { AuthorCard } from "@/components/author-card";
 import { RelatedPosts } from "@/components/related-posts";
 import type { NotionBlock, RichTextItem } from "@/lib/notion";
-import {
-  getBlogPosts,
-  getBlogPostWithContent,
-  getRelatedBlogPosts,
-} from "@/lib/notion";
+import { blogPostDetailOptions } from "@/lib/query-options";
 
 const TableOfContentsClient = lazy(
   () => import("@/components/table-of-contents"),
@@ -19,14 +16,8 @@ export const Route = createFileRoute("/blog/$slug")({
     "Cache-Control":
       "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
   }),
-  loader: async ({ params }) => {
-    const [post, allPosts] = await Promise.all([
-      getBlogPostWithContent(params.slug),
-      getBlogPosts(),
-    ]);
-    if (!post) throw new Error(`Blog post not found: ${params.slug}`);
-    const relatedPosts = await getRelatedBlogPosts(post, 3, allPosts);
-    return { post, relatedPosts };
+  loader: async ({ context: { queryClient }, params }) => {
+    await queryClient.ensureQueryData(blogPostDetailOptions(params.slug));
   },
   component: BlogArticlePage,
 });
@@ -251,13 +242,17 @@ function BlockItem({ block }: { block: NotionBlock }) {
 // ---- Page component ----
 
 function BlogArticlePage() {
-  const { post, relatedPosts } = Route.useLoaderData();
+  const { slug } = Route.useParams();
+  const { data } = useSuspenseQuery(blogPostDetailOptions(slug));
+  const { post, relatedPosts } = data;
 
   const wordCount = post.blocks
-    .filter((b) => b.type === "paragraph" && b.paragraph)
-    .reduce((acc, b) => {
+    .filter((b: NotionBlock) => b.type === "paragraph" && b.paragraph)
+    .reduce((acc: number, b: NotionBlock) => {
       const text =
-        b.paragraph?.rich_text.map((t) => t.plain_text).join("") || "";
+        b.paragraph?.rich_text
+          .map((t: RichTextItem) => t.plain_text)
+          .join("") || "";
       return acc + text.split(/\s+/).length;
     }, 0);
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
@@ -342,7 +337,7 @@ function BlogArticlePage() {
 
           {post.tags.length > 0 && (
             <div className="mt-4 sm:mt-6 flex flex-wrap justify-center gap-1.5 sm:gap-2">
-              {post.tags.map((tag) => (
+              {post.tags.map((tag: string) => (
                 <span
                   key={tag}
                   className="text-xs sm:text-sm font-bold text-muted-foreground bg-secondary neo-border px-2 sm:px-3 py-0.5 sm:py-1"
