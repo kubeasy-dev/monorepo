@@ -74,6 +74,8 @@ export const LogSpecSchema = z.object({
   container: z.string().optional(),
   expectedStrings: z.string().array().nullable(),
   sinceSeconds: z.number().optional(),
+  previous: z.boolean().optional(),
+  matchMode: z.string().optional(),
 })
 export type LogSpec = z.infer<typeof LogSpecSchema>
 
