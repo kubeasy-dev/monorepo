@@ -33,6 +33,10 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=installer --chown=nextjs:nodejs /app/apps/docs/.next/standalone ./
 COPY --from=installer --chown=nextjs:nodejs /app/apps/docs/.next/static ./apps/docs/.next/static
 
+# Copy config files needed by Fumadocs at runtime
+COPY --from=installer --chown=nextjs:nodejs /app/apps/docs/next.config.mjs ./apps/docs/next.config.mjs
+COPY --from=installer --chown=nextjs:nodejs /app/apps/docs/source.config.ts ./apps/docs/source.config.ts
+
 # Si vous avez un dossier public, décommentez la ligne ci-dessous :
 COPY --from=installer --chown=nextjs:nodejs /app/apps/docs/public ./apps/docs/public
 
