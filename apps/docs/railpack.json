@@ -1,0 +1,8 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "build": {
+      "commands": ["pnpm exec turbo run build --filter=@kubeasy/docs"]
+    }
+  }
+}
