@@ -26,7 +26,7 @@ RUN adduser --system --uid 1001 tanstack
 
 COPY --from=web-builder --chown=tanstack:nodejs /app/apps/web/.output .output
 COPY --from=web-deploy --chown=tanstack:nodejs /app/deployed/node_modules node_modules
-COPY --from=web-deploy --chown=tanstack:nodejs /app/deployed/package.json ./package.json
 
 USER tanstack
-CMD ["npm", "start"]
+CMD ["node", ".output/server/index.mjs"]
+
