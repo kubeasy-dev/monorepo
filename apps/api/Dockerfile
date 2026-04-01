@@ -32,6 +32,8 @@ EXPOSE 3001
 COPY --from=api-builder --chown=hono:nodejs /app/apps/api/dist dist
 COPY --from=api-deploy --chown=hono:nodejs /app/deployed/node_modules node_modules
 
+COPY --from=api-prepare --chown=hono:nodejs /app/apps/api/drizzle drizzle
+
 USER hono
 
 CMD ["node", "dist/index.js"]
