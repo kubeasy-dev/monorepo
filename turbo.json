@@ -6,7 +6,14 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", ".output/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", ".output/**"],
+      "env": [
+        "VITE_API_URL",
+        "NOTION_INTEGRATION_TOKEN",
+        "NOTION_BLOG_DATASOURCE_ID",
+        "NOTION_DIRECTORY_DATASOURCE_ID",
+        "NOTION_PEOPLE_DATASOURCE_ID"
+      ]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]
