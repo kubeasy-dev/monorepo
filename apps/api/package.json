@@ -13,13 +13,15 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "openapi:generate": "tsx scripts/generate-openapi.ts"
   },
   "dependencies": {
     "@better-auth/api-key": "1.5.6",
     "@better-auth/drizzle-adapter": "1.5.6",
     "@hono/node-server": "1.19.11",
     "@hono/otel": "1.1.1",
+    "@hono/zod-openapi": "^1.2.4",
     "@hono/zod-validator": "0.7.6",
     "@kubeasy/api-schemas": "workspace:*",
     "@kubeasy/jobs": "workspace:*",
@@ -49,10 +51,10 @@
   },
   "devDependencies": {
     "@kubeasy/typescript-config": "workspace:*",
-    "tsup": "8.5.1",
     "@types/node": "22.19.15",
     "@types/pg": "8.20.0",
     "drizzle-kit": "0.31.10",
+    "tsup": "8.5.1",
     "tsx": "4.21.0",
     "typescript": "5.9.3",
     "vitest": "4.1.1"

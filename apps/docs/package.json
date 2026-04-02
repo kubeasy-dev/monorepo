@@ -8,19 +8,24 @@
     "start": "next start",
     "postinstall": "fumadocs-mdx",
     "lint": "biome check",
+    "typecheck": "tsc --noEmit",
     "format": "biome format --write"
   },
   "dependencies": {
+    "@fumari/json-schema-ts": "^0.0.2",
     "@radix-ui/react-slot": "1.2.4",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
-    "fumadocs-core": "16.6.16",
-    "fumadocs-mdx": "14.2.9",
-    "fumadocs-ui": "16.6.16",
+    "fumadocs-core": "16.7.9",
+    "fumadocs-mdx": "14.2.11",
+    "fumadocs-openapi": "^10.6.3",
+    "fumadocs-typescript": "^5.2.1",
+    "fumadocs-ui": "16.7.9",
     "lucide-react": "0.577.0",
     "next": "16.1.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "shiki": "^4.0.2",
     "tailwind-merge": "3.5.0"
   },
   "devDependencies": {

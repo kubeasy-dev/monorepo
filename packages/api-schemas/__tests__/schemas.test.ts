@@ -87,17 +87,14 @@ describe("enum schemas", () => {
     }
   });
 
-  it("ObjectiveCategorySchema accepts valid values", () => {
-    for (const val of [
-      "status",
-      "log",
-      "event",
-      "metrics",
-      "rbac",
-      "connectivity",
-    ]) {
+  it("ObjectiveCategorySchema accepts all its enum values", () => {
+    for (const val of ObjectiveCategorySchema.options) {
       expect(ObjectiveCategorySchema.safeParse(val).success).toBe(true);
     }
+  });
+
+  it("ObjectiveCategorySchema rejects unknown values", () => {
+    expect(ObjectiveCategorySchema.safeParse("unknown").success).toBe(false);
   });
 });
 

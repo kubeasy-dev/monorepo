@@ -67,3 +67,15 @@ export const ChallengeSubmitOutputSchema = z.union([
   ChallengeSubmitFailureOutputSchema,
 ]);
 export type ChallengeSubmitOutput = z.infer<typeof ChallengeSubmitOutputSchema>;
+
+// ---------- Submission record (API list/history output) ----------
+
+export const SubmissionRecordSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  challengeId: z.number().int(),
+  validated: z.boolean(),
+  objectives: z.array(ObjectiveSchema).nullable(),
+  timestamp: z.string().describe("ISO 8601 date string"),
+});
+export type SubmissionRecord = z.infer<typeof SubmissionRecordSchema>;

@@ -1,9 +1,6 @@
-import { ChallengeDifficultySchema } from "@kubeasy/api-schemas/challenges";
 import type { Objective } from "@kubeasy/api-schemas/objectives";
-import { ObjectiveSchema } from "@kubeasy/api-schemas/objectives";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { z } from "zod";
 import { db } from "../../db/index";
 import {
   challenge,
@@ -14,23 +11,7 @@ import {
 } from "../../db/schema/index";
 import { captureServerException } from "../../lib/analytics-server";
 import { cacheDelPattern, cacheKey, cacheSet, TTL } from "../../lib/cache";
-
-// Schema for a single challenge in the sync request
-const challengeSyncSchema = z.object({
-  slug: z.string().min(1),
-  title: z.string().min(1),
-  description: z.string().min(1),
-  theme: z.string().min(1),
-  difficulty: ChallengeDifficultySchema,
-  type: z.string().min(1),
-  estimatedTime: z.number().int().positive(),
-  initialSituation: z.string().min(1),
-  objectives: z.array(ObjectiveSchema),
-});
-
-const syncRequestSchema = z.object({
-  challenges: z.array(challengeSyncSchema),
-});
+import { syncRequestSchema } from "../../schemas/sync";
 
 /**
  * Syncs objectives for a challenge.

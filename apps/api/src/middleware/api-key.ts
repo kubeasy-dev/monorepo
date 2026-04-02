@@ -1,8 +1,5 @@
-import { eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
-import { db } from "../db/index";
-import { user as userTable } from "../db/schema/auth";
-import { auth } from "../lib/auth";
+import { lookupUserByApiKey } from "../lib/lookup-user";
 import type { SessionUser } from "./session";
 
 /**
@@ -26,24 +23,14 @@ export const apiKeyMiddleware = createMiddleware<{
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const result = await auth.api.verifyApiKey({ body: { key } });
-
-  if (!result.valid || !result.key) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-
   // result.key.referenceId is the userId (renamed from userId in better-auth 1.5+)
-  const [foundUser] = await db
-    .select()
-    .from(userTable)
-    .where(eq(userTable.id, result.key.referenceId))
-    .limit(1);
+  const foundUser = await lookupUserByApiKey(key);
 
   if (!foundUser) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  c.set("user", foundUser as SessionUser);
+  c.set("user", foundUser);
   c.set("session", null);
   await next();
 });

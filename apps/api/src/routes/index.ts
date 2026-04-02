@@ -3,6 +3,7 @@ import { admin } from "./admin/index";
 import { challenges } from "./challenges";
 import { cli } from "./cli/index";
 import { onboarding } from "./onboarding";
+import { openapi } from "./openapi";
 import { progress } from "./progress";
 import { sse } from "./sse";
 import { submissions } from "./submissions";
@@ -30,5 +31,6 @@ routes.route("/cli", cli);
 routes.route("/sse", sse);
 routes.route("/onboarding", onboarding);
 routes.route("/admin", admin);
+routes.route("/openapi", openapi);
 
 export { routes };

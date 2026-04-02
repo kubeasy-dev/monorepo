@@ -15,7 +15,8 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "prepare": "husky",
-    "knip": "dotenv -e .env.local -- knip"
+    "knip": "dotenv -e .env.local -- knip",
+    "openapi:generate": "turbo run openapi:generate --filter=@kubeasy/api"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.6",

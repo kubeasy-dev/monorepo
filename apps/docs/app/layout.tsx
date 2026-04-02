@@ -1,10 +1,17 @@
-import '@/app/global.css';
-import { RootProvider } from 'fumadocs-ui/provider/next';
-import { Inter } from 'next/font/google';
-import type { ReactNode } from 'react';
+import "@/app/global.css";
+import { RootProvider } from "fumadocs-ui/provider/next";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import type { ReactNode } from "react";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://kubeasy.dev/docs",
+  ),
+};
 
 const inter = Inter({
-  subsets: ['latin'],
+  subsets: ["latin"],
 });
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -14,7 +21,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <RootProvider
           search={{
             options: {
-              api: '/docs/api/search',
+              api: "/docs/api/search",
             },
           }}
         >

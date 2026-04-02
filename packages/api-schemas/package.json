@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./challenges": "./src/challenges.ts",
+    "./email": "./src/email.ts",
     "./themes": "./src/themes.ts",
     "./progress": "./src/progress.ts",
     "./xp": "./src/xp.ts",
@@ -13,7 +14,9 @@
     "./auth": "./src/auth.ts",
     "./objectives": "./src/objectives.ts",
     "./drizzle": "./src/drizzle.ts",
-    "./query-keys": "./src/query-keys.ts"
+    "./query-keys": "./src/query-keys.ts",
+    "./types": "./src/types.ts",
+    "./onboarding": "./src/onboarding.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

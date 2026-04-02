@@ -1,0 +1,460 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kubeasy Sync API",
+    "version": "1.0.0",
+    "description": "API used by CI/CD pipelines to synchronise challenges from the challenges repository. Requires a Bearer API key with admin privileges."
+  },
+  "servers": [
+    {
+      "url": "https://kubeasy.dev",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:3024",
+      "description": "Development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Sync",
+      "description": "Challenge synchronisation from the challenges repository"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key with admin privileges"
+      }
+    },
+    "schemas": {},
+    "parameters": {}
+  },
+  "paths": {
+    "/api/admin/challenges/sync": {
+      "post": {
+        "operationId": "syncChallenges",
+        "summary": "Sync all challenges from source of truth",
+        "description": "Full upsert/delete sync of challenges and their objectives. Intended to be called from CI/CD after merging to the challenges repository.",
+        "tags": ["Sync"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "challenges": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "description": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "theme": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "difficulty": {
+                          "type": "string",
+                          "enum": ["easy", "medium", "hard"]
+                        },
+                        "type": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "estimatedTime": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0
+                        },
+                        "initialSituation": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "objectives": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "order": {
+                                "type": "integer"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "status",
+                                  "condition",
+                                  "log",
+                                  "event",
+                                  "connectivity"
+                                ]
+                              },
+                              "spec": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "target": {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string"
+                                          },
+                                          "name": {
+                                            "type": "string"
+                                          },
+                                          "labelSelector": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": ["kind"]
+                                      },
+                                      "checks": {
+                                        "type": ["array", "null"],
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "field": {
+                                              "type": "string"
+                                            },
+                                            "operator": {
+                                              "type": "string"
+                                            },
+                                            "value": {}
+                                          },
+                                          "required": ["field", "operator"]
+                                        }
+                                      }
+                                    },
+                                    "required": ["target", "checks"]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "target": {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string"
+                                          },
+                                          "name": {
+                                            "type": "string"
+                                          },
+                                          "labelSelector": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": ["kind"]
+                                      },
+                                      "checks": {
+                                        "type": ["array", "null"],
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string"
+                                            },
+                                            "status": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": ["type", "status"]
+                                        }
+                                      }
+                                    },
+                                    "required": ["target", "checks"]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "target": {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string"
+                                          },
+                                          "name": {
+                                            "type": "string"
+                                          },
+                                          "labelSelector": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": ["kind"]
+                                      },
+                                      "container": {
+                                        "type": "string"
+                                      },
+                                      "expectedStrings": {
+                                        "type": ["array", "null"],
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "sinceSeconds": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": ["target", "expectedStrings"]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "target": {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string"
+                                          },
+                                          "name": {
+                                            "type": "string"
+                                          },
+                                          "labelSelector": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": ["kind"]
+                                      },
+                                      "forbiddenReasons": {
+                                        "type": ["array", "null"],
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "sinceSeconds": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": ["target", "forbiddenReasons"]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "sourcePod": {
+                                        "type": "object",
+                                        "properties": {
+                                          "name": {
+                                            "type": "string"
+                                          },
+                                          "labelSelector": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "targets": {
+                                        "type": ["array", "null"],
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "url": {
+                                              "type": "string"
+                                            },
+                                            "expectedStatusCode": {
+                                              "type": "number"
+                                            },
+                                            "timeoutSeconds": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "url",
+                                            "expectedStatusCode"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "required": ["sourcePod", "targets"]
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "title",
+                              "description",
+                              "order",
+                              "type",
+                              "spec"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "title",
+                        "description",
+                        "theme",
+                        "difficulty",
+                        "type",
+                        "estimatedTime",
+                        "initialSituation",
+                        "objectives"
+                      ]
+                    }
+                  }
+                },
+                "required": ["challenges"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sync completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "created": {
+                      "type": "integer"
+                    },
+                    "updated": {
+                      "type": "integer"
+                    },
+                    "deleted": {
+                      "type": "integer"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "created": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "updated": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "deleted": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": ["created", "updated", "deleted"]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "created",
+                    "updated",
+                    "deleted",
+                    "details"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}
