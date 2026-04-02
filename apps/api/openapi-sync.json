@@ -56,10 +56,6 @@
                     "items": {
                       "type": "object",
                       "properties": {
-                        "slug": {
-                          "type": "string",
-                          "minLength": 1
-                        },
                         "title": {
                           "type": "string",
                           "minLength": 1
@@ -78,7 +74,8 @@
                         },
                         "type": {
                           "type": "string",
-                          "minLength": 1
+                          "enum": ["fix", "build", "migrate"],
+                          "default": "fix"
                         },
                         "estimatedTime": {
                           "type": "integer",
@@ -317,19 +314,22 @@
                               "type",
                               "spec"
                             ]
-                          }
+                          },
+                          "default": []
+                        },
+                        "slug": {
+                          "type": "string",
+                          "minLength": 1
                         }
                       },
                       "required": [
-                        "slug",
                         "title",
                         "description",
                         "theme",
                         "difficulty",
-                        "type",
                         "estimatedTime",
                         "initialSituation",
-                        "objectives"
+                        "slug"
                       ]
                     }
                   }
