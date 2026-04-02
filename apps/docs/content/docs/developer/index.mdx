@@ -3,71 +3,76 @@ title: Developer Guide
 description: Learn how to create, test, and contribute new challenges to the Kubeasy platform.
 ---
 
-Welcome to the Kubeasy Developer Guide!
+Welcome to the Kubeasy Developer Guide.
 
-This guide will walk you through the process of creating new challenges for Kubeasy. Whether you're contributing to the official challenge repository or building custom challenges for your team, this guide covers everything you need to know.
+This guide covers everything you need to create and contribute Kubernetes challenges — from understanding the challenge format to testing locally and submitting a pull request.
 
 ## What is a challenge?
 
-A Kubeasy challenge is a **self-contained, broken Kubernetes scenario** that learners must fix.
+A Kubeasy challenge is a **self-contained Kubernetes scenario** with a defined initial state and measurable success criteria. It can be broken (a fix challenge), empty (a build challenge), or suboptimal (a migrate challenge). See [Challenge Types](/developer/challenge-structure#challenge-types) for details.
 
 Each challenge consists of:
-- **Initial manifests** - The broken or incomplete Kubernetes resources
-- **Validation objectives** - Criteria that define what "solved" means
-- **Metadata** - Title, description, difficulty, estimated time
-- **Bypass protection** - Kyverno policies to prevent cheating
+- **`challenge.yaml`** — metadata, description, and validation objectives
+- **`manifests/`** — the initial Kubernetes state deployed to the cluster
+- **`policies/`** — Kyverno policies that prevent bypasses
+- **`image/`** *(optional)* — a custom Docker image for the challenge application
 
-## Quick overview
+## Prerequisites
 
-Creating a challenge involves:
+- Basic Kubernetes knowledge (pods, deployments, services, RBAC)
+- Experience writing Kubernetes YAML manifests
+- The [Kubeasy CLI](/user/getting-started) installed (`kubeasy setup` to create the local cluster)
+- Git and a GitHub account (for contributing to the official repository)
 
-1. **Design the scenario** - Identify a realistic Kubernetes problem to teach
-2. **Write the manifests** - Create the broken initial state
-3. **Define objectives** - Specify what "fixed" looks like
-4. **Add bypass protection** - Kyverno policies to prevent shortcuts
-5. **Test locally** - Ensure the challenge works as expected
-6. **Submit** - Open a pull request to the challenges repository
+## The development workflow
 
-## Who is this guide for?
+```bash
+# 1. Scaffold a new challenge
+kubeasy dev create
 
-This guide is for:
+# 2. Write your manifests, policies, and objectives
 
-- **Contributors** who want to add new challenges to Kubeasy
-- **Educators** building custom learning paths for their teams
-- **Kubernetes experts** who want to share their experience through practical scenarios
+# 3. Lint the challenge.yaml (no cluster needed)
+kubeasy dev lint
 
-You should have:
-- Basic understanding of Kubernetes concepts
-- Experience writing Kubernetes manifests
-- Familiarity with Git and GitHub
+# 4. Deploy and test locally
+kubeasy dev test --clean
 
-## What you'll learn
+# 5. Iterate with watch mode
+kubeasy dev apply --watch    # terminal 1
+kubeasy dev validate --watch # terminal 2
 
-This guide covers:
+# 6. Clean up
+kubeasy dev clean
+```
 
-- **[Challenge Structure](/developer/challenge-structure)** - Understanding the anatomy of a challenge
-- **[Creating Challenges](/developer/creating-challenge)** - Step-by-step guide to building your first challenge
-- **[Validation Rules](/developer/validation-rules)** - How to define success criteria
-- **[Validation Reference](/developer/validation-reference)** - Complete validation type specifications
-- **[Testing](/developer/testing-challenges)** - Testing challenges locally before submission
-- **[Contributing](/developer/contributing)** - Guidelines for submitting challenges to the official repository
+## Guide structure
 
-## Repository structure
+| Page | What it covers |
+|------|---------------|
+| [Challenge Structure](/developer/challenge-structure) | Complete anatomy of a challenge — all files and fields |
+| [Creating Your First Challenge](/developer/creating-challenge) | Step-by-step tutorial |
+| [Validation Overview](/developer/validation-overview) | Philosophy, objective structure, anti-patterns |
+| [Condition](/developer/validation-condition) | Check resource conditions |
+| [Status](/developer/validation-status) | Check status fields with operators |
+| [Log](/developer/validation-log) | Check container logs |
+| [Event](/developer/validation-event) | Check Kubernetes events |
+| [Connectivity](/developer/validation-connectivity) | Test HTTP connectivity |
+| [RBAC](/developer/validation-rbac) | Test ServiceAccount permissions |
+| [Spec](/developer/validation-spec) | Check resource manifest fields |
+| [Triggered](/developer/validation-triggered) | Run an action then validate |
+| [Testing Challenges](/developer/testing-challenges) | Testing locally before submission |
+| [Contributing](/developer/contributing) | PR guidelines and quality standards |
 
-The Kubeasy ecosystem consists of several repositories:
+## Repositories
 
 | Repository | Purpose |
 |------------|---------|
-| [challenges](https://github.com/kubeasy-dev/challenges) | Challenge definitions and manifests |
-| [kubeasy-cli](https://github.com/kubeasy-dev/kubeasy-cli) | CLI tool for local development and validation |
-| [website](https://github.com/kubeasy-dev/website) | Web platform and API |
-| [documentation](https://github.com/kubeasy-dev/documentation) | Documentation website (this site) |
+| [kubeasy-dev/challenges](https://github.com/kubeasy-dev/challenges) | Challenge definitions and manifests |
+| [kubeasy-dev/kubeasy-cli](https://github.com/kubeasy-dev/kubeasy-cli) | CLI tool (validation engine, dev commands) |
+| [kubeasy-dev/monorepo](https://github.com/kubeasy-dev/monorepo) | Web platform, API, and documentation |
 
-## Getting help
+## Get help
 
-If you need help creating challenges:
-
-- **GitHub Issues**: [kubeasy-dev/challenges/issues](https://github.com/kubeasy-dev/challenges/issues)
-- **Discussions**: [kubeasy-dev/challenges/discussions](https://github.com/kubeasy-dev/challenges/discussions)
-
-Ready to create your first challenge? Start with the [Challenge Structure](/developer/challenge-structure) guide.
+- **Questions**: [GitHub Discussions](https://github.com/kubeasy-dev/challenges/discussions)
+- **Bug reports**: [GitHub Issues](https://github.com/kubeasy-dev/challenges/issues)

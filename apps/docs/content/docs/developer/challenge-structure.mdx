@@ -1,58 +1,96 @@
 ---
 title: Challenge Structure
-description: Understanding the anatomy of a Kubeasy challenge and how all components work together.
+description: The complete anatomy of a Kubeasy challenge — every file, every field, and how they work together.
 ---
 
-Every Kubeasy challenge follows a consistent structure. This page explains each component and how they work together.
+Every Kubeasy challenge is a folder in the [challenges repository](https://github.com/kubeasy-dev/challenges) following a consistent structure. This page is the reference for everything a challenge can contain.
 
-## Directory Structure
-
-Each challenge is a folder in the [`challenges` repository](https://github.com/kubeasy-dev/challenges):
+## Directory layout
 
 ```
-challenges/
-└── pod-evicted/
-    ├── challenge.yaml      # Metadata, description, AND objectives
-    ├── manifests/          # Initial broken state
-    │   ├── deployment.yaml
-    │   ├── service.yaml
-    │   └── ...
-    ├── policies/           # Kyverno policies (prevent bypasses)
-    │   └── protect.yaml
-    └── image/              # Optional: custom Docker images
-        └── Dockerfile
+challenge-slug/
+├── challenge.yaml      # Metadata, description, and validation objectives
+├── manifests/          # Kubernetes resources (the initial state)
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── ...
+├── policies/           # Kyverno policies (bypass prevention)
+│   └── protect.yaml
+└── image/              # Optional: custom Docker image
+    └── Dockerfile
 ```
 
-## Components
+## 1. challenge.yaml
 
-### 1. challenge.yaml
+The `challenge.yaml` file is the single source of truth for a challenge. It defines everything: metadata, the narrative description, and the validation objectives.
 
-The `challenge.yaml` file contains **everything** about the challenge: metadata, description, and validation objectives.
+### Metadata fields
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="ChallengeYaml" />
+
+### Challenge types
+
+The `type` field defines the nature of the problem:
+
+| Type | Starting state | What the user does |
+|------|---------------|-------------------|
+| `fix` | Broken setup | Investigate and repair |
+| `build` | Empty or minimal | Create the required resources |
+| `migrate` | Working but outdated | Transform to a new pattern |
+
+See [Challenge Types](/user/challenge-types) for a detailed explanation of each.
+
+### Writing good descriptions
+
+**`description`** — describe symptoms, not causes. The user should not know what's wrong before they investigate.
 
 ```yaml
-title: Pod Evicted
+# BAD: reveals the root cause
 description: |
-  A data processing pod keeps crashing and getting evicted.
-  It was working fine yesterday, but now Kubernetes keeps killing it.
+  The memory limit is too low for this workload. Increase it to fix the crash.
 
+# GOOD: describes symptoms
+description: |
+  A data processing service keeps restarting. The team says it worked fine last week.
+  No code changes were made — something else must be wrong.
+```
+
+**`initialSituation`** — describe what the user will find when they start, not why it's happening.
+
+**`objective`** — state the goal, not the method.
+
+```yaml
+# BAD: tells the user what to do
+objective: |
+  Increase the memory limit to at least 256Mi.
+
+# GOOD: describes the desired outcome
+objective: |
+  Make the pod run stably without being killed by Kubernetes.
+```
+
+### Full example
+
+```yaml
+title: Memory Pressure
+description: |
+  A data processing service keeps restarting unexpectedly.
+  The team says the workload hasn't changed, but something is killing the pod.
 theme: resources-scaling
 difficulty: easy
 type: fix
 estimatedTime: 15
-
 initialSituation: |
-  A data processing application is deployed as a single pod.
-  The pod starts successfully but after a few seconds gets killed.
-  It enters a CrashLoopBackOff state and keeps restarting.
-
+  A data processing pod is deployed in the cluster.
+  It starts successfully but crashes within a few seconds.
+  The pod enters CrashLoopBackOff state and keeps restarting.
 objective: |
-  Fix the pod so it can run without being evicted.
-  Understand why Kubernetes is killing the application.
+  Make the application run stably without being killed.
 
 objectives:
-  - key: pod-running
+  - key: pod-ready
     title: "Pod Ready"
-    description: "The pod must be running and healthy"
+    description: "The pod must be running and ready"
     order: 1
     type: condition
     spec:
@@ -63,53 +101,31 @@ objectives:
       checks:
         - type: Ready
           status: "True"
+
+  - key: stable-operation
+    title: "Stable Operation"
+    description: "No crash or eviction events in the past 5 minutes"
+    order: 2
+    type: event
+    spec:
+      target:
+        kind: Pod
+        labelSelector:
+          app: data-processor
+      forbiddenReasons:
+        - "OOMKilled"
+        - "Evicted"
+      sinceSeconds: 300
 ```
 
-#### Metadata Fields
+## 2. manifests/ directory
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `title` | Yes | Challenge name (shown in UI) |
-| `description` | Yes | Brief description of symptoms (NOT the cause!) |
-| `theme` | Yes | Category for grouping |
-| `difficulty` | Yes | `easy`, `medium`, or `hard` |
-| `type` | Yes | Challenge type (e.g., `fix`) |
-| `estimatedTime` | Yes | Minutes to complete |
-| `initialSituation` | Yes | What the user will find |
-| `objective` | Yes | What needs to be achieved |
-| `objectives` | Yes | Success criteria (validation definitions) |
+Contains the Kubernetes resources that are deployed when a user starts the challenge. These define the **initial state** — typically broken, minimal, or outdated depending on the challenge type.
 
-#### Writing Good Descriptions
-
-**Describe symptoms, not causes:**
-
-```yaml
-# BAD - Reveals the problem
-description: |
-  The ConfigMap has invalid JSON syntax.
-  Fix the JSON formatting error.
-
-# GOOD - Maintains mystery
-description: |
-  A microservice keeps crashing shortly after deployment.
-  The team swears the code hasn't changed.
-```
-
-**State goals, not methods:**
-
-```yaml
-# BAD - Tells user what to do
-objective: |
-  Increase the memory limit to 256Mi.
-
-# GOOD - States the outcome
-objective: |
-  Make the pod run stably without being evicted.
-```
-
-### 2. manifests/ Directory
-
-Contains the **initial broken state** -- Kubernetes resources that learners need to fix.
+**Design principles:**
+- **Minimal** — only include what's relevant to the challenge
+- **Realistic** — mirror real production problems, not artificial puzzles
+- **Self-contained** — don't reference external resources or services
 
 ```yaml
 # manifests/deployment.yaml
@@ -128,24 +144,30 @@ spec:
         app: data-processor
     spec:
       containers:
-      - name: processor
-        image: kubeasy/data-processor:v1
-        resources:
-          limits:
-            memory: "32Mi"  # BUG: Too low!
-            cpu: "100m"
+        - name: processor
+          image: python:3.11-slim
+          resources:
+            limits:
+              memory: "32Mi"  # BUG: too low for this workload
+              cpu: "100m"
 ```
 
-**Design principles:**
+## 3. policies/ directory
 
-- **Keep it minimal** - Only include what's needed
-- **Make it realistic** - Mirror production problems
-- **One problem at a time** - Don't combine unrelated issues
-- **Clear naming** - Be descriptive
+Contains Kyverno policies that **prevent bypasses** — stopping users from taking shortcuts that avoid solving the actual problem.
 
-### 3. policies/ Directory
+Policies must match the challenge namespace (typically `challenge-*`) to avoid affecting other parts of the cluster.
 
-Kyverno policies that **prevent bypasses** -- stopping users from cheating instead of solving the challenge properly.
+**What to protect:**
+- Container images (prevent swapping the broken app for a working one)
+- Critical volume configurations
+- Labels used by validation (so resources remain findable)
+
+**What NOT to protect:**
+- Resource limits/requests (the user needs to change these)
+- Environment variables
+- Probe configurations
+- Most annotations
 
 ```yaml
 # policies/protect.yaml
@@ -163,59 +185,19 @@ spec:
           names: ["data-processor"]
           namespaces: ["challenge-*"]
       validate:
-        message: "Cannot change the application image"
+        message: "Cannot change the container image"
         pattern:
           spec:
             template:
               spec:
                 containers:
                   - name: processor
-                    image: "kubeasy/data-processor:v1"
+                    image: "python:3.11-slim"
 ```
 
-**What to protect:**
+## 4. image/ directory (optional)
 
-- Container images (prevent replacing the app)
-- Critical volume mounts
-- Essential labels (ensure validations can find resources)
-
-**What NOT to protect:**
-
-- Resource limits/requests (user should be able to change these)
-- Environment variables
-- Probe configurations
-- Labels and annotations
-
-### 4. Objectives
-
-Defined in `challenge.yaml` under the `objectives` key, these determine when the challenge is solved.
-
-```yaml
-objectives:
-  - key: unique-identifier
-    title: "User-Friendly Title"
-    description: "What this checks"
-    order: 1
-    type: condition|status|log|event|connectivity
-    spec:
-      # Type-specific configuration
-```
-
-**Available types:**
-
-| Type | Purpose |
-|------|---------|
-| `condition` | Check resource conditions (Ready, Available) |
-| `status` | Check status fields with operators (restart count < 3) |
-| `log` | Find strings in container logs |
-| `event` | Detect forbidden K8s events (OOMKilled, Evicted) |
-| `connectivity` | HTTP connectivity tests |
-
-See [Validation Rules](/developer/validation-rules) for detailed examples and [Validation Reference](/developer/validation-reference) for complete specs.
-
-### 5. image/ Directory (Optional)
-
-If your challenge needs a custom application, you can create your own Docker image. Simply add an `image/` directory with a `Dockerfile` in your challenge folder:
+If your challenge requires custom application behavior that a standard image can't provide, add an `image/` directory with a `Dockerfile`.
 
 ```
 my-challenge/
@@ -224,162 +206,54 @@ my-challenge/
 ├── policies/
 └── image/
     ├── Dockerfile
-    └── app.py          # Your application files
+    └── app.py
 ```
 
-**Example Dockerfile:**
+### Automatic CI build
 
-```dockerfile
-# image/Dockerfile
-FROM python:3.11-slim
-
-COPY app.py /app/
-CMD ["python", "/app/app.py"]
-```
-
-#### Automatic Build and Publish
-
-When you merge your challenge to `main`, the CI automatically:
-
+When your challenge is merged to `main`, CI automatically:
 1. Detects challenges with an `image/` directory
-2. Builds the Docker image (multi-arch: `linux/amd64` and `linux/arm64`)
-3. Pushes to GitHub Container Registry: `ghcr.io/kubeasy-dev/<challenge-name>:latest`
+2. Builds a multi-arch image (`linux/amd64`, `linux/arm64`)
+3. Pushes to `ghcr.io/kubeasy-dev/<challenge-slug>:latest`
 
-**Using your custom image in manifests:**
-
+Reference it in your manifests:
 ```yaml
-# manifests/deployment.yaml
-spec:
-  containers:
-    - name: app
-      image: ghcr.io/kubeasy-dev/my-challenge:latest
+containers:
+  - name: app
+    image: ghcr.io/kubeasy-dev/my-challenge:latest
 ```
 
-#### When to Use Custom Images
+### Local development
 
-- Your challenge needs specific application behavior (memory leaks, slow responses, etc.)
-- You need to simulate a realistic application workload
-- Standard images (nginx, python, busybox) don't fit your scenario
+During local development with `kubeasy dev apply`, the CLI automatically builds the image from `image/` and loads it into the Kind cluster — no manual `docker build` or `kind load` needed.
 
-#### Best Practices
+### Best practices
 
-- Keep images small (use slim/alpine base images)
-- Don't include secrets or sensitive data
-- Make the application behavior predictable and reproducible
-- Add a `.dockerignore` file to exclude unnecessary files
+- Use slim or alpine base images to keep sizes small
+- Keep the Dockerfile simple and deterministic
+- Don't include secrets or credentials
+- Add a `.dockerignore` to exclude unnecessary files
 
 ## Themes
 
-Challenges are grouped by theme:
+The `theme` field groups challenges in the UI:
 
 | Theme | Description |
 |-------|-------------|
 | `rbac-security` | Permissions, roles, security contexts |
-| `networking` | Services, ingress, network policies |
+| `networking` | Services, Ingress, NetworkPolicies |
 | `volumes-secrets` | Storage, ConfigMaps, Secrets |
 | `resources-scaling` | Limits, requests, HPA, scaling |
 | `monitoring-debugging` | Probes, logging, events |
 
-## How It All Works Together
+## How it all fits together
 
-1. **User starts challenge** (`kubeasy challenge start pod-evicted`)
-   - CLI creates a namespace and pulls the OCI artifact
-   - Manifests and Kyverno policies are applied to the namespace
+1. User runs `kubeasy challenge start <slug>` → CLI creates a namespace and deploys `manifests/` and `policies/`
+2. User investigates and fixes the problem using `kubectl`
+3. User runs `kubeasy challenge submit <slug>` → CLI runs the `objectives` from `challenge.yaml` against the cluster
+4. If all objectives pass → XP awarded, challenge marked complete
 
-2. **User investigates and fixes**
-   - Uses `kubectl` to explore the problem
-   - Modifies resources to fix the issue
-   - Kyverno validates changes (prevents bypasses)
+## Next steps
 
-3. **User submits solution** (`kubeasy challenge submit pod-evicted`)
-   - CLI loads objectives from `challenge.yaml`
-   - Executes each validation against the cluster
-   - Sends results to backend
-   - XP awarded if all objectives pass
-
-## Best Practices
-
-### Challenge Design
-
-- **One concept per challenge** - Don't mix RBAC + networking + storage
-- **Realistic scenarios** - Use problems that occur in production
-- **Clear error messages** - When users check logs, they should see helpful errors
-- **No red herrings** - Don't add confusing complexity
-
-### Validation Design
-
-- **Check outcomes, not implementations** - "Pod is healthy" not "Memory is 256Mi"
-- **Don't reveal solutions** - Validation titles should be generic
-- **Accept multiple solutions** - If there are valid alternatives, allow them
-
-### Documentation
-
-- **Describe symptoms** - Not the root cause
-- **State goals** - Not the method to achieve them
-- **Never include solutions** - Let users figure it out
-
-## Example: Complete Challenge
-
-```
-pod-evicted/
-├── challenge.yaml
-├── manifests/
-│   └── deployment.yaml
-└── policies/
-    └── protect.yaml
-```
-
-**challenge.yaml:**
-```yaml
-title: Pod Evicted
-description: |
-  A data processing pod keeps crashing and getting evicted.
-  It was working fine yesterday, but now Kubernetes keeps killing it.
-theme: resources-scaling
-difficulty: easy
-type: fix
-estimatedTime: 15
-initialSituation: |
-  A data processing application is deployed as a single pod.
-  The pod starts successfully but after a few seconds gets killed.
-  It enters a CrashLoopBackOff state and keeps restarting.
-objective: |
-  Fix the pod so it can run without being evicted.
-
-objectives:
-  - key: pod-ready
-    title: "Pod Ready"
-    description: "The pod must be running"
-    order: 1
-    type: condition
-    spec:
-      target:
-        kind: Pod
-        labelSelector:
-          app: data-processor
-      checks:
-        - type: Ready
-          status: "True"
-
-  - key: no-oom
-    title: "No Crash Events"
-    description: "No eviction or crash events"
-    order: 2
-    type: event
-    spec:
-      target:
-        kind: Pod
-        labelSelector:
-          app: data-processor
-      forbiddenReasons:
-        - "OOMKilled"
-        - "Evicted"
-      sinceSeconds: 300
-```
-
-## Next Steps
-
-- [Creating Your First Challenge](/developer/creating-challenge) - Step-by-step guide
-- [Validation Rules](/developer/validation-rules) - Detailed validation examples
-- [Validation Reference](/developer/validation-reference) - Complete type specifications
-- [Testing Challenges](/developer/testing-challenges) - How to test locally
+- [Creating Your First Challenge](/developer/creating-challenge) — step-by-step tutorial
+- [Validation Overview](/developer/validation-overview) — how to write effective objectives

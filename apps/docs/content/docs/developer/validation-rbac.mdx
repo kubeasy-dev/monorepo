@@ -1,0 +1,182 @@
+---
+title: RBAC Validation
+description: Verify ServiceAccount permissions using Kubernetes SubjectAccessReview.
+---
+
+The `rbac` type checks whether a ServiceAccount has (or doesn't have) specific permissions in the cluster. It uses the Kubernetes `SubjectAccessReview` API — the same mechanism that Kubernetes uses internally to enforce RBAC.
+
+## When to use
+
+Use `rbac` for challenges centered on Kubernetes Role-Based Access Control:
+
+- Verify that a ServiceAccount has the permissions needed for an application to function
+- Assert that the principle of least privilege is maintained (an SA shouldn't have permissions it doesn't need)
+- Confirm that a ClusterRole, Role, or RoleBinding was created correctly
+- Test both allowed and denied permissions to validate a complete RBAC setup
+
+## Spec reference
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="RbacSpec" />
+
+### RbacCheck
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="RbacCheck" />
+
+## Verbs
+
+Standard Kubernetes API verbs:
+
+| Verb | Description |
+|------|-------------|
+| `get` | Read a specific resource |
+| `list` | List resources |
+| `watch` | Watch resources for changes |
+| `create` | Create a new resource |
+| `update` | Update an existing resource (full replacement) |
+| `patch` | Partially update a resource |
+| `delete` | Delete a resource |
+| `deletecollection` | Delete multiple resources at once |
+
+## Examples
+
+### Verify an application SA has read access to ConfigMaps
+
+A common pattern: the application needs to read its configuration from a ConfigMap, but its ServiceAccount doesn't have permission.
+
+```yaml
+- key: sa-can-read-configmaps
+  title: "ServiceAccount Can Read ConfigMaps"
+  description: "The application ServiceAccount must be able to read ConfigMaps in its namespace"
+  order: 1
+  type: rbac
+  spec:
+    serviceAccount: "my-app"
+    namespace: "my-challenge"
+    checks:
+      - verb: get
+        resource: configmaps
+        allowed: true
+      - verb: list
+        resource: configmaps
+        allowed: true
+```
+
+### Verify least privilege — SA cannot create pods
+
+For security challenges, assert that a ServiceAccount doesn't have permissions it shouldn't:
+
+```yaml
+- key: sa-least-privilege
+  title: "Least Privilege Enforced"
+  description: "The ServiceAccount must not have cluster-admin level permissions"
+  order: 2
+  type: rbac
+  spec:
+    serviceAccount: "web-app"
+    namespace: "my-challenge"
+    checks:
+      - verb: create
+        resource: pods
+        allowed: false
+      - verb: delete
+        resource: pods
+        allowed: false
+      - verb: list
+        resource: secrets
+        allowed: false
+```
+
+### Check subresource permissions
+
+Some Kubernetes operations require permissions on subresources (e.g., `pods/exec`, `pods/log`):
+
+```yaml
+- key: sa-can-exec
+  title: "SA Can Execute in Pods"
+  description: "The operations ServiceAccount needs exec access"
+  order: 1
+  type: rbac
+  spec:
+    serviceAccount: "ops-tool"
+    namespace: "my-challenge"
+    checks:
+      - verb: create
+        resource: pods
+        subresource: exec
+        allowed: true
+      - verb: create
+        resource: pods
+        subresource: log
+        allowed: false
+```
+
+### Cross-namespace permission check
+
+The `namespace` field in a check overrides the spec-level namespace for that specific check — useful when validating ClusterRoles that grant cross-namespace access:
+
+```yaml
+- key: sa-cross-namespace
+  title: "Cross-Namespace Read Access"
+  description: "The ServiceAccount can read from the monitoring namespace"
+  order: 1
+  type: rbac
+  spec:
+    serviceAccount: "aggregator"
+    namespace: "my-challenge"
+    checks:
+      - verb: list
+        resource: pods
+        namespace: "monitoring"
+        allowed: true
+      - verb: delete
+        resource: pods
+        namespace: "monitoring"
+        allowed: false
+```
+
+### Complete RBAC challenge example
+
+A challenge where the user must create a ServiceAccount with exactly the right permissions for a job to run:
+
+```yaml
+objectives:
+  - key: sa-exists
+    title: "ServiceAccount Created"
+    description: "The required ServiceAccount must exist"
+    order: 1
+    type: condition
+    spec:
+      target:
+        kind: Pod
+        labelSelector:
+          app: job-runner
+      checks:
+        - type: Ready
+          status: "True"
+
+  - key: sa-permissions
+    title: "Correct Permissions"
+    description: "The ServiceAccount has the minimum required permissions"
+    order: 2
+    type: rbac
+    spec:
+      serviceAccount: "job-runner"
+      namespace: "my-challenge"
+      checks:
+        - verb: get
+          resource: configmaps
+          allowed: true
+        - verb: create
+          resource: jobs
+          allowed: true
+        - verb: delete
+          resource: secrets
+          allowed: false
+```
+
+## Tips
+
+- `allowed: false` is not just a "nice to have" — it's a critical part of security-focused challenges. Without it, a user could grant `cluster-admin` and pass all the `allowed: true` checks.
+- The `namespace` in the spec is the namespace context for the SubjectAccessReview, not necessarily where the ServiceAccount lives. For namespaced roles, this should be the challenge namespace.
+- For cluster-scoped resources (like Nodes or ClusterRoles), set an empty or omit `namespace` in the individual check.
+- RBAC challenges work best when combined with `condition` checks that verify the application is actually running with the correct permissions — the RBAC check verifies the setup, the condition check verifies the effect.

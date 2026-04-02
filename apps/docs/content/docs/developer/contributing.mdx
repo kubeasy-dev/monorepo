@@ -1,33 +1,29 @@
 ---
 title: Contributing Guidelines
-description: Guidelines and best practices for contributing challenges to Kubeasy.
+description: How to submit a high-quality challenge to the Kubeasy challenges repository.
 ---
 
-Thank you for contributing to Kubeasy! This guide explains how to submit high-quality challenges that provide a great learning experience.
+Thank you for contributing to Kubeasy! This guide explains the process and standards for submitting challenges.
 
 ## Before you start
 
-### Check existing challenges
+### Browse existing challenges
 
-Browse the [challenges repository](https://github.com/kubeasy-dev/challenges) to:
-
+Check the [challenges repository](https://github.com/kubeasy-dev/challenges) to:
 - Avoid duplicating existing challenges
-- Understand the current challenge structure
-- Get inspiration from well-designed challenges
+- Understand the current challenge structure and quality bar
+- Get inspiration from well-designed examples
 
-### Propose your idea
+### Propose your idea first
 
-Before investing time in building a challenge, open a **GitHub Issue** to discuss your idea:
+Open a GitHub Issue before investing time building a challenge. Use the **"Challenge Proposal"** template at [kubeasy-dev/challenges/issues](https://github.com/kubeasy-dev/challenges/issues) and describe:
+- What Kubernetes concept it teaches
+- The challenge type (fix, build, or migrate)
+- The broken/initial scenario
+- Why it's a valuable learning experience
+- Estimated difficulty and time
 
-1. Go to [kubeasy-dev/challenges/issues](https://github.com/kubeasy-dev/challenges/issues)
-2. Create a new issue with the **"Challenge Proposal"** template
-3. Describe:
-   - What Kubernetes concept it teaches
-   - The broken scenario
-   - Why it's valuable to learn
-   - Estimated difficulty and time
-
-This helps avoid duplicate work and ensures your challenge aligns with Kubeasy's goals.
+This avoids duplicate work and ensures your idea aligns with Kubeasy's goals.
 
 ## Contribution process
 
@@ -45,192 +41,156 @@ cd challenges
 git checkout -b challenge/<challenge-slug>
 ```
 
-Use descriptive branch names:
-- `challenge/rbac-service-account`
-- `challenge/network-policy-egress`
-- `challenge/pvc-storage-class`
+Use the challenge slug as the branch name (e.g., `challenge/rbac-service-account`, `challenge/network-policy-egress`).
 
 ### 3. Build the challenge
 
-Follow the structure described in [Challenge Structure](/developer/challenge-structure) and [Creating Challenges](/developer/creating-challenge).
+Follow [Challenge Structure](/developer/challenge-structure) and [Creating Your First Challenge](/developer/creating-challenge).
 
-Your challenge folder should contain:
-
+Your folder must contain:
 ```
 <challenge-slug>/
-├── challenge.yaml      # Metadata, description, AND objectives
-├── manifests/          # Initial broken state
-│   ├── deployment.yaml
+├── challenge.yaml
+├── manifests/
 │   └── ...
-├── policies/           # Kyverno policies (prevent bypasses)
+├── policies/
 │   └── protect.yaml
-└── image/              # Optional: custom Docker images
+└── image/          # optional
     └── Dockerfile
 ```
 
 ### 4. Test thoroughly
 
-See [Testing Challenges](/developer/testing-challenges) for comprehensive testing strategies.
+See [Testing Challenges](/developer/testing-challenges) for the full testing workflow.
 
-Minimum testing requirements:
-
-- [ ] Challenge works on a fresh Kind cluster
-- [ ] Problem is reproducible
-- [ ] Solution passes all objectives
-- [ ] Objective feedback is clear
+Minimum requirements before submitting:
+- [ ] `kubeasy dev lint` passes
+- [ ] Broken state is reproducible
+- [ ] All validations fail before the fix
+- [ ] All validations pass after applying the fix
+- [ ] Kyverno policies prevent bypasses
+- [ ] Multiple valid solutions are accepted (where applicable)
 - [ ] Estimated time is accurate
 
-### 5. Commit your changes
-
-Use clear, descriptive commit messages:
+### 5. Commit and push
 
 ```bash
-git add .
-git commit -m "feat: add memory-pressure challenge"
-```
-
-Follow conventional commit style:
-- `feat: add challenge for network policies`
-- `fix: correct validation timeout in RBAC challenge`
-- `docs: improve description for storage class challenge`
-
-### 6. Push and create a pull request
-
-```bash
+git add <challenge-slug>/
+git commit -m "feat: add <challenge-slug> challenge"
 git push origin challenge/<challenge-slug>
 ```
 
-Open a pull request on GitHub.
+### 6. Open a pull request
 
-## Pull request requirements
-
-### PR title format
-
-```
-feat: add <challenge-slug> challenge
-```
-
-Examples:
-- `feat: add network-policy-debugging challenge`
-- `feat: add rbac-service-account challenge`
-
-### PR description template
+Use this template for your PR description:
 
 ```markdown
 ## Challenge: <Challenge Title>
 
 ### What does this challenge teach?
-Briefly explain the Kubernetes concept and why it matters.
+Brief explanation of the Kubernetes concept and why it matters.
+
+### Challenge type
+fix | build | migrate
 
 ### Difficulty and estimated time
-- **Difficulty**: easy | medium | hard
-- **Estimated time**: X minutes
+- Difficulty: easy | medium | hard
+- Estimated time: X minutes
 
 ### Theme
-- resources-scaling | networking | rbac-security | volumes-secrets | monitoring-debugging
+resources-scaling | networking | rbac-security | volumes-secrets | monitoring-debugging
 
 ### Testing
-- [x] Tested on fresh Kind cluster
-- [x] Verified broken state is reproducible
-- [x] Solution passes all objectives
-- [x] Objective titles don't reveal the solution
+- [x] Tested on fresh Kind cluster (`kubeasy dev test --clean`)
+- [x] Broken state is reproducible
+- [x] All validations fail before fix
+- [x] All validations pass after fix
 - [x] Kyverno policies prevent bypasses
+- [x] Multiple valid solutions accepted
+- [x] Objective titles don't reveal the solution
 - [x] Estimated time is accurate
 ```
 
-## Challenge quality standards
+## Quality standards
 
 ### Design principles
 
-#### 1. Single focused concept
+#### One clear concept per challenge
 
-Good:
-> "This challenge teaches how to configure resource requests and limits"
+A good challenge teaches one specific thing. If you find yourself adding RBAC *and* networking *and* storage issues, split them into separate challenges.
 
-Bad:
-> "This challenge teaches resource limits, RBAC, network policies, and storage"
+#### Realistic scenarios
 
-**Guideline**: One clear concept per challenge.
+Challenges should mirror real production incidents, not artificial puzzles.
 
-#### 2. Realistic scenarios
+```
+GOOD: "A deployment fails because the ServiceAccount lacks permissions to read ConfigMaps"
+BAD:  "Find the 3 typos in these YAML files"
+```
 
-Good:
-> "A deployment fails because the ServiceAccount lacks permissions to read ConfigMaps"
+#### Appropriate difficulty
 
-Bad:
-> "A deployment has exactly 3 typos that you must find"
+| Difficulty | Description |
+|-----------|-------------|
+| `easy` | Single issue, clear error messages, common scenarios |
+| `medium` | Multiple related issues, requires systematic debugging |
+| `hard` | Complex interactions, subtle issues, production-level |
 
-**Guideline**: Mirror real production problems, not artificial puzzles.
+#### Mystery-preserving descriptions
 
-#### 3. Appropriate difficulty
-
-Match difficulty to complexity:
-
-- **easy**: Single issue, clear error messages, common scenarios
-- **medium**: Multiple related issues, requires debugging
-- **hard**: Complex interactions, subtle issues, production-like
-
-#### 4. Mystery preserving
-
-Descriptions should show symptoms, not causes. Objectives should check outcomes, not implementations.
+Descriptions show symptoms, not causes. Objective titles check outcomes, not implementations.
 
 ### Code quality
 
 #### Manifests
 
-```yaml
-# Good: Clear, minimal, well-commented
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: web-app
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: web-app
-  template:
-    metadata:
-      labels:
-        app: web-app
-    spec:
-      serviceAccountName: web-app-sa  # Lacks permissions
-      containers:
-      - name: nginx
-        image: nginx:1.21
-```
+- Use stable, widely-available images (nginx, python, busybox, etc.)
+- Comment intentional bugs for your own reference (comments won't be seen by users in the repo, but help reviewers)
+- Keep resource usage minimal — challenges run on a shared local cluster
+- Avoid external dependencies (no calls to external APIs or services)
 
 #### Objectives
 
-```yaml
-# Good: Generic titles, checks outcomes
-objectives:
-  - key: pod-running
-    title: "Pod Ready"
-    description: "Web app pod must be running"
-    order: 1
-    type: condition
-    spec:
-      target:
-        kind: Pod
-        labelSelector:
-          app: web-app
-      checks:
-        - type: Ready
-          status: "True"
+Every objective should:
+- Have a generic title that doesn't reveal the solution
+- Validate an outcome, not a specific implementation
+- Accept all valid solutions, not just the one you designed for
 
-# Bad: Reveals solution, vague key
-  - key: check1
-    title: "Memory Set to 256Mi"
-    description: "Check failed"
+```yaml
+# GOOD: generic title, outcome-based
+- key: stable-operation
+  title: "Stable Operation"
+  description: "The pod runs without being killed"
+  type: event
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    forbiddenReasons:
+      - "OOMKilled"
+
+# BAD: reveals solution, checks implementation
+- key: memory-check
+  title: "Memory Limit Set to 256Mi"
+  description: "Increase the memory limit"
+  type: spec
+  spec:
+    target:
+      kind: Deployment
+      name: my-app
+    checks:
+      - path: "spec.template.spec.containers[0].resources.limits.memory"
+        value: "256Mi"
 ```
 
-### Bypass protection
+#### Bypass protection
 
-Every challenge should include Kyverno policies to prevent obvious bypasses:
+Every challenge must include Kyverno policies to prevent at minimum:
+- Swapping the container image for a working one
+- Deleting and recreating the resource to bypass its broken configuration
 
 ```yaml
-# policies/protect.yaml
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
@@ -242,168 +202,48 @@ spec:
       match:
         resources:
           kinds: ["Deployment"]
-          names: ["web-app"]
+          names: ["<deployment-name>"]
           namespaces: ["challenge-*"]
       validate:
-        message: "Cannot change the application image"
+        message: "Cannot change the container image"
         pattern:
           spec:
             template:
               spec:
                 containers:
-                  - name: nginx
-                    image: "nginx:1.21"
+                  - image: "<original-image>"
 ```
 
 ## Review process
 
-### What reviewers look for
+Reviewers look for:
 
-1. **Correctness**
-   - Does the challenge deploy with a reproducible broken state?
-   - Do all objectives pass after applying the fix?
-   - Do Kyverno policies prevent bypasses?
-
-2. **Educational value**
-   - Does it teach something useful?
-   - Is it appropriate for the stated difficulty?
-   - Are descriptions mystery-preserving?
-
-3. **Code quality**
-   - Are manifests minimal and clear?
-   - Are objective titles generic (don't reveal solutions)?
-   - Do objectives validate outcomes, not implementations?
-
-4. **Testing**
-   - Has it been tested on a fresh cluster?
-   - Is estimated time accurate?
-   - Are multiple valid solutions accepted?
+1. **Correctness** — does the broken state deploy reliably? Do all objectives pass after applying the fix?
+2. **Educational value** — is the concept clearly taught? Is it appropriate for the stated difficulty?
+3. **Quality** — are manifests minimal and clean? Do objective titles avoid revealing solutions?
+4. **Testing** — has it been tested end-to-end on a fresh cluster?
 
 ### Addressing feedback
 
-When reviewers request changes:
-
-1. Make the requested modifications
-2. Test again to ensure everything still works
-3. Push the changes to your branch
-4. Respond to review comments
-
 ```bash
+# Make requested changes, then:
 git add .
-git commit -m "fix: address review feedback"
+git commit -m "fix: address review feedback for <challenge-slug>"
 git push origin challenge/<challenge-slug>
 ```
 
-The PR will automatically update.
+Respond to review comments in the PR — the updated diff will be reviewed automatically.
 
-## Coding standards
+## After merge
 
-### File naming
+Once your challenge is merged to `main`, CI automatically:
+1. Packages it as an OCI artifact
+2. Publishes it to `ghcr.io/kubeasy-dev/challenges/<slug>:latest`
+3. Makes it available via `kubeasy challenge start <slug>`
 
-- Use lowercase with hyphens
-- Be descriptive but concise
+If your challenge has an `image/` directory, the custom Docker image is also built and published.
 
-```
-manifests/deployment.yaml
-policies/protect.yaml
-image/Dockerfile
-```
-
-### YAML formatting
-
-- Use 2 spaces for indentation
-- Add comments to explain non-obvious configuration (like the intentional bug)
-- Group related resources in the same file with `---` separator if needed
-
-### Resource naming
-
-Use clear, consistent names:
-
-```yaml
-# Good
-metadata:
-  name: web-app
-  labels:
-    app: web-app
-    component: frontend
-
-# Bad
-metadata:
-  name: x
-  labels:
-    app: app1
-```
-
-## Common pitfalls
-
-### 1. Challenge is too complex
-
-**Problem**: Trying to teach too many concepts at once.
-
-**Fix**: Split into multiple challenges, each focusing on one concept.
-
-### 2. Objectives reveal the solution
-
-**Problem**: Objective titles or descriptions tell the user what to fix.
-
-**Fix**: Use generic titles like "Stable Operation" instead of "Memory Limit Increased to 256Mi".
-
-### 3. Missing bypass protection
-
-**Problem**: Users can replace the broken app with a simpler working one.
-
-**Fix**: Add Kyverno policies to protect container images and critical configuration.
-
-### 4. Estimated time is inaccurate
-
-**Problem**: Challenge takes much longer than stated.
-
-**Fix**: Test with someone unfamiliar with the problem and adjust the estimate.
-
-### 5. Solution has multiple valid approaches
-
-**Problem**: Users solve it differently than expected.
-
-**Fix**: This is good! Make sure your objectives validate outcomes (pod is healthy) rather than implementations (memory is 256Mi), so any valid fix passes.
-
-## Best practices
-
-### Design
-
-- Start simple -- complexity can be added later
-- Focus on one learning objective
-- Make the broken state obvious but not trivial
-- Use realistic, production-like scenarios
-
-### Implementation
-
-- Use stable, common images (nginx, python, busybox, etc.)
-- Avoid external dependencies when possible
-- Keep resource usage minimal
-- Test on a clean cluster
-
-### Documentation
-
-- Describe symptoms in the challenge description, not the root cause
-- State goals in the objective, not the method to achieve them
-- Never include solutions anywhere in the challenge files
-
-## After your PR is merged
-
-Your challenge will be automatically:
-1. Built as an OCI artifact
-2. Published to `ghcr.io/kubeasy-dev/challenges/<slug>:latest`
-3. Available for users via `kubeasy challenge start <slug>`
-
-If your challenge includes an `image/` directory, the custom Docker image will also be built and published to `ghcr.io/kubeasy-dev/<slug>:latest`.
-
-## Getting help
-
-If you need help contributing:
+## Get help
 
 - **GitHub Discussions**: [kubeasy-dev/challenges/discussions](https://github.com/kubeasy-dev/challenges/discussions)
 - **GitHub Issues**: [kubeasy-dev/challenges/issues](https://github.com/kubeasy-dev/challenges/issues)
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the same license as the project.

@@ -1,0 +1,150 @@
+---
+title: Spec Validation
+description: Check resource manifest fields — presence, value, or structure — anywhere in the spec or metadata.
+---
+
+The `spec` type inspects the manifest of a Kubernetes resource at any path. Unlike `status` validation (which reads `.status`), `spec` validation reads the full resource — including `.spec`, `.metadata`, and any other top-level field.
+
+## When to use
+
+Use `spec` when you want to verify that a resource is configured a certain way, not just that it's healthy:
+
+- Check that a resource has a specific annotation or label
+- Verify that a field exists (e.g., a liveness probe was added)
+- Assert that a value matches exactly (e.g., a specific image tag is set)
+- Confirm that an item exists in a list (e.g., a specific volume is mounted)
+
+<Callout type="warning">
+Prefer `condition` and `status` over `spec` whenever possible. Spec checks are more brittle — they fail if the user sets a slightly different value that still achieves the same outcome. Use `spec` only when the specific configuration is what matters, not just the result.
+</Callout>
+
+## Spec reference
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="SpecSpec" />
+
+### SpecCheck
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="SpecCheck" />
+
+## Check types
+
+Each check uses exactly one of three modes:
+
+| Field | Behavior |
+|-------|----------|
+| `exists: true` | The field at `path` must be present (not nil/empty) |
+| `exists: false` | The field at `path` must not be present |
+| `value: <any>` | The field at `path` must equal this value (deep equality) |
+| `contains: <any>` | The field at `path` is a list, and this value must be an element |
+
+## Path syntax
+
+Paths start from the root of the resource object (not from `.spec`). Use dot notation for nested fields and bracket notation for array indexing.
+
+| Path | Accesses |
+|------|---------|
+| `spec.replicas` | `.spec.replicas` |
+| `metadata.annotations` | `.metadata.annotations` |
+| `spec.template.spec.containers[0].livenessProbe` | First container's liveness probe |
+| `spec.template.spec.volumes` | Volume list |
+
+## Examples
+
+### Check that a liveness probe exists
+
+Useful for challenges where the user must add a missing probe:
+
+```yaml
+- key: liveness-probe-exists
+  title: "Liveness Probe Configured"
+  description: "The main container must have a liveness probe"
+  order: 1
+  type: spec
+  spec:
+    target:
+      kind: Deployment
+      name: web-app
+    checks:
+      - path: "spec.template.spec.containers[0].livenessProbe"
+        exists: true
+```
+
+### Verify a specific annotation is set
+
+```yaml
+- key: annotation-set
+  title: "Annotation Present"
+  description: "The deployment must be annotated for prometheus scraping"
+  order: 1
+  type: spec
+  spec:
+    target:
+      kind: Deployment
+      name: web-app
+    checks:
+      - path: "metadata.annotations.prometheus.io/scrape"
+        value: "true"
+```
+
+### Confirm a resource has no nodeSelector (should run on any node)
+
+```yaml
+- key: no-node-selector
+  title: "No Node Constraint"
+  description: "The pod must be schedulable on any node"
+  order: 1
+  type: spec
+  spec:
+    target:
+      kind: Deployment
+      name: web-app
+    checks:
+      - path: "spec.template.spec.nodeSelector"
+        exists: false
+```
+
+### Verify a specific volume is mounted
+
+Use `contains` to check that a specific item exists in a list. The value is matched using deep equality against each list element.
+
+```yaml
+- key: config-mounted
+  title: "Config Volume Mounted"
+  description: "The ConfigMap must be mounted as a volume"
+  order: 1
+  type: spec
+  spec:
+    target:
+      kind: Deployment
+      name: web-app
+    checks:
+      - path: "spec.template.spec.volumes"
+        contains:
+          name: "app-config"
+          configMap:
+            name: "app-config"
+```
+
+### Check that a specific image tag is used
+
+```yaml
+- key: correct-image
+  title: "Correct Image Version"
+  description: "The deployment must use the v2 image"
+  order: 1
+  type: spec
+  spec:
+    target:
+      kind: Deployment
+      name: web-app
+    checks:
+      - path: "spec.template.spec.containers[0].image"
+        value: "myapp:v2"
+```
+
+## Tips
+
+- `spec` checks are best for **build** and **migrate** challenge types, where the configuration itself is the outcome. For **fix** challenges, prefer `condition`, `status`, or `event` to avoid making the challenge too prescriptive.
+- When using `contains`, the entire sub-object must match exactly (deep equality). If you only care that a field exists within the list, use a more targeted path with `exists: true` instead.
+- Prefer checking for the presence of a feature (e.g., `livenessProbe exists: true`) rather than its exact value, to accept multiple valid configurations.
+- Paths are case-sensitive and must match the Kubernetes API field names exactly.

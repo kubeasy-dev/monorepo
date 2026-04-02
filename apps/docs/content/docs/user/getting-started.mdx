@@ -1,151 +1,202 @@
 ---
 title: Getting Started
-description: Install the Kubeasy CLI, set up your environment, and solve your first challenge in minutes.
+description: Install the Kubeasy CLI, set up your local environment, and solve your first challenge.
 ---
 
-Ready to dive into your first Kubernetes challenge with Kubeasy?
-This guide will walk you through the full setup -- from prerequisites to your first submission.
+This guide walks you through everything you need to start using Kubeasy — from installing the CLI to completing your first challenge.
 
 ## Prerequisites
 
-Make sure you have the following installed on your machine:
+- **Docker** (or a compatible container runtime) — required by Kind to run the local Kubernetes cluster
+- **kubectl** — the Kubernetes CLI ([install guide](https://kubernetes.io/docs/tasks/tools/))
 
-- [Docker](https://www.docker.com/) (used to run the local Kubernetes cluster) or other container runtime compatible with [Kind](https://kind.sigs.k8s.io/)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/) (used to inspect and interact with your cluster)
+## Install the CLI
 
-## Step-by-step Setup
+Choose the installation method that works best for your system.
 
-### 1. Install the Kubeasy CLI
-
-Choose the installation method that works best for you.
-
-**Install script (macOS / Linux):**
-
-The fastest way to install. Automatically detects your OS and architecture:
+### Install script (Linux, macOS)
 
 ```bash
-curl -fsSL https://download.kubeasy.dev/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/kubeasy-dev/kubeasy-cli/main/install.sh | bash
 ```
 
-**Homebrew (macOS / Linux):**
+### Homebrew (macOS, Linux)
 
 ```bash
 brew install kubeasy-dev/tap/kubeasy
 ```
 
-**NPM:**
+### NPM (cross-platform)
 
 ```bash
-npm install -g @kubeasy-dev/kubeasy-cli
+npm install -g kubeasy
 ```
 
-**Scoop (Windows):**
+### Scoop (Windows)
 
 ```bash
 scoop bucket add kubeasy https://github.com/kubeasy-dev/scoop-bucket
 scoop install kubeasy
 ```
 
-**Manual download:**
+### Manual download
 
-Download the binary for your platform from [GitHub Releases](https://github.com/kubeasy-dev/kubeasy-cli/releases) and add it to your PATH.
+Download the latest binary for your platform from the [GitHub Releases page](https://github.com/kubeasy-dev/kubeasy-cli/releases), make it executable, and add it to a directory in your `PATH`.
 
-Verify the installation:
+```bash
+# Example for Linux amd64
+chmod +x kubeasy-linux-amd64
+sudo mv kubeasy-linux-amd64 /usr/local/bin/kubeasy
+```
+
+### Verify installation
 
 ```bash
 kubeasy version
 ```
 
-### 2. Generate your API Key
+<Callout type="info" title="macOS security warning">
+If macOS prevents opening the binary with "developer cannot be verified", run:
+`xattr -d com.apple.quarantine /usr/local/bin/kubeasy`
+</Callout>
 
-Go to your [Kubeasy profile](https://kubeasy.dev/profile) and generate a personal API key.
-This key allows the CLI to fetch available challenges and submit your results.
+## Generate an API key
 
-### 3. Login to Kubeasy
+1. Go to [kubeasy.dev](https://kubeasy.dev) and sign in or create an account
+2. Navigate to your [Profile page](https://kubeasy.dev/profile)
+3. Generate a new API key and copy it
+
+## Authenticate
 
 ```bash
 kubeasy login
 ```
 
-Enter your API key when prompted. The key is stored securely in your system keyring (macOS Keychain, Windows Credential Manager, or Linux Secret Service). On headless environments, it falls back to `~/.config/kubeasy-cli/credentials`.
+You'll be prompted to enter your API key. It is stored securely:
+- **macOS**: System Keychain
+- **Windows**: Windows Credential Manager
+- **Linux**: Secret Service (falls back to `~/.config/kubeasy-cli/credentials`)
 
-You can also set the `KUBEASY_API_KEY` environment variable for CI/CD use.
+For CI/CD environments, set `KUBEASY_API_KEY` as an environment variable instead.
 
-### 4. Set up the local environment
+## Set up the local environment
 
 ```bash
 kubeasy setup
 ```
 
-This will:
+This creates a local Kubernetes cluster using [Kind](https://kind.sigs.k8s.io/) and installs all the infrastructure components that challenges depend on. Run it once per machine.
 
-- Create a Kind Kubernetes cluster named `kubeasy` (if it doesn't exist yet)
-- Install required infrastructure components (Kyverno, local-path-provisioner)
+**What gets installed:**
 
-You only need to run this once on a machine.
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| Kind cluster | Kubernetes v1.35.0 | Local Kubernetes environment |
+| Kyverno | v1.17.1 | Policy engine for bypass prevention |
+| local-path-provisioner | v0.0.35 | PersistentVolume storage |
+| nginx-ingress | v1.15.0 | Ingress controller |
+| Gateway API CRDs | v1.5.1 | Gateway API support |
+| cert-manager | v1.20.0 | TLS certificate management |
+| kubeasy-ca | — | Self-signed CA for cert-manager |
+| cloud-provider-kind | v0.10.0 | LoadBalancer support |
 
-### 5. Pick a challenge
+Setup typically takes 1–3 minutes depending on your connection speed.
 
-Visit the [challenge list](https://kubeasy.dev/challenges) and choose one that interests you.
-Each challenge comes with a short description, difficulty, and estimated time.
+```
+$ kubeasy setup
 
-You can also view challenge details from the CLI:
+Creating Kind cluster 'kubeasy' (Kubernetes v1.35.0)   [18s]
+Installing infrastructure components                    [52s]
 
-```bash
-kubeasy challenge get <challenge-slug>
+Environment ready! Start a challenge with:
+  kubeasy challenge start <slug>
 ```
 
-### 6. Start the challenge
+## Browse available challenges
+
+Visit [kubeasy.dev/challenges](https://kubeasy.dev/challenges) to browse all available challenges. Each listing shows the difficulty, estimated time, and theme.
+
+You can also preview a challenge's details before starting:
 
 ```bash
-kubeasy challenge start <challenge-slug>
+kubeasy challenge get pod-evicted
 ```
 
-This command will:
-
-- Create a dedicated namespace for the challenge
-- Pull and deploy the challenge manifests (broken scenario)
-- Apply Kyverno policies to prevent bypasses
-- Switch your kubectl context to the challenge namespace
-
-### 7. Play and fix the challenge
-
-Use kubectl, logs, and events to investigate what's wrong.
-
-You can edit objects, apply new resources, and debug freely -- just like in a real cluster.
-
-### 8. Submit your solution
+## Start your first challenge
 
 ```bash
-kubeasy challenge submit <challenge-slug>
+kubeasy challenge start pod-evicted
 ```
 
-The CLI will:
+This command:
+1. Creates a dedicated namespace (`pod-evicted`) in the cluster
+2. Pulls the challenge OCI artifact and deploys all resources
+3. Waits for the initial setup to complete
+4. Switches your `kubectl` context to the challenge namespace
 
-- Load validation objectives from the challenge definition
-- Execute each validation against the cluster
-- Send structured results to the platform
+```
+$ kubeasy challenge start pod-evicted
 
-### 9. Review your submission
+Challenge: Pod Evicted
+Creating namespace
+Deploying challenge
+Kubectl context configured
 
-Go to the web platform to see:
+Challenge environment is ready!
+Namespace: pod-evicted
+```
 
-- Which objectives passed or failed
-- Helpful messages for failed checks
-- Whether the challenge is considered complete
-
-### 10. (optional) Clean up
+Your `kubectl` is now pointing at the challenge namespace. Start investigating:
 
 ```bash
-kubeasy challenge clean <challenge-slug>
+kubectl get pods
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+kubectl get events --sort-by='.lastTimestamp'
 ```
 
-This removes all resources created for the challenge, including the namespace.
+## Solve the challenge
 
-If you want to start over (including resetting your progress on the platform):
+There's no walkthrough. Read the challenge description, explore the cluster state, and figure out what's wrong. Use any tools you're comfortable with — `kubectl`, [Lens](https://k8slens.dev/), [k9s](https://k9scli.io/).
+
+The description tells you what's broken (symptoms). The objective tells you what a successful outcome looks like. The root cause is yours to discover.
+
+## Submit your solution
 
 ```bash
-kubeasy challenge reset <challenge-slug>
+kubeasy challenge submit pod-evicted
 ```
 
-That's it! You're ready to start learning Kubernetes by solving real problems.
+The CLI runs all validation objectives against the cluster:
+
+```
+$ kubeasy challenge submit pod-evicted
+
+Condition Validation
+  pod-running: PASSED - All condition checks passed
+
+Event Validation
+  no-crash-events: PASSED - No forbidden events found
+
+All validations passed!
+Congratulations! Challenge 'pod-evicted' completed! +50 XP
+```
+
+If some objectives fail, the output tells you exactly which ones and why. Fix the remaining issues and submit again.
+
+## Clean up
+
+```bash
+# Remove resources AND reset your progress on the platform
+kubeasy challenge reset pod-evicted
+
+# Remove local resources only (keeps your progress)
+kubeasy challenge clean pod-evicted
+```
+
+## Next steps
+
+- [How It Works](/user/how-it-works) — understand the technical architecture
+- [Challenge Types](/user/challenge-types) — learn the difference between fix, build, and migrate
+- [CLI Reference](/user/cli-reference) — full reference for all commands
+- [Troubleshooting](/user/troubleshooting) — solutions to common issues

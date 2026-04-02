@@ -1,0 +1,151 @@
+---
+title: Event Validation
+description: Verify that Kubernetes events contain — or do not contain — specific event reasons.
+---
+
+The `event` type checks Kubernetes events for a given resource. You can forbid specific event reasons (like `OOMKilled` or `BackOff`) to assert stability, or require specific event reasons to confirm that something happened.
+
+## When to use
+
+Use `event` when you want to verify stability by checking that certain failure events have stopped occurring. Common use cases:
+
+- Confirming a pod is no longer getting OOMKilled after increasing its memory limit
+- Ensuring a pod hasn't been evicted
+- Asserting that a CrashLoopBackOff has resolved
+- Verifying that a specific lifecycle event occurred (e.g., a pod was successfully scheduled)
+
+Events are time-windowed by `sinceSeconds`, so this validation checks whether specific events have occurred recently — not ever.
+
+## Spec reference
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="EventSpec" />
+
+## forbiddenReasons vs requiredReasons
+
+These two fields serve opposite purposes:
+
+| Field | Behavior |
+|-------|----------|
+| `forbiddenReasons` | Validation **fails** if any listed event reason was emitted in the time window |
+| `requiredReasons` | Validation **fails** if none of the listed event reasons were emitted in the time window |
+
+At least one of `forbiddenReasons` or `requiredReasons` must be provided. You can use both in the same objective.
+
+## Examples
+
+### No OOMKilled or crash events (most common)
+
+The classic stability check — ensures the pod isn't crashing or being killed by Kubernetes:
+
+```yaml
+- key: stable-operation
+  title: "Stable Operation"
+  description: "No crash or eviction events in the last 5 minutes"
+  order: 2
+  type: event
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    forbiddenReasons:
+      - "OOMKilled"
+      - "Evicted"
+      - "BackOff"
+    sinceSeconds: 300
+```
+
+### Multiple forbidden reasons for a crash-loop challenge
+
+```yaml
+- key: no-crash-loop
+  title: "No Crash Loop"
+  description: "The pod must not be restarting repeatedly"
+  order: 2
+  type: event
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    forbiddenReasons:
+      - "OOMKilled"
+      - "Error"
+      - "BackOff"
+      - "CrashLoopBackOff"
+    sinceSeconds: 300
+```
+
+### Assert that a pod was scheduled
+
+Use `requiredReasons` to verify that a specific event occurred — useful for build challenges where the pod needs to be created and scheduled:
+
+```yaml
+- key: pod-scheduled
+  title: "Pod Scheduled"
+  description: "The pod was successfully scheduled to a node"
+  order: 1
+  type: event
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    requiredReasons:
+      - "Scheduled"
+    sinceSeconds: 600
+```
+
+### Combine forbidden and required
+
+Verify that a pod started successfully (a `Started` event occurred) but had no crash events:
+
+```yaml
+- key: clean-start
+  title: "Clean Start"
+  description: "Pod started successfully with no errors"
+  order: 1
+  type: event
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    requiredReasons:
+      - "Started"
+    forbiddenReasons:
+      - "OOMKilled"
+      - "BackOff"
+    sinceSeconds: 300
+```
+
+## Common event reasons
+
+### Failure / instability (typically forbidden)
+
+| Reason | Cause |
+|--------|-------|
+| `OOMKilled` | Container exceeded memory limit |
+| `Evicted` | Pod evicted due to node pressure |
+| `BackOff` | Container restart back-off (CrashLoopBackOff) |
+| `Error` | Container exited with a non-zero exit code |
+| `FailedMount` | Volume mount failed |
+| `FailedScheduling` | Pod could not be scheduled |
+| `FailedCreate` | ReplicaSet failed to create a pod |
+| `ImagePullBackOff` | Container image could not be pulled |
+
+### Success / lifecycle (typically required)
+
+| Reason | Cause |
+|--------|-------|
+| `Scheduled` | Pod was assigned to a node |
+| `Pulled` | Container image pulled successfully |
+| `Created` | Container created |
+| `Started` | Container started |
+
+## Tips
+
+- `sinceSeconds` defaults to 300 (5 minutes). If your challenge requires the pod to be stable for longer, increase this value.
+- Event validation is one of the best ways to distinguish "the pod is running now" from "the pod is running stably." Combine it with a `condition` check: the condition proves current state, the event check proves sustained stability.
+- Keep `sinceSeconds` reasonable — if it's too large (e.g., 3600), a forbidden event from before the user's fix might still appear in the window and cause a false failure.
+- When targeting multiple pods via `labelSelector`, forbidden events are checked on all matched pods. Any pod emitting a forbidden reason will fail the objective.

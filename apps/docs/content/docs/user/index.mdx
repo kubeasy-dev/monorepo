@@ -1,59 +1,43 @@
 ---
-title: Welcome to Kubeasy
-description: Learn Kubernetes through interactive, real-world challenges. Kubeasy runs locally, validates your solutions automatically, and helps you level up your skills.
+title: User Guide
+description: Learn Kubernetes through interactive challenges that run entirely on your machine.
 ---
 
-**Kubeasy** is an interactive learning platform that helps developers truly understand Kubernetes — by solving real problems.
+**Kubeasy** is an interactive learning platform that helps developers master Kubernetes by solving real-world problems — not reading about them.
 
-Each challenge drops you into a minimal but realistic situation: maybe a Pod won’t start, a NetworkPolicy is too strict, or RBAC is silently blocking access. Your goal? Investigate, fix, and validate — using real tools like `kubectl`, not a browser playground.
+Each challenge puts you inside a realistic, broken Kubernetes scenario. Maybe a Pod keeps crashing, a NetworkPolicy is silently blocking traffic, or RBAC is denying access to the wrong things. Your job is to investigate, diagnose, and fix it — using real tools like `kubectl`.
 
 ## Learn by doing
 
-Kubeasy isn’t about passively reading docs or watching videos. It’s about debugging, testing hypotheses, failing — and learning deeply by fixing things yourself.
+Kubernetes has excellent documentation, but real understanding comes from debugging under pressure. Kubeasy creates that environment safely:
 
-You’ll face challenges like:
+- No walkthroughs — you figure out what's wrong
+- No multiple-choice — you apply the actual fix in the cluster
+- No cloud accounts — everything runs locally on your machine
+- Automated validation — the CLI tells you objectively whether your fix works
 
-- Pods that crash due to bad resource limits
-- Deployments that stay stuck in `Pending`
-- Services that don’t expose anything
-- Jobs that fail silently because of missing volumes
+You'll face scenarios like pods stuck in `CrashLoopBackOff`, services that expose nothing, deployments that never become ready, and RBAC that silently blocks access. Each one mirrors a real production incident.
 
-Each one mirrors a real-world issue you might face in production.
+## A local, isolated environment
 
-## A minimalist but strict approach
+Kubeasy runs on a lightweight [Kind](https://kind.sigs.k8s.io/) cluster on your machine. Each challenge lives in its own namespace, fully isolated from other challenges and from your system. Use whatever tools you prefer — `kubectl`, [Lens](https://k8slens.dev/), [k9s](https://k9scli.io/) — just as you would in a real cluster.
 
-Every challenge gives you:
+Nothing leaves your machine. No cloud credentials required.
 
-- A realistic problem (e.g. misconfigured pod, broken RBAC, network policy bug)
-- A minimal initial setup
-- A clear objective to reach
-- An automated validation system
+## Who is Kubeasy for?
 
-There’s no walkthrough. You’re on your own — but in a safe environment.
+- **Developers** who deploy to Kubernetes but want to understand what's actually happening
+- **DevOps engineers** looking to sharpen their debugging and operational skills
+- **Learners** who want a hands-on, challenge-based path through Kubernetes concepts
 
-## Local environment
+Whether you're just getting started or already comfortable with `kubectl`, you'll find challenges that push your understanding further.
 
-Kubeasy runs entirely on your machine using a lightweight Kind cluster. Each challenge is fully isolated:
+## Why Kubeasy exists
 
-- Runs locally with no cloud required
-- Each challenge has its own namespace
-- Everything runs through the Kubeasy CLI — no extra setup required
-- Use your favorite tools — kubectl, Lens, or anything you’re comfortable with
+Kubernetes was designed to be consumed by developers, not just operations teams. But in practice, it's often treated as a black box — manifests get copied, things sometimes work, and when they don't, someone else figures it out.
 
-You stay in control, and nothing touches your system outside the challenge scope.
+Kubeasy bridges that gap. By putting you in realistic broken scenarios and asking you to fix them, it builds the intuition and confidence to handle Kubernetes problems on your own.
 
-## Who is it for?
+## Next steps
 
-Kubeasy is for:
-
-- **Developers** who want to stop blindly copying manifests
-- **DevOps engineers** looking to sharpen their cluster debugging skills
-- **Learners** who want a practical, challenge-based way to understand Kubernetes
-
-Whether you’re a beginner or already comfortable with `kubectl`, you’ll find challenges that teach you something new — by doing.
-
-## Ready to start?
-
-You’ll need Docker, Node.js and a terminal. That’s it.
-
-Go to the [Getting Started guide](/user/getting-started) to set up your environment in less than 5 minutes — and begin your first challenge.
+Ready to get started? Go to the [Getting Started guide](/user/getting-started) to install the CLI and solve your first challenge in minutes.

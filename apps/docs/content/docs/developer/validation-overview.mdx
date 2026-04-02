@@ -1,0 +1,191 @@
+---
+title: Validation Overview
+description: Understand the philosophy and structure behind Kubeasy's validation system — and how to write objectives that test real outcomes.
+---
+
+Kubeasy challenges are validated by the CLI, which runs a set of **objectives** directly against the Kubernetes cluster. This page explains the philosophy behind challenge validation and the structure that all objectives share.
+
+For the technical spec of each validation type, see the individual type pages.
+
+## Philosophy: validate outcomes, not implementations
+
+The core rule of Kubeasy validation: **check that the system is in the right state, not that the user took a specific action**.
+
+This matters because:
+- There are often multiple valid ways to solve a Kubernetes problem
+- Users should be rewarded for creative and correct solutions
+- If validation checks the method, you'll reject valid fixes and hint at the answer
+
+**Bad:** Check that memory limit is set to 256Mi  
+**Good:** Check that the pod is running and no OOM events occurred
+
+**Bad:** Check that a specific annotation exists  
+**Good:** Check that the deployment is available and has the expected replicas
+
+If a user solves the problem in a way you didn't anticipate but the system works correctly — that's a pass.
+
+## The 8 validation types
+
+| Type | What it validates | Best for |
+|------|------------------|---------|
+| [`condition`](/developer/validation-condition) | Kubernetes resource conditions (Ready, Available) | Pod health, Deployment availability |
+| [`status`](/developer/validation-status) | Arbitrary status fields with comparison operators | Restart counts, replica counts, phase |
+| [`log`](/developer/validation-log) | Strings in container logs | Application startup, connection events |
+| [`event`](/developer/validation-event) | Forbidden or required Kubernetes events | OOMKilled, Evicted, crash prevention |
+| [`connectivity`](/developer/validation-connectivity) | HTTP connectivity between pods or from outside | Service reachability, ingress testing |
+| [`rbac`](/developer/validation-rbac) | ServiceAccount permissions via SubjectAccessReview | RBAC challenges, least-privilege checks |
+| [`spec`](/developer/validation-spec) | Resource manifest fields (spec/metadata) | Configuration challenges, field presence |
+| [`triggered`](/developer/validation-triggered) | Run an action, then validate the outcome | Resilience, rolling updates, load testing |
+
+## Objective structure
+
+Every objective in `challenge.yaml` has the same base structure, regardless of type:
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="ValidationSchema" />
+
+**Key rules:**
+- `key` must be unique within the challenge, lowercase with hyphens (e.g., `pod-ready`, `no-oom-events`)
+- `order` determines display order in the UI and CLI output — use sequential integers starting from 1
+- `title` is shown to the user — keep it generic, don't reveal the solution
+- `description` provides context about what this objective checks
+- `type` determines which validator runs and how `spec` is interpreted
+
+## Target specification
+
+Most validation types use a `target` field to identify which Kubernetes resource(s) to check:
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="Target" />
+
+**Rules:**
+- `kind` is required — use the Kubernetes resource kind (e.g., `Pod`, `Deployment`, `Service`)
+- Either `name` (exact match) or `labelSelector` (map of key/value pairs) must be provided
+- If `labelSelector` matches multiple resources, the validation runs against all of them — all must pass
+
+**Example targets:**
+
+```yaml
+# By label selector (most common)
+target:
+  kind: Pod
+  labelSelector:
+    app: my-app
+
+# By exact name
+target:
+  kind: Deployment
+  name: web-server
+
+# StatefulSet
+target:
+  kind: StatefulSet
+  labelSelector:
+    app: postgres
+```
+
+## Anti-patterns to avoid
+
+### Revealing the solution in titles or descriptions
+
+```yaml
+# BAD: tells the user exactly what to do
+- key: memory-fix
+  title: "Memory Limit Set to 256Mi"
+  description: "Increase memory limit to 256Mi"
+
+# GOOD: describes the outcome
+- key: stable-operation
+  title: "Stable Operation"
+  description: "The pod runs without being killed"
+```
+
+### Checking implementation details instead of outcomes
+
+```yaml
+# BAD: only one specific value passes
+spec:
+  target:
+    kind: Pod
+    labelSelector:
+      app: my-app
+  checks:
+    - field: "containerStatuses[0].restartCount"
+      operator: "=="
+      value: 0
+
+# GOOD: any low restart count passes
+spec:
+  target:
+    kind: Pod
+    labelSelector:
+      app: my-app
+  checks:
+    - field: "containerStatuses[0].restartCount"
+      operator: "<"
+      value: 3
+```
+
+### Missing bypass protection
+
+If a user can replace the broken application with a working one, your validation will pass without them solving the problem. Always add [Kyverno policies](/developer/challenge-structure#3-policies-directory) to protect critical fields like container images.
+
+## A complete example
+
+```yaml
+objectives:
+  - key: pod-ready
+    title: "Pod Ready"
+    description: "The application pod must be in a Running and Ready state"
+    order: 1
+    type: condition
+    spec:
+      target:
+        kind: Pod
+        labelSelector:
+          app: data-processor
+      checks:
+        - type: Ready
+          status: "True"
+
+  - key: no-crashes
+    title: "Stable Operation"
+    description: "No crash or eviction events in the last 5 minutes"
+    order: 2
+    type: event
+    spec:
+      target:
+        kind: Pod
+        labelSelector:
+          app: data-processor
+      forbiddenReasons:
+        - "OOMKilled"
+        - "Evicted"
+      sinceSeconds: 300
+
+  - key: low-restarts
+    title: "Low Restart Count"
+    description: "Pod has not restarted excessively"
+    order: 3
+    type: status
+    spec:
+      target:
+        kind: Pod
+        labelSelector:
+          app: data-processor
+      checks:
+        - field: "containerStatuses[0].restartCount"
+          operator: "<"
+          value: 3
+```
+
+## Next steps
+
+Each validation type has its own page with a full spec reference (auto-generated from the schema), examples, and type-specific tips:
+
+- [Condition](/developer/validation-condition)
+- [Status](/developer/validation-status)
+- [Log](/developer/validation-log)
+- [Event](/developer/validation-event)
+- [Connectivity](/developer/validation-connectivity)
+- [RBAC](/developer/validation-rbac)
+- [Spec](/developer/validation-spec)
+- [Triggered](/developer/validation-triggered)

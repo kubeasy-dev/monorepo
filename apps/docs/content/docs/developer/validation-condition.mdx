@@ -1,0 +1,145 @@
+---
+title: Condition Validation
+description: Check Kubernetes resource conditions like Ready, Available, or Progressing.
+---
+
+The `condition` type checks whether a Kubernetes resource has a specific condition set to the expected status. It's the most straightforward way to verify that a resource is healthy.
+
+## When to use
+
+Use `condition` when you want to verify that a resource has reached a desired lifecycle state — for example, that a Pod is `Ready`, a Deployment is `Available`, or a Job is `Complete`.
+
+Conditions are the canonical Kubernetes signal for resource health. Unlike checking status fields with operators, condition checks are declarative and map directly to what Kubernetes reports.
+
+This type is almost always appropriate for validating that the user's fix resulted in a healthy, running workload.
+
+## Spec reference
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="ConditionSpec" />
+
+### ConditionCheck
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="ConditionCheck" />
+
+## Examples
+
+### Check that a Pod is Ready
+
+The most common use case: verify the pod is running and all containers are healthy.
+
+```yaml
+- key: pod-ready
+  title: "Pod Ready"
+  description: "The application pod must be in a Ready state"
+  order: 1
+  type: condition
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    checks:
+      - type: Ready
+        status: "True"
+```
+
+### Check that a Deployment is Available
+
+Deployment conditions reflect the aggregate health of all replicas. Use `Available` to confirm the desired number of replicas are up and serving.
+
+```yaml
+- key: deployment-available
+  title: "Deployment Available"
+  description: "The deployment must have available replicas"
+  order: 1
+  type: condition
+  spec:
+    target:
+      kind: Deployment
+      name: web-server
+    checks:
+      - type: Available
+        status: "True"
+```
+
+### Check multiple conditions on the same Pod
+
+You can check multiple conditions in a single objective. All must match for the objective to pass.
+
+```yaml
+- key: pod-fully-ready
+  title: "Pod Fully Ready"
+  description: "The pod must be initialized, scheduled, and ready"
+  order: 1
+  type: condition
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    checks:
+      - type: Ready
+        status: "True"
+      - type: ContainersReady
+        status: "True"
+```
+
+### Check that a Job completed successfully
+
+```yaml
+- key: job-done
+  title: "Job Completed"
+  description: "The migration job must have completed"
+  order: 2
+  type: condition
+  spec:
+    target:
+      kind: Job
+      name: db-migration
+    checks:
+      - type: Complete
+        status: "True"
+```
+
+## Common conditions by resource kind
+
+### Pod
+
+| Condition | When True |
+|-----------|-----------|
+| `Ready` | All containers are running and ready to accept traffic |
+| `ContainersReady` | All containers are running |
+| `Initialized` | All init containers have completed successfully |
+| `PodScheduled` | The pod has been scheduled to a node |
+
+### Deployment
+
+| Condition | When True |
+|-----------|-----------|
+| `Available` | The minimum required replicas are available |
+| `Progressing` | The deployment is rolling out or has completed successfully |
+| `ReplicaFailure` | A replica set failed to be created or scaled |
+
+Use `Available: "True"` to confirm the deployment is healthy. Use `ReplicaFailure: "False"` to assert no failures occurred.
+
+### StatefulSet
+
+| Condition | When True |
+|-----------|-----------|
+| `Ready` | All replicas are ready |
+
+### Job
+
+| Condition | When True |
+|-----------|-----------|
+| `Complete` | All pods completed successfully |
+| `Failed` | The job has failed |
+
+Use `Complete: "True"` and `Failed: "False"` together to assert a successful job.
+
+## Tips
+
+- Prefer `condition` over `status` for lifecycle state checks — it's more readable and directly reflects what Kubernetes reports in `kubectl describe`.
+- When targeting multiple pods via `labelSelector`, all matched pods must pass all condition checks.
+- For Deployments, `Available: "True"` is usually more meaningful than `Progressing: "True"` — progressing can be true even during a failed rollout.
+- Combine `condition` with `event` to both verify the pod is healthy *and* that no crash events occurred recently.
