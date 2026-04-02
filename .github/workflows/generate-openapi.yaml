@@ -53,9 +53,4 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          SPEC_B64=$(base64 -w 0 apps/api/openapi.json)
-
-          gh api repos/kubeasy-dev/kubeasy-cli/dispatches \
-            -f event_type=openapi-spec-updated \
-            -f "client_payload[spec_base64]=$SPEC_B64" \
-            -f "client_payload[source_sha]=${{ github.sha }}"
+          gh api repos/kubeasy-dev/kubeasy-cli/dispatches -f event_type=openapi-spec-updated
