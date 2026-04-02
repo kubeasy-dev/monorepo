@@ -75,6 +75,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -569,6 +572,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -856,6 +862,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -998,6 +1007,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1123,6 +1135,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1247,6 +1262,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1366,6 +1384,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1545,6 +1566,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1707,6 +1731,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -1812,6 +1839,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -1902,6 +1932,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "requestBody": {
@@ -2012,6 +2045,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -2105,6 +2141,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -2213,6 +2252,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -2326,6 +2368,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -2451,6 +2496,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -2578,6 +2626,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -2665,6 +2716,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -2752,6 +2806,9 @@
         "security": [
           {
             "SessionAuth": []
+          },
+          {
+            "BearerAuth": []
           }
         ],
         "responses": {

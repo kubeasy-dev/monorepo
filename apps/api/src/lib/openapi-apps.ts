@@ -52,8 +52,11 @@ const notFound = {
   content: { "application/json": { schema: errorSchema } },
 };
 
-const bearerAuth = [{ BearerAuth: [] }];
-const sessionAuth = [{ SessionAuth: [] }];
+const bearerAuth: Record<string, string[]>[] = [{ BearerAuth: [] }];
+const sessionOrBearerAuth: Record<string, string[]>[] = [
+  { SessionAuth: [] },
+  { BearerAuth: [] },
+];
 const slugParam = z.object({ slug: z.string() });
 
 // ---------------------------------------------------------------------------
@@ -79,7 +82,7 @@ const getChallengesRoute = createRoute({
   operationId: "listChallenges",
   summary: "List challenges",
   tags: ["Challenges"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   request: {
     query: z.object({
       difficulty: challengeDifficultySchema.optional(),
@@ -142,7 +145,7 @@ const submitChallengeRoute = createRoute({
   operationId: "submitChallenge",
   summary: "Submit challenge validation results",
   tags: ["Challenges"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   request: {
     params: slugParam,
     body: {
@@ -182,7 +185,7 @@ const getCompletionRoute = createRoute({
   operationId: "getCompletion",
   summary: "Get challenge completion stats",
   tags: ["Progress"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   request: {
     query: z.object({
       splitByTheme: z.enum(["true", "false"]).optional(),
@@ -206,7 +209,7 @@ const getChallengeStatusRoute = createRoute({
   operationId: "getChallengeStatus",
   summary: "Get challenge progress",
   tags: ["Progress"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   request: { params: slugParam },
   responses: {
     200: {
@@ -224,7 +227,7 @@ const startChallengeRoute = createRoute({
   operationId: "startChallenge",
   summary: "Start a challenge",
   tags: ["Progress"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   request: { params: slugParam },
   responses: {
     200: {
@@ -242,7 +245,7 @@ const resetChallengeRoute = createRoute({
   operationId: "resetChallenge",
   summary: "Reset challenge progress",
   tags: ["Progress"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   request: { params: slugParam },
   responses: {
     200: {
@@ -273,7 +276,7 @@ const getSubmissionsRoute = createRoute({
   operationId: "getSubmissions",
   summary: "Get all submissions for a challenge",
   tags: ["Submissions"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   request: { params: slugParam },
   responses: {
     200: {
@@ -295,7 +298,7 @@ const getLatestSubmissionRoute = createRoute({
   operationId: "getLatestSubmission",
   summary: "Get latest submission status for a challenge",
   tags: ["Submissions"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   request: { params: slugParam },
   responses: {
     200: {
@@ -326,7 +329,7 @@ const getUserXpRoute = createRoute({
   operationId: "getUserXp",
   summary: "Get XP and rank info",
   tags: ["XP"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   responses: {
     200: {
       description: "XP and rank",
@@ -342,7 +345,7 @@ const getUserStreakRoute = createRoute({
   operationId: "getUserStreak",
   summary: "Get current challenge streak",
   tags: ["XP"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   responses: {
     200: {
       description: "Streak info",
@@ -358,7 +361,7 @@ const updateUserNameRoute = createRoute({
   operationId: "updateUserName",
   summary: "Update user display name",
   tags: ["User"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   request: {
     body: {
       required: true,
@@ -391,7 +394,7 @@ const deleteUserProgressRoute = createRoute({
   operationId: "deleteUserProgress",
   summary: "Delete all user progress and XP",
   tags: ["XP"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   responses: {
     200: {
       description: "Progress deleted",
@@ -423,7 +426,7 @@ const getEmailTopicsRoute = createRoute({
   operationId: "getEmailTopics",
   summary: "List email topics with subscription status",
   tags: ["User"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   responses: {
     200: {
       description: "Email topics",
@@ -441,7 +444,7 @@ const updateEmailTopicRoute = createRoute({
   operationId: "updateEmailTopic",
   summary: "Update email subscription for a topic",
   tags: ["User"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   request: {
     params: z.object({ topicId: z.string() }),
     body: {
@@ -488,7 +491,7 @@ const getXpHistoryRoute = createRoute({
   operationId: "getXpHistory",
   summary: "Get last 20 XP transactions",
   tags: ["XP"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   responses: {
     200: {
       description: "XP history",
@@ -523,7 +526,7 @@ const getOnboardingRoute = createRoute({
   operationId: "getOnboarding",
   summary: "Get onboarding status",
   tags: ["Onboarding"],
-  security: sessionAuth,
+  security: sessionOrBearerAuth,
   responses: {
     200: {
       description: "Onboarding status",
@@ -544,7 +547,7 @@ const onboardingActionRoute = (
     operationId,
     summary,
     tags: ["Onboarding"],
-    security: sessionAuth,
+    security: sessionOrBearerAuth,
     responses: {
       200: {
         description: "Success",
