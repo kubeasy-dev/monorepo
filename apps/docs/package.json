@@ -8,7 +8,7 @@
     "start": "next start",
     "postinstall": "fumadocs-mdx",
     "lint": "biome check",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next build && tsc --noEmit",
     "format": "biome format --write"
   },
   "dependencies": {
