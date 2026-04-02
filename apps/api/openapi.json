@@ -60,7 +60,7 @@
       "BearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "API key obtained via `kubeasy login` (deprecated CLI auth)"
+        "description": "API key obtained via `kubeasy login`. Used by the CLI and accepted on all public API routes."
       }
     },
     "schemas": {},
@@ -78,7 +78,8 @@
           },
           {
             "BearerAuth": []
-          }
+          },
+          {}
         ],
         "parameters": [
           {
@@ -283,6 +284,7 @@
         "operationId": "getChallenge",
         "summary": "Get challenge details",
         "tags": ["Challenges"],
+        "security": [],
         "parameters": [
           {
             "schema": {
@@ -295,14 +297,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Challenge details",
+            "description": "Challenge details, or null if not found or unavailable",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "challenge": {
-                      "type": "object",
+                      "type": ["object", "null"],
                       "properties": {
                         "id": {
                           "type": "integer"
@@ -419,25 +421,6 @@
               }
             }
           },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -465,6 +448,7 @@
         "operationId": "getChallengeObjectives",
         "summary": "Get challenge objectives",
         "tags": ["Challenges"],
+        "security": [],
         "parameters": [
           {
             "schema": {
