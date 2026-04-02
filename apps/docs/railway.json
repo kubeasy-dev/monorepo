@@ -3,7 +3,11 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "apps/docs/Dockerfile",
-    "watchPatterns": ["apps/docs/**", "packages/**"]
+    "watchPatterns": [
+      "apps/docs/**",
+      "apps/api/openapi.json",
+      "apps/api/openapi-sync.json"
+    ]
   },
   "deploy": {
     "healthcheckPath": "/docs",
