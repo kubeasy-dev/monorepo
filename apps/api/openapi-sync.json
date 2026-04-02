@@ -21,6 +21,17 @@
       "description": "Challenge synchronisation from the challenges repository"
     }
   ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key with admin privileges"
+      }
+    },
+    "schemas": {},
+    "parameters": {}
+  },
   "paths": {
     "/api/admin/challenges/sync": {
       "post": {
@@ -38,7 +49,292 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SyncRequest"
+                "type": "object",
+                "properties": {
+                  "challenges": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "description": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "theme": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "difficulty": {
+                          "type": "string",
+                          "enum": ["easy", "medium", "hard"]
+                        },
+                        "type": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "estimatedTime": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0
+                        },
+                        "initialSituation": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "objectives": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "order": {
+                                "type": "integer"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "status",
+                                  "condition",
+                                  "log",
+                                  "event",
+                                  "connectivity"
+                                ]
+                              },
+                              "spec": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "target": {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string"
+                                          },
+                                          "name": {
+                                            "type": "string"
+                                          },
+                                          "labelSelector": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": ["kind"]
+                                      },
+                                      "checks": {
+                                        "type": ["array", "null"],
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "field": {
+                                              "type": "string"
+                                            },
+                                            "operator": {
+                                              "type": "string"
+                                            },
+                                            "value": {}
+                                          },
+                                          "required": ["field", "operator"]
+                                        }
+                                      }
+                                    },
+                                    "required": ["target", "checks"]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "target": {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string"
+                                          },
+                                          "name": {
+                                            "type": "string"
+                                          },
+                                          "labelSelector": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": ["kind"]
+                                      },
+                                      "checks": {
+                                        "type": ["array", "null"],
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string"
+                                            },
+                                            "status": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": ["type", "status"]
+                                        }
+                                      }
+                                    },
+                                    "required": ["target", "checks"]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "target": {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string"
+                                          },
+                                          "name": {
+                                            "type": "string"
+                                          },
+                                          "labelSelector": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": ["kind"]
+                                      },
+                                      "container": {
+                                        "type": "string"
+                                      },
+                                      "expectedStrings": {
+                                        "type": ["array", "null"],
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "sinceSeconds": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": ["target", "expectedStrings"]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "target": {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string"
+                                          },
+                                          "name": {
+                                            "type": "string"
+                                          },
+                                          "labelSelector": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": ["kind"]
+                                      },
+                                      "forbiddenReasons": {
+                                        "type": ["array", "null"],
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "sinceSeconds": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": ["target", "forbiddenReasons"]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "sourcePod": {
+                                        "type": "object",
+                                        "properties": {
+                                          "name": {
+                                            "type": "string"
+                                          },
+                                          "labelSelector": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "targets": {
+                                        "type": ["array", "null"],
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "url": {
+                                              "type": "string"
+                                            },
+                                            "expectedStatusCode": {
+                                              "type": "number"
+                                            },
+                                            "timeoutSeconds": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "url",
+                                            "expectedStatusCode"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "required": ["sourcePod", "targets"]
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "title",
+                              "description",
+                              "order",
+                              "type",
+                              "spec"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "title",
+                        "description",
+                        "theme",
+                        "difficulty",
+                        "type",
+                        "estimatedTime",
+                        "initialSituation",
+                        "objectives"
+                      ]
+                    }
+                  }
+                },
+                "required": ["challenges"]
               }
             }
           }
@@ -94,8 +390,7 @@
                     "updated",
                     "deleted",
                     "details"
-                  ],
-                  "additionalProperties": false
+                  ]
                 }
               }
             }
@@ -114,8 +409,7 @@
                       "type": "string"
                     }
                   },
-                  "required": ["error"],
-                  "additionalProperties": false
+                  "required": ["error"]
                 }
               }
             }
@@ -134,8 +428,7 @@
                       "type": "string"
                     }
                   },
-                  "required": ["error"],
-                  "additionalProperties": false
+                  "required": ["error"]
                 }
               }
             }
@@ -154,8 +447,7 @@
                       "type": "string"
                     }
                   },
-                  "required": ["error"],
-                  "additionalProperties": false
+                  "required": ["error"]
                 }
               }
             }
@@ -164,1604 +456,5 @@
       }
     }
   },
-  "components": {
-    "securitySchemes": {
-      "BearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "description": "API key obtained via `kubeasy login`"
-      }
-    },
-    "schemas": {
-      "ChallengeDifficulty": {
-        "description": "Challenge difficulty level",
-        "type": "string",
-        "enum": ["easy", "medium", "hard"]
-      },
-      "ObjectiveType": {
-        "description": "Type of objective validation. Determines which spec fields are required.",
-        "type": "string",
-        "enum": ["status", "condition", "log", "event", "connectivity"]
-      },
-      "Objective": {
-        "description": "A single objective definition as it appears in `challenge.yaml`",
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "order": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "type": {
-            "type": "string",
-            "enum": ["status", "condition", "log", "event", "connectivity"]
-          },
-          "spec": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "target": {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "labelSelector": {
-                        "type": "object",
-                        "propertyNames": {
-                          "type": "string"
-                        },
-                        "additionalProperties": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "required": ["kind"],
-                    "additionalProperties": false
-                  },
-                  "checks": {
-                    "anyOf": [
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "field": {
-                              "type": "string"
-                            },
-                            "operator": {
-                              "type": "string"
-                            },
-                            "value": {}
-                          },
-                          "required": ["field", "operator", "value"],
-                          "additionalProperties": false
-                        }
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                },
-                "required": ["target", "checks"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "target": {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "labelSelector": {
-                        "type": "object",
-                        "propertyNames": {
-                          "type": "string"
-                        },
-                        "additionalProperties": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "required": ["kind"],
-                    "additionalProperties": false
-                  },
-                  "checks": {
-                    "anyOf": [
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string"
-                            },
-                            "status": {
-                              "type": "string"
-                            }
-                          },
-                          "required": ["type", "status"],
-                          "additionalProperties": false
-                        }
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                },
-                "required": ["target", "checks"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "target": {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "labelSelector": {
-                        "type": "object",
-                        "propertyNames": {
-                          "type": "string"
-                        },
-                        "additionalProperties": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "required": ["kind"],
-                    "additionalProperties": false
-                  },
-                  "container": {
-                    "type": "string"
-                  },
-                  "expectedStrings": {
-                    "anyOf": [
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "sinceSeconds": {
-                    "type": "number"
-                  }
-                },
-                "required": ["target", "expectedStrings"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "target": {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "labelSelector": {
-                        "type": "object",
-                        "propertyNames": {
-                          "type": "string"
-                        },
-                        "additionalProperties": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "required": ["kind"],
-                    "additionalProperties": false
-                  },
-                  "forbiddenReasons": {
-                    "anyOf": [
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "sinceSeconds": {
-                    "type": "number"
-                  }
-                },
-                "required": ["target", "forbiddenReasons"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "sourcePod": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "labelSelector": {
-                        "type": "object",
-                        "propertyNames": {
-                          "type": "string"
-                        },
-                        "additionalProperties": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "additionalProperties": false
-                  },
-                  "targets": {
-                    "anyOf": [
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "url": {
-                              "type": "string"
-                            },
-                            "expectedStatusCode": {
-                              "type": "number"
-                            },
-                            "timeoutSeconds": {
-                              "type": "number"
-                            }
-                          },
-                          "required": ["url", "expectedStatusCode"],
-                          "additionalProperties": false
-                        }
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                },
-                "required": ["sourcePod", "targets"],
-                "additionalProperties": false
-              }
-            ]
-          }
-        },
-        "required": ["key", "title", "description", "order", "type", "spec"],
-        "additionalProperties": false
-      },
-      "ObjectiveSpec": {
-        "description": "Union of all possible objective spec shapes. The actual shape depends on the objective `type`.",
-        "anyOf": [
-          {
-            "type": "object",
-            "properties": {
-              "target": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "labelSelector": {
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
-                    "additionalProperties": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": ["kind"],
-                "additionalProperties": false
-              },
-              "checks": {
-                "anyOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "field": {
-                          "type": "string"
-                        },
-                        "operator": {
-                          "type": "string"
-                        },
-                        "value": {}
-                      },
-                      "required": ["field", "operator", "value"],
-                      "additionalProperties": false
-                    }
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            },
-            "required": ["target", "checks"],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "target": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "labelSelector": {
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
-                    "additionalProperties": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": ["kind"],
-                "additionalProperties": false
-              },
-              "checks": {
-                "anyOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["type", "status"],
-                      "additionalProperties": false
-                    }
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            },
-            "required": ["target", "checks"],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "target": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "labelSelector": {
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
-                    "additionalProperties": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": ["kind"],
-                "additionalProperties": false
-              },
-              "container": {
-                "type": "string"
-              },
-              "expectedStrings": {
-                "anyOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "sinceSeconds": {
-                "type": "number"
-              }
-            },
-            "required": ["target", "expectedStrings"],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "target": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "labelSelector": {
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
-                    "additionalProperties": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": ["kind"],
-                "additionalProperties": false
-              },
-              "forbiddenReasons": {
-                "anyOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "sinceSeconds": {
-                "type": "number"
-              }
-            },
-            "required": ["target", "forbiddenReasons"],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "sourcePod": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "labelSelector": {
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
-                    "additionalProperties": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "additionalProperties": false
-              },
-              "targets": {
-                "anyOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "url": {
-                          "type": "string"
-                        },
-                        "expectedStatusCode": {
-                          "type": "number"
-                        },
-                        "timeoutSeconds": {
-                          "type": "number"
-                        }
-                      },
-                      "required": ["url", "expectedStatusCode"],
-                      "additionalProperties": false
-                    }
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            },
-            "required": ["sourcePod", "targets"],
-            "additionalProperties": false
-          }
-        ]
-      },
-      "Target": {
-        "description": "Kubernetes resource target — identifies which resources to check",
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "labelSelector": {
-            "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "required": ["kind"],
-        "additionalProperties": false
-      },
-      "StatusCheck": {
-        "description": "A single status field check (field/operator/value)",
-        "type": "object",
-        "properties": {
-          "field": {
-            "type": "string"
-          },
-          "operator": {
-            "type": "string"
-          },
-          "value": {}
-        },
-        "required": ["field", "operator", "value"],
-        "additionalProperties": false
-      },
-      "StatusSpec": {
-        "description": "Spec for `type: status` objectives — checks resource status fields",
-        "type": "object",
-        "properties": {
-          "target": {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "labelSelector": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "type": "string"
-                }
-              }
-            },
-            "required": ["kind"],
-            "additionalProperties": false
-          },
-          "checks": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "field": {
-                      "type": "string"
-                    },
-                    "operator": {
-                      "type": "string"
-                    },
-                    "value": {}
-                  },
-                  "required": ["field", "operator", "value"],
-                  "additionalProperties": false
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": ["target", "checks"],
-        "additionalProperties": false
-      },
-      "ConditionCheck": {
-        "description": "A single Kubernetes condition check (type/status pair)",
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          }
-        },
-        "required": ["type", "status"],
-        "additionalProperties": false
-      },
-      "ConditionSpec": {
-        "description": "Spec for `type: condition` objectives — checks Kubernetes conditions",
-        "type": "object",
-        "properties": {
-          "target": {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "labelSelector": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "type": "string"
-                }
-              }
-            },
-            "required": ["kind"],
-            "additionalProperties": false
-          },
-          "checks": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["type", "status"],
-                  "additionalProperties": false
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": ["target", "checks"],
-        "additionalProperties": false
-      },
-      "LogSpec": {
-        "description": "Spec for `type: log` objectives — searches container logs for expected strings",
-        "type": "object",
-        "properties": {
-          "target": {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "labelSelector": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "type": "string"
-                }
-              }
-            },
-            "required": ["kind"],
-            "additionalProperties": false
-          },
-          "container": {
-            "type": "string"
-          },
-          "expectedStrings": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "sinceSeconds": {
-            "type": "number"
-          }
-        },
-        "required": ["target", "expectedStrings"],
-        "additionalProperties": false
-      },
-      "EventSpec": {
-        "description": "Spec for `type: event` objectives — detects forbidden Kubernetes events",
-        "type": "object",
-        "properties": {
-          "target": {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "labelSelector": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "type": "string"
-                }
-              }
-            },
-            "required": ["kind"],
-            "additionalProperties": false
-          },
-          "forbiddenReasons": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "sinceSeconds": {
-            "type": "number"
-          }
-        },
-        "required": ["target", "forbiddenReasons"],
-        "additionalProperties": false
-      },
-      "SourcePod": {
-        "description": "Source pod for connectivity checks (identified by name or label selector)",
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "labelSelector": {
-            "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "ConnectivityCheck": {
-        "description": "A single HTTP connectivity check",
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string"
-          },
-          "expectedStatusCode": {
-            "type": "number"
-          },
-          "timeoutSeconds": {
-            "type": "number"
-          }
-        },
-        "required": ["url", "expectedStatusCode"],
-        "additionalProperties": false
-      },
-      "ConnectivitySpec": {
-        "description": "Spec for `type: connectivity` objectives — tests HTTP connectivity from a pod",
-        "type": "object",
-        "properties": {
-          "sourcePod": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "labelSelector": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "type": "string"
-                }
-              }
-            },
-            "additionalProperties": false
-          },
-          "targets": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "url": {
-                      "type": "string"
-                    },
-                    "expectedStatusCode": {
-                      "type": "number"
-                    },
-                    "timeoutSeconds": {
-                      "type": "number"
-                    }
-                  },
-                  "required": ["url", "expectedStatusCode"],
-                  "additionalProperties": false
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": ["sourcePod", "targets"],
-        "additionalProperties": false
-      },
-      "ChallengeSyncItem": {
-        "description": "A single challenge entry in a sync request, including its objectives",
-        "type": "object",
-        "properties": {
-          "slug": {
-            "type": "string",
-            "minLength": 1
-          },
-          "title": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": {
-            "type": "string",
-            "minLength": 1
-          },
-          "theme": {
-            "type": "string",
-            "minLength": 1
-          },
-          "difficulty": {
-            "type": "string",
-            "enum": ["easy", "medium", "hard"]
-          },
-          "type": {
-            "type": "string",
-            "minLength": 1
-          },
-          "estimatedTime": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
-          },
-          "initialSituation": {
-            "type": "string",
-            "minLength": 1
-          },
-          "objectives": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "key": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "description": {
-                  "type": "string"
-                },
-                "order": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "type": {
-                  "type": "string",
-                  "enum": [
-                    "status",
-                    "condition",
-                    "log",
-                    "event",
-                    "connectivity"
-                  ]
-                },
-                "spec": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "target": {
-                          "type": "object",
-                          "properties": {
-                            "kind": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "labelSelector": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string"
-                              },
-                              "additionalProperties": {
-                                "type": "string"
-                              }
-                            }
-                          },
-                          "required": ["kind"],
-                          "additionalProperties": false
-                        },
-                        "checks": {
-                          "anyOf": [
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "field": {
-                                    "type": "string"
-                                  },
-                                  "operator": {
-                                    "type": "string"
-                                  },
-                                  "value": {}
-                                },
-                                "required": ["field", "operator", "value"],
-                                "additionalProperties": false
-                              }
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        }
-                      },
-                      "required": ["target", "checks"],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "target": {
-                          "type": "object",
-                          "properties": {
-                            "kind": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "labelSelector": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string"
-                              },
-                              "additionalProperties": {
-                                "type": "string"
-                              }
-                            }
-                          },
-                          "required": ["kind"],
-                          "additionalProperties": false
-                        },
-                        "checks": {
-                          "anyOf": [
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string"
-                                  },
-                                  "status": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["type", "status"],
-                                "additionalProperties": false
-                              }
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        }
-                      },
-                      "required": ["target", "checks"],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "target": {
-                          "type": "object",
-                          "properties": {
-                            "kind": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "labelSelector": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string"
-                              },
-                              "additionalProperties": {
-                                "type": "string"
-                              }
-                            }
-                          },
-                          "required": ["kind"],
-                          "additionalProperties": false
-                        },
-                        "container": {
-                          "type": "string"
-                        },
-                        "expectedStrings": {
-                          "anyOf": [
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "sinceSeconds": {
-                          "type": "number"
-                        }
-                      },
-                      "required": ["target", "expectedStrings"],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "target": {
-                          "type": "object",
-                          "properties": {
-                            "kind": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "labelSelector": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string"
-                              },
-                              "additionalProperties": {
-                                "type": "string"
-                              }
-                            }
-                          },
-                          "required": ["kind"],
-                          "additionalProperties": false
-                        },
-                        "forbiddenReasons": {
-                          "anyOf": [
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "sinceSeconds": {
-                          "type": "number"
-                        }
-                      },
-                      "required": ["target", "forbiddenReasons"],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "sourcePod": {
-                          "type": "object",
-                          "properties": {
-                            "name": {
-                              "type": "string"
-                            },
-                            "labelSelector": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string"
-                              },
-                              "additionalProperties": {
-                                "type": "string"
-                              }
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "targets": {
-                          "anyOf": [
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "url": {
-                                    "type": "string"
-                                  },
-                                  "expectedStatusCode": {
-                                    "type": "number"
-                                  },
-                                  "timeoutSeconds": {
-                                    "type": "number"
-                                  }
-                                },
-                                "required": ["url", "expectedStatusCode"],
-                                "additionalProperties": false
-                              }
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        }
-                      },
-                      "required": ["sourcePod", "targets"],
-                      "additionalProperties": false
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "key",
-                "title",
-                "description",
-                "order",
-                "type",
-                "spec"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "slug",
-          "title",
-          "description",
-          "theme",
-          "difficulty",
-          "type",
-          "estimatedTime",
-          "initialSituation",
-          "objectives"
-        ],
-        "additionalProperties": false
-      },
-      "SyncRequest": {
-        "description": "Full sync payload — the complete list of challenges to synchronise",
-        "type": "object",
-        "properties": {
-          "challenges": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "slug": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "title": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "theme": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "difficulty": {
-                  "type": "string",
-                  "enum": ["easy", "medium", "hard"]
-                },
-                "type": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "estimatedTime": {
-                  "type": "integer",
-                  "exclusiveMinimum": 0,
-                  "maximum": 9007199254740991
-                },
-                "initialSituation": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "objectives": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "key": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "description": {
-                        "type": "string"
-                      },
-                      "order": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "type": {
-                        "type": "string",
-                        "enum": [
-                          "status",
-                          "condition",
-                          "log",
-                          "event",
-                          "connectivity"
-                        ]
-                      },
-                      "spec": {
-                        "anyOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "target": {
-                                "type": "object",
-                                "properties": {
-                                  "kind": {
-                                    "type": "string"
-                                  },
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "labelSelector": {
-                                    "type": "object",
-                                    "propertyNames": {
-                                      "type": "string"
-                                    },
-                                    "additionalProperties": {
-                                      "type": "string"
-                                    }
-                                  }
-                                },
-                                "required": ["kind"],
-                                "additionalProperties": false
-                              },
-                              "checks": {
-                                "anyOf": [
-                                  {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "field": {
-                                          "type": "string"
-                                        },
-                                        "operator": {
-                                          "type": "string"
-                                        },
-                                        "value": {}
-                                      },
-                                      "required": [
-                                        "field",
-                                        "operator",
-                                        "value"
-                                      ],
-                                      "additionalProperties": false
-                                    }
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              }
-                            },
-                            "required": ["target", "checks"],
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "target": {
-                                "type": "object",
-                                "properties": {
-                                  "kind": {
-                                    "type": "string"
-                                  },
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "labelSelector": {
-                                    "type": "object",
-                                    "propertyNames": {
-                                      "type": "string"
-                                    },
-                                    "additionalProperties": {
-                                      "type": "string"
-                                    }
-                                  }
-                                },
-                                "required": ["kind"],
-                                "additionalProperties": false
-                              },
-                              "checks": {
-                                "anyOf": [
-                                  {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string"
-                                        },
-                                        "status": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "required": ["type", "status"],
-                                      "additionalProperties": false
-                                    }
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              }
-                            },
-                            "required": ["target", "checks"],
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "target": {
-                                "type": "object",
-                                "properties": {
-                                  "kind": {
-                                    "type": "string"
-                                  },
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "labelSelector": {
-                                    "type": "object",
-                                    "propertyNames": {
-                                      "type": "string"
-                                    },
-                                    "additionalProperties": {
-                                      "type": "string"
-                                    }
-                                  }
-                                },
-                                "required": ["kind"],
-                                "additionalProperties": false
-                              },
-                              "container": {
-                                "type": "string"
-                              },
-                              "expectedStrings": {
-                                "anyOf": [
-                                  {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "sinceSeconds": {
-                                "type": "number"
-                              }
-                            },
-                            "required": ["target", "expectedStrings"],
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "target": {
-                                "type": "object",
-                                "properties": {
-                                  "kind": {
-                                    "type": "string"
-                                  },
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "labelSelector": {
-                                    "type": "object",
-                                    "propertyNames": {
-                                      "type": "string"
-                                    },
-                                    "additionalProperties": {
-                                      "type": "string"
-                                    }
-                                  }
-                                },
-                                "required": ["kind"],
-                                "additionalProperties": false
-                              },
-                              "forbiddenReasons": {
-                                "anyOf": [
-                                  {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "sinceSeconds": {
-                                "type": "number"
-                              }
-                            },
-                            "required": ["target", "forbiddenReasons"],
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "sourcePod": {
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "labelSelector": {
-                                    "type": "object",
-                                    "propertyNames": {
-                                      "type": "string"
-                                    },
-                                    "additionalProperties": {
-                                      "type": "string"
-                                    }
-                                  }
-                                },
-                                "additionalProperties": false
-                              },
-                              "targets": {
-                                "anyOf": [
-                                  {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "url": {
-                                          "type": "string"
-                                        },
-                                        "expectedStatusCode": {
-                                          "type": "number"
-                                        },
-                                        "timeoutSeconds": {
-                                          "type": "number"
-                                        }
-                                      },
-                                      "required": ["url", "expectedStatusCode"],
-                                      "additionalProperties": false
-                                    }
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              }
-                            },
-                            "required": ["sourcePod", "targets"],
-                            "additionalProperties": false
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "key",
-                      "title",
-                      "description",
-                      "order",
-                      "type",
-                      "spec"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              },
-              "required": [
-                "slug",
-                "title",
-                "description",
-                "theme",
-                "difficulty",
-                "type",
-                "estimatedTime",
-                "initialSituation",
-                "objectives"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": ["challenges"],
-        "additionalProperties": false
-      }
-    }
-  }
+  "webhooks": {}
 }

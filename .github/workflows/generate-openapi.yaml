@@ -1,20 +1,30 @@
-name: Sync OpenAPI spec to CLI
+name: Generate OpenAPI specs
 
 on:
   push:
     branches: [main]
     paths:
-      - 'apps/api/src/lib/openapi.ts'
+      - 'apps/api/src/lib/openapi-apps.ts'
       - 'apps/api/src/schemas/**'
       - 'packages/api-schemas/src/**'
   workflow_dispatch:
 
 jobs:
-  sync:
+  generate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout website
+      - name: Generate GitHub App token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3
+        id: app-token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -27,18 +37,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate OpenAPI spec
+      - name: Generate OpenAPI specs
         run: pnpm openapi:generate
 
-      - name: Generate GitHub App token
-        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3
-        id: app-token
-        with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
+      - name: Commit updated specs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/api/openapi.json apps/api/openapi-sync.json
+          git diff --staged --quiet && echo "No changes to commit" || \
+            (git commit -m "chore(openapi): regenerate specs" && git push)
 
-      - name: Dispatch to CLI repo
+      - name: Sync CLI spec to CLI repo
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
