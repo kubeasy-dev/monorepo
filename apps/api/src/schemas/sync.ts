@@ -1,18 +1,13 @@
-import { ChallengeDifficultySchema } from "@kubeasy/api-schemas/challenges";
-import { ObjectiveSchema } from "@kubeasy/api-schemas/objectives";
+import { ChallengeYamlSchema } from "@kubeasy/api-schemas/objectives";
 import { z } from "zod";
 
-// Schema for a single challenge in the sync request
-export const challengeSyncSchema = z.object({
+// challengeSyncSchema is derived from ChallengeYamlSchema (single source of truth):
+// - removes minRequiredVersion (CLI-only field, not stored in DB)
+// - adds slug (derived from folder name by the sync script, not in the YAML file)
+export const challengeSyncSchema = ChallengeYamlSchema.omit({
+  minRequiredVersion: true,
+}).extend({
   slug: z.string().min(1),
-  title: z.string().min(1),
-  description: z.string().min(1),
-  theme: z.string().min(1),
-  difficulty: ChallengeDifficultySchema,
-  type: z.string().min(1),
-  estimatedTime: z.number().int().positive(),
-  initialSituation: z.string().min(1),
-  objectives: z.array(ObjectiveSchema),
 });
 export type ChallengeSyncItem = z.infer<typeof challengeSyncSchema>;
 
