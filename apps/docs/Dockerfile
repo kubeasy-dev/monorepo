@@ -18,6 +18,7 @@ COPY --from=docs-prepare /app/out/full/apps/docs/source.config.ts ./apps/docs/so
 RUN pnpm install --frozen-lockfile
 
 COPY --from=docs-prepare /app/out/full/ .
+COPY --from=docs-prepare /app/apps/api/openapi.json ./apps/api/openapi.json
 
 RUN pnpm --filter=@kubeasy/docs exec fumadocs-mdx
 RUN turbo run build --filter=@kubeasy/docs
