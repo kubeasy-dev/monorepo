@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'apps/api/src/lib/openapi-apps.ts'
+      - 'apps/api/scripts/generate-openapi.ts'
       - 'apps/api/src/schemas/**'
       - 'packages/api-schemas/src/**'
   workflow_dispatch:

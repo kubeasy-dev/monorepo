@@ -302,7 +302,7 @@
                   "type": "object",
                   "properties": {
                     "challenge": {
-                      "type": ["object", "null"],
+                      "type": "object",
                       "properties": {
                         "id": {
                           "type": "integer"
@@ -402,6 +402,25 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1835,7 +1854,7 @@
       "get": {
         "operationId": "getUserStreak",
         "summary": "Get current challenge streak",
-        "tags": ["XP"],
+        "tags": ["Progress"],
         "security": [
           {
             "SessionAuth": []
@@ -2041,7 +2060,7 @@
       "delete": {
         "operationId": "deleteUserProgress",
         "summary": "Delete all user progress and XP",
-        "tags": ["XP"],
+        "tags": ["User"],
         "security": [
           {
             "SessionAuth": []
@@ -2384,7 +2403,7 @@
                     "type": "object",
                     "properties": {
                       "id": {
-                        "type": "string"
+                        "type": "integer"
                       },
                       "action": {
                         "type": "string"

@@ -4,6 +4,7 @@ import {
   ChallengeGetObjectivesOutputSchema,
   ChallengeListOutputSchema,
 } from "@kubeasy/api-schemas/challenges";
+import { OnboardingStatusSchema } from "@kubeasy/api-schemas/onboarding";
 import {
   CompletionPercentageOutputSchema,
   GetStatusOutputSchema,
@@ -12,8 +13,10 @@ import {
   StreakOutputSchema,
   XpAndRankOutputSchema,
 } from "@kubeasy/api-schemas/progress";
+import { SubmissionRecordSchema } from "@kubeasy/api-schemas/submissions";
 import { ThemeSchema } from "@kubeasy/api-schemas/themes";
 import { TypeSchema } from "@kubeasy/api-schemas/types";
+import { XpHistoryItemSchema } from "@kubeasy/api-schemas/xp";
 import { z } from "zod";
 import {
   challengeDifficultySchema,
@@ -113,10 +116,11 @@ const getChallengeRoute = createRoute({
       description: "Challenge details",
       content: {
         "application/json": {
-          schema: z.object({ challenge: ChallengeDetailSchema.nullable() }),
+          schema: z.object({ challenge: ChallengeDetailSchema }),
         },
       },
     },
+    404: notFound,
     ...commonErrors,
   },
 });
@@ -261,15 +265,6 @@ const resetChallengeRoute = createRoute({
 // Submissions
 // ---------------------------------------------------------------------------
 
-const submissionSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  challengeId: z.number().int(),
-  validated: z.boolean(),
-  objectives: z.array(objectiveSchema).nullable(),
-  timestamp: z.string().describe("ISO 8601 date string"),
-});
-
 const getSubmissionsRoute = createRoute({
   method: "get",
   path: "/api/submissions/{slug}",
@@ -283,7 +278,7 @@ const getSubmissionsRoute = createRoute({
       description: "Submission list",
       content: {
         "application/json": {
-          schema: z.object({ submissions: z.array(submissionSchema) }),
+          schema: z.object({ submissions: z.array(SubmissionRecordSchema) }),
         },
       },
     },
@@ -344,7 +339,7 @@ const getUserStreakRoute = createRoute({
   path: "/api/user/streak",
   operationId: "getUserStreak",
   summary: "Get current challenge streak",
-  tags: ["XP"],
+  tags: ["Progress"],
   security: sessionOrBearerAuth,
   responses: {
     200: {
@@ -393,7 +388,7 @@ const deleteUserProgressRoute = createRoute({
   path: "/api/user/progress",
   operationId: "deleteUserProgress",
   summary: "Delete all user progress and XP",
-  tags: ["XP"],
+  tags: ["User"],
   security: sessionOrBearerAuth,
   responses: {
     200: {
@@ -473,18 +468,6 @@ const updateEmailTopicRoute = createRoute({
 // XP
 // ---------------------------------------------------------------------------
 
-const xpHistoryItemSchema = z.object({
-  id: z.string(),
-  action: z.string(),
-  xpAmount: z.number().int(),
-  description: z.string().nullable(),
-  createdAt: z.string().describe("ISO 8601 date string"),
-  challengeId: z.number().int().nullable(),
-  challengeTitle: z.string().nullable(),
-  challengeSlug: z.string().nullable(),
-  challengeDifficulty: z.string().nullable(),
-});
-
 const getXpHistoryRoute = createRoute({
   method: "get",
   path: "/api/xp/history",
@@ -496,7 +479,7 @@ const getXpHistoryRoute = createRoute({
     200: {
       description: "XP history",
       content: {
-        "application/json": { schema: z.array(xpHistoryItemSchema) },
+        "application/json": { schema: z.array(XpHistoryItemSchema) },
       },
     },
     ...commonErrors,
@@ -506,19 +489,6 @@ const getXpHistoryRoute = createRoute({
 // ---------------------------------------------------------------------------
 // Onboarding
 // ---------------------------------------------------------------------------
-
-const onboardingStatusSchema = z.object({
-  steps: z.object({
-    hasApiToken: z.boolean(),
-    cliAuthenticated: z.boolean(),
-    clusterInitialized: z.boolean(),
-    hasStartedChallenge: z.boolean(),
-    hasCompletedChallenge: z.boolean(),
-  }),
-  currentStep: z.number().int().min(1).max(7),
-  isComplete: z.boolean(),
-  isSkipped: z.boolean(),
-});
 
 const getOnboardingRoute = createRoute({
   method: "get",
@@ -530,7 +500,7 @@ const getOnboardingRoute = createRoute({
   responses: {
     200: {
       description: "Onboarding status",
-      content: { "application/json": { schema: onboardingStatusSchema } },
+      content: { "application/json": { schema: OnboardingStatusSchema } },
     },
     ...commonErrors,
   },
@@ -615,8 +585,6 @@ const getThemesRoute = createRoute({
 // Deprecated CLI routes
 // ---------------------------------------------------------------------------
 
-const cliSlugParam = z.object({ slug: z.string() });
-
 const userNameSchema = z.object({
   firstName: z.string(),
   lastName: z.string().nullable(),
@@ -675,7 +643,7 @@ const deprecatedSubmitChallengeRoute = createRoute({
   tags: ["Deprecated"],
   security: bearerAuth,
   request: {
-    params: cliSlugParam,
+    params: slugParam,
     body: {
       required: true,
       content: { "application/json": { schema: submitBodySchema } },
@@ -707,7 +675,7 @@ const deprecatedGetChallengeRoute = createRoute({
   deprecated: true,
   tags: ["Deprecated"],
   security: bearerAuth,
-  request: { params: cliSlugParam },
+  request: { params: slugParam },
   responses: {
     200: {
       description: "Challenge details",
@@ -730,7 +698,7 @@ const deprecatedGetChallengeStatusRoute = createRoute({
   deprecated: true,
   tags: ["Deprecated"],
   security: bearerAuth,
-  request: { params: cliSlugParam },
+  request: { params: slugParam },
   responses: {
     200: {
       description: "Challenge progress",
@@ -749,7 +717,7 @@ const deprecatedStartChallengeRoute = createRoute({
   deprecated: true,
   tags: ["Deprecated"],
   security: bearerAuth,
-  request: { params: cliSlugParam },
+  request: { params: slugParam },
   responses: {
     200: {
       description: "Challenge started",
@@ -768,7 +736,7 @@ const deprecatedResetChallengeRoute = createRoute({
   deprecated: true,
   tags: ["Deprecated"],
   security: bearerAuth,
-  request: { params: cliSlugParam },
+  request: { params: slugParam },
   responses: {
     200: {
       description: "Progress reset",
@@ -788,7 +756,7 @@ const deprecatedSubmitChallengeLegacyRoute = createRoute({
   tags: ["Deprecated"],
   security: bearerAuth,
   request: {
-    params: cliSlugParam,
+    params: slugParam,
     body: {
       required: true,
       content: { "application/json": { schema: submitBodySchema } },

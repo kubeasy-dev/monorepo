@@ -14,7 +14,8 @@
     "./objectives": "./src/objectives.ts",
     "./drizzle": "./src/drizzle.ts",
     "./query-keys": "./src/query-keys.ts",
-    "./types": "./src/types.ts"
+    "./types": "./src/types.ts",
+    "./onboarding": "./src/onboarding.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

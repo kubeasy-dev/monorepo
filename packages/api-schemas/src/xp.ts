@@ -25,3 +25,17 @@ export const XpTransactionSchema = z.object({
   challengeDifficulty: z.enum(["easy", "medium", "hard"]).nullable(),
 });
 export type XpTransaction = z.infer<typeof XpTransactionSchema>;
+
+// API output shape (dates serialized as ISO strings over JSON)
+export const XpHistoryItemSchema = z.object({
+  id: z.number().int(),
+  action: z.string(),
+  xpAmount: z.number().int(),
+  description: z.string().nullable(),
+  createdAt: z.string().describe("ISO 8601 date string"),
+  challengeId: z.number().int().nullable(),
+  challengeTitle: z.string().nullable(),
+  challengeSlug: z.string().nullable(),
+  challengeDifficulty: z.string().nullable(),
+});
+export type XpHistoryItem = z.infer<typeof XpHistoryItemSchema>;
