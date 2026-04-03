@@ -95,9 +95,9 @@ Simulate traffic from the perspective of a specific application. Useful for Netw
 Set `expectedStatusCode: 0` to assert that a connection attempt fails. This is useful for NetworkPolicy challenges where some traffic should be denied:
 
 ```yaml
-- key: db-not-exposed
-  title: "Database Not Publicly Accessible"
-  description: "The database must not be reachable from the web tier"
+- key: admin-api-blocked
+  title: "Admin API Not Reachable from Frontend"
+  description: "The frontend tier must not have access to the internal admin service"
   order: 2
   type: connectivity
   spec:
@@ -106,10 +106,12 @@ Set `expectedStatusCode: 0` to assert that a connection attempt fails. This is u
       labelSelector:
         app: frontend
     targets:
-      - url: "http://postgres:5432"
+      - url: "http://admin-api:8080/admin"
         expectedStatusCode: 0
         timeoutSeconds: 5
 ```
+
+`expectedStatusCode: 0` means the connection must fail — either refused or timed out due to a NetworkPolicy drop. The `timeoutSeconds` budget determines how long to wait before treating a timeout as a failure.
 
 ### Test Ingress from outside the cluster
 
