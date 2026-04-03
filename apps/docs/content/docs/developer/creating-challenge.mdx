@@ -1,89 +1,88 @@
 ---
 title: Creating Your First Challenge
-description: Step-by-step guide to building a Kubeasy challenge from scratch.
+description: Step-by-step guide to building a complete Kubeasy challenge from scratch.
 ---
 
-This guide walks you through creating a complete Kubeasy challenge. By the end, you'll have a working challenge ready for submission.
+This guide walks you through creating a complete Kubeasy challenge. By the end, you'll have a working, locally-tested challenge ready to submit.
 
-## Before You Start
+## Prerequisites
 
-Make sure you have:
+- The Kubeasy CLI installed and `kubeasy setup` completed (you need the Kind cluster)
+- Basic familiarity with Kubernetes manifests and `kubectl`
 
-- [kubectl](https://kubernetes.io/docs/tasks/tools/) installed
-- [Kind](https://kind.sigs.k8s.io/) for local Kubernetes
-- [Kubeasy CLI](https://github.com/kubeasy-dev/kubeasy-cli) installed
-- Basic familiarity with Kubernetes
-
-## Step 1: Design Your Challenge
+## Step 1: Design your challenge
 
 Before writing any YAML, answer these questions:
 
-1. **What Kubernetes concept does this teach?**
-   - Example: Resource limits, RBAC, probes
+1. **What Kubernetes concept does this teach?** (e.g., resource limits, RBAC, probes)
+2. **What challenge type fits?** `fix` (something is broken), `build` (create from scratch), or `migrate` (transform an existing setup)
+3. **What is the broken/initial scenario?** (e.g., pod gets OOMKilled due to a low memory limit)
+4. **How do you verify it's fixed?** (e.g., pod runs stably, no OOM events)
+5. **Is this realistic?** Does this problem occur in production?
 
-2. **What's the broken scenario?**
-   - Example: Pod gets OOMKilled due to low memory limit
+### Example design
 
-3. **How do we verify it's fixed?**
-   - Example: Pod runs without crash events
+We'll create a `fix` challenge about resource limits:
 
-4. **Is this realistic?**
-   - Does this problem occur in production?
+- **Type**: `fix`
+- **Concept**: Kubernetes memory limits and OOMKilled pods
+- **Scenario**: Pod keeps crashing because its memory limit is too low
+- **Success criteria**: Pod runs stably, no OOMKilled events
+- **Realistic**: Yes — one of the most common production issues
 
-### Example Design
+## Step 2: Scaffold the challenge
 
-Let's create a challenge about resource limits:
-
-- **Concept**: Kubernetes resource management
-- **Problem**: Pod keeps crashing due to insufficient memory
-- **Success**: Pod runs stably without OOM events
-- **Realistic**: Yes - very common in production
-
-## Step 2: Create the Directory Structure
+Use `kubeasy dev create` to scaffold the directory structure:
 
 ```bash
-# Clone the challenges repo
-git clone https://github.com/kubeasy-dev/challenges.git
-cd challenges
-
-# Create your challenge folder
-mkdir -p memory-pressure/manifests
-mkdir -p memory-pressure/policies
+cd path/to/challenges-repo
+kubeasy dev create
 ```
 
-You should have:
+In interactive mode, you'll be prompted for each field:
 
 ```
-memory-pressure/
-├── manifests/
-└── policies/
+Challenge name: Memory Pressure
+Slug [memory-pressure]:
+Type (fix/build/migrate): fix
+Theme: resources-scaling
+Difficulty (easy/medium/hard): easy
+Estimated time (minutes) [30]: 15
+
+Created challenge directory: memory-pressure/
+  memory-pressure/challenge.yaml
+  memory-pressure/manifests/
+  memory-pressure/policies/
 ```
 
-## Step 3: Write challenge.yaml
+## Step 3: Fill in challenge.yaml
 
-Create `memory-pressure/challenge.yaml`:
+Edit `memory-pressure/challenge.yaml`. The scaffold generates a template with placeholder values — replace them with your content.
+
+Key rules:
+- **Description**: symptoms only, never the root cause
+- **Objective**: the goal, not the method
+- **Validation titles**: generic, not revealing
 
 ```yaml
 title: Memory Pressure
 description: |
-  A data processing application keeps crashing.
-  The ops team says it worked fine in development.
+  A data processing service keeps restarting unexpectedly.
+  It worked fine last week — no code changes were made.
 theme: resources-scaling
 difficulty: easy
 type: fix
 estimatedTime: 15
 initialSituation: |
   A data processing pod is deployed.
-  It starts but crashes within seconds.
-  The pod enters CrashLoopBackOff state.
+  It starts but crashes within seconds and enters CrashLoopBackOff.
 objective: |
-  Make the application run stably.
-  Understand why Kubernetes keeps killing the pod.
+  Make the application run stably without being killed by Kubernetes.
 
 objectives:
   - key: pod-ready
-    title: "Pod Running"
-    description: "The pod must be in Ready state"
+    title: "Pod Ready"
+    description: "The pod must be running and ready"
     order: 1
     type: condition
     spec:
@@ -95,9 +94,9 @@ objectives:
         - type: Ready
           status: "True"
 
-  - key: no-oom
+  - key: stable-operation
     title: "Stable Operation"
-    description: "No crash or eviction events"
+    description: "No crash or eviction events in the past 5 minutes"
     order: 2
     type: event
     spec:
@@ -109,32 +108,11 @@ objectives:
         - "OOMKilled"
         - "Evicted"
       sinceSeconds: 300
-
-  - key: low-restarts
-    title: "Low Restart Count"
-    description: "Pod must not restart excessively"
-    order: 3
-    type: status
-    spec:
-      target:
-        kind: Pod
-        labelSelector:
-          app: data-processor
-      checks:
-        - field: "containerStatuses[0].restartCount"
-          operator: "<"
-          value: 3
 ```
 
-**Key points:**
-- Description mentions symptoms, not the cause
-- Objective states the goal, not the solution
-- Validation titles are generic (don't reveal the fix)
-- Uses `condition` for Ready check, `event` for stability, `status` for restart count
+## Step 4: Create the broken manifests
 
-## Step 4: Create the Broken Manifests
-
-Create `memory-pressure/manifests/deployment.yaml`:
+Create `memory-pressure/manifests/deployment.yaml` with the intentionally broken state:
 
 ```yaml
 apiVersion: apps/v1
@@ -152,44 +130,38 @@ spec:
         app: data-processor
     spec:
       containers:
-      - name: processor
-        image: python:3.11-slim
-        command:
-        - python
-        - -c
-        - |
-          import time
-          # Allocate memory to simulate real app
-          data = []
-          for i in range(50):
-              data.append("x" * 1024 * 1024)  # ~50MB
-              time.sleep(0.1)
-          print("Processing complete!")
-          while True:
-              time.sleep(60)
-        resources:
-          limits:
-            memory: "32Mi"  # BUG: Too low for this workload!
-            cpu: "100m"
-          requests:
-            memory: "32Mi"
-            cpu: "50m"
+        - name: processor
+          image: python:3.11-slim
+          command:
+            - python
+            - -c
+            - |
+              import time
+              data = []
+              for i in range(50):
+                  data.append("x" * 1024 * 1024)  # ~50MB total
+                  time.sleep(0.1)
+              print("Done!")
+              while True:
+                  time.sleep(60)
+          resources:
+            limits:
+              memory: "32Mi"  # BUG: too low for this workload
+              cpu: "100m"
+            requests:
+              memory: "32Mi"
+              cpu: "50m"
 ```
 
-This deployment will crash because:
-- The app needs ~50MB of memory
-- The limit is only 32Mi
-- Kubernetes kills the container when it exceeds the limit
+The application needs ~50MB of memory, but the limit is 32Mi. Kubernetes will OOMKill the container when it exceeds the limit.
 
-<Callout type="info" title="Need a Custom Image?">
-If inline commands aren't enough, you can create a custom Docker image. Add an `image/` directory with a `Dockerfile` in your challenge folder -- the CI will automatically build and publish it to `ghcr.io/kubeasy-dev/<challenge-name>:latest`.
-
-See [Challenge Structure - Custom Images](/developer/challenge-structure#5-image-directory-optional) for details.
+<Callout type="info" title="Custom images">
+If inline commands aren't suitable for your scenario, add an `image/` directory with a `Dockerfile`. The CLI will build and load it into Kind automatically during local development.
 </Callout>
 
-## Step 5: Add Bypass Protection
+## Step 5: Add bypass protection
 
-Create `memory-pressure/policies/protect.yaml`:
+Create `memory-pressure/policies/protect.yaml` to prevent users from swapping the broken application for a working one:
 
 ```yaml
 apiVersion: kyverno.io/v1
@@ -216,42 +188,43 @@ spec:
                     image: "python:3.11-slim"
 ```
 
-This prevents users from replacing the application with a simpler one that uses less memory.
+## Step 6: Lint
 
-## Step 6: Test Locally
-
-### Start the environment
+Validate the challenge structure before deploying:
 
 ```bash
-# Setup Kubeasy (creates Kind cluster + installs components)
-kubeasy setup
-
-# Login to Kubeasy
-kubeasy login
+kubeasy dev lint --dir ./memory-pressure
 ```
 
-### Deploy your challenge
-
-```bash
-kubeasy challenge start memory-pressure
+```
+Linting challenge: memory-pressure
+✓ All checks passed (0 errors, 0 warnings)
 ```
 
-### Verify the problem exists
+Fix any reported errors before proceeding.
+
+## Step 7: Test the broken state
+
+Deploy the challenge and verify that the problem is reproducible:
 
 ```bash
-# Check pod status
+kubeasy dev apply --dir ./memory-pressure --clean
+```
+
+Check that the pod is crashing:
+
+```bash
 kubectl get pods -n memory-pressure
+# NAME                              READY   STATUS             RESTARTS   AGE
+# data-processor-xxx                0/1     CrashLoopBackOff   3          2m
 
-# You should see CrashLoopBackOff
-NAME                              READY   STATUS             RESTARTS   AGE
-data-processor-xxx                0/1     CrashLoopBackOff   3          2m
-
-# Check events
 kubectl describe pod -n memory-pressure -l app=data-processor
-# Look for OOMKilled
+# Look for OOMKilled in the events
 ```
 
-### Apply the fix
+## Step 8: Test the solution
+
+Apply a fix manually and verify your validations pass:
 
 ```bash
 kubectl patch deployment data-processor -n memory-pressure \
@@ -261,34 +234,38 @@ kubectl patch deployment data-processor -n memory-pressure \
   ]'
 ```
 
-### Verify the fix works
+Wait for the pod to stabilize, then run validations:
 
 ```bash
-# Wait for pod to stabilize
-sleep 30
-
-# Check pod is running
-kubectl get pods -n memory-pressure
-# Should show Running, not CrashLoopBackOff
+kubeasy dev validate --dir ./memory-pressure
 ```
 
-### Submit and verify validations
+```
+Condition Validation
+  pod-ready: PASSED - All condition checks passed
+
+Event Validation
+  stable-operation: PASSED - No forbidden events found
+
+All validations passed! (2/2)
+```
+
+## Step 9: Verify bypass protection
+
+Try the bypass that your Kyverno policy should block:
 
 ```bash
-kubeasy challenge submit memory-pressure
+kubectl set image deployment/data-processor processor=nginx:latest -n memory-pressure
+# Expected: admission webhook denied the request
 ```
 
-All validations should pass.
-
-### Clean up
+## Step 10: Clean up and submit
 
 ```bash
-kubeasy challenge reset memory-pressure
+kubeasy dev clean --dir ./memory-pressure
 ```
 
-## Step 7: Submit Your Challenge
-
-Once testing is complete:
+Create a branch and open a pull request:
 
 ```bash
 git checkout -b challenge/memory-pressure
@@ -297,77 +274,67 @@ git commit -m "feat: add memory-pressure challenge"
 git push origin challenge/memory-pressure
 ```
 
-Open a Pull Request on GitHub with:
+See [Contributing Guidelines](/developer/contributing) for the PR template and review process.
 
-```markdown
-## Challenge: Memory Pressure
+## Common mistakes
 
-### What does this challenge teach?
-Understanding Kubernetes resource limits and how to debug OOMKilled pods.
+### Revealing the root cause in descriptions
 
-### Difficulty and estimated time
-- Difficulty: Easy
-- Estimated time: 15 minutes
+```yaml
+# BAD
+description: The memory limit is too low. Increase it to fix the crash.
 
-### Testing
-- [x] Challenge deploys with broken state
-- [x] OOMKilled events occur as expected
-- [x] Fix (increase memory limit) resolves the issue
-- [x] All validations pass after fix
-- [x] Kyverno policy prevents image changes
+# GOOD
+description: A data processing service keeps restarting unexpectedly.
 ```
 
-## Common Mistakes
+### Validation titles that give away the answer
 
-### 1. Revealing the solution
-
-**Bad:**
 ```yaml
-description: |
-  The memory limit is too low. Increase it to fix the crash.
-```
-
-**Good:**
-```yaml
-description: |
-  The application keeps crashing. It worked fine in development.
-```
-
-### 2. Validation titles that spoil the fix
-
-**Bad:**
-```yaml
-- key: memory-check
+# BAD
+- key: memory-fix
   title: "Memory Limit Set to 128Mi"
-```
 
-**Good:**
-```yaml
+# GOOD
 - key: stable-operation
   title: "Stable Operation"
 ```
 
-### 3. Missing bypass protection
+### No bypass protection
 
-Users can replace your broken app with one that works. Always add Kyverno policies to prevent this.
+Without Kyverno policies, a user can replace the broken app with a working nginx container and pass all validations without solving the problem.
 
-### 4. Too complex
+### Checking the implementation, not the outcome
 
-Don't combine multiple unrelated issues. One concept per challenge.
+```yaml
+# BAD: only one specific value passes
+- field: "containerStatuses[0].restartCount"
+  operator: "=="
+  value: 0
 
-## Checklist Before Submitting
+# GOOD: any low restart count passes
+- field: "containerStatuses[0].restartCount"
+  operator: "<"
+  value: 3
+```
+
+## Checklist
+
+Before submitting a PR:
 
 - [ ] `challenge.yaml` has all required fields
 - [ ] Description doesn't reveal the root cause
 - [ ] Validation titles don't reveal the solution
-- [ ] Manifests create a reproducible broken state
+- [ ] Manifests create a reproducible broken/initial state
 - [ ] Kyverno policies prevent obvious bypasses
-- [ ] Challenge tested locally end-to-end
-- [ ] All validations pass after applying the fix
+- [ ] `kubeasy dev lint` passes
+- [ ] Broken state verified manually (pod crashes, service unreachable, etc.)
+- [ ] Fix verified — all validations pass after applying the solution
+- [ ] Alternative valid solutions tested where applicable
+- [ ] Estimated time is reasonable
 
-## Next Steps
+## Next steps
 
-- Read [Validation Rules](/developer/validation-rules) for more validation types
-- See [Validation Reference](/developer/validation-reference) for complete type specifications
-- See [Challenge Structure](/developer/challenge-structure) for complete reference
-- Review existing challenges for inspiration
+- [Validation Overview](/developer/validation-overview) — learn the philosophy and all 8 validation types
+- [Testing Challenges](/developer/testing-challenges) — comprehensive testing strategies
+- [Contributing](/developer/contributing) — PR requirements and review process

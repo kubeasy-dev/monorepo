@@ -1,0 +1,163 @@
+---
+title: Connectivity Validation
+description: Test HTTP connectivity between pods, to services, or through an Ingress — from inside or outside the cluster.
+---
+
+The `connectivity` type tests HTTP reachability. It can send requests from inside the cluster (from a probe pod or existing pod) or directly from the CLI machine. Use it to validate that services are correctly exposed, that network policies allow the right traffic, or that an Ingress is routing correctly.
+
+## When to use
+
+Use `connectivity` to verify network-level outcomes:
+
+- A service is reachable on the expected port and returns the expected status code
+- A NetworkPolicy correctly allows or blocks traffic between namespaces
+- An Ingress routes requests to the right backend
+- TLS termination works correctly
+- A connection that should fail is properly blocked
+
+## Modes
+
+The `mode` field controls where the HTTP request originates:
+
+| Mode | Request originates from | Use case |
+|------|------------------------|---------|
+| `internal` (default) | Inside the cluster (a probe pod or specified source pod) | Service-to-service connectivity, NetworkPolicy testing |
+| `external` | The CLI machine (outside the cluster) | Ingress testing, LoadBalancer testing |
+
+### Internal mode
+
+The CLI creates or reuses a pod inside the cluster to send the request. This simulates pod-to-pod or pod-to-service traffic.
+
+By default, the CLI uses a managed probe pod named `kubeasy-probe`. You can specify a different source pod via `sourcePod` to test from the perspective of a specific application.
+
+### External mode
+
+The CLI sends the request directly from your machine. Use this for testing Ingress or LoadBalancer services that are exposed to the outside. `sourcePod` must be empty in external mode.
+
+## Spec reference
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="ConnectivitySpec" />
+
+### ConnectivityCheck
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="ConnectivityCheck" />
+
+### SourcePod
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="SourcePod" />
+
+### TLSConfig
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="TLSConfig" />
+
+## Examples
+
+### Service reachable from inside the cluster
+
+The simplest use case: verify that a service responds on the expected port.
+
+```yaml
+- key: service-reachable
+  title: "Service Reachable"
+  description: "The web service must respond to HTTP requests"
+  order: 1
+  type: connectivity
+  spec:
+    mode: internal
+    targets:
+      - url: "http://web-service:80/health"
+        expectedStatusCode: 200
+        timeoutSeconds: 5
+```
+
+### Test from a specific source pod
+
+Simulate traffic from the perspective of a specific application. Useful for NetworkPolicy challenges where only certain pods should have access:
+
+```yaml
+- key: frontend-can-reach-backend
+  title: "Frontend Reaches Backend"
+  description: "Frontend pod can connect to the backend service"
+  order: 1
+  type: connectivity
+  spec:
+    mode: internal
+    sourcePod:
+      labelSelector:
+        app: frontend
+    targets:
+      - url: "http://backend-service:8080/api/status"
+        expectedStatusCode: 200
+```
+
+### Verify a connection is blocked (NetworkPolicy)
+
+Set `expectedStatusCode: 0` to assert that a connection attempt fails. This is useful for NetworkPolicy challenges where some traffic should be denied:
+
+```yaml
+- key: admin-api-blocked
+  title: "Admin API Not Reachable from Frontend"
+  description: "The frontend tier must not have access to the internal admin service"
+  order: 2
+  type: connectivity
+  spec:
+    mode: internal
+    sourcePod:
+      labelSelector:
+        app: frontend
+    targets:
+      - url: "http://admin-api:8080/admin"
+        expectedStatusCode: 0
+        timeoutSeconds: 5
+```
+
+`expectedStatusCode: 0` means the connection must fail — either refused or timed out due to a NetworkPolicy drop. The `timeoutSeconds` budget determines how long to wait before treating a timeout as a failure.
+
+### Test Ingress from outside the cluster
+
+```yaml
+- key: ingress-works
+  title: "Ingress Routing"
+  description: "The application is reachable through the Ingress"
+  order: 1
+  type: connectivity
+  spec:
+    mode: external
+    targets:
+      - url: "http://localhost:8080/"
+        expectedStatusCode: 200
+        hostHeader: "myapp.example.com"
+        timeoutSeconds: 10
+```
+
+<Callout type="info">
+In Kind, the nginx-ingress controller listens on port 8080 (HTTP) and 8443 (HTTPS) on localhost. Use `hostHeader` to set the `Host` header for virtual host routing.
+</Callout>
+
+### Test HTTPS with TLS validation
+
+```yaml
+- key: tls-works
+  title: "HTTPS Works"
+  description: "The application is reachable over HTTPS"
+  order: 2
+  type: connectivity
+  spec:
+    mode: external
+    targets:
+      - url: "https://localhost:8443/"
+        expectedStatusCode: 200
+        hostHeader: "myapp.example.com"
+        tls:
+          insecureSkipVerify: true
+          validateExpiry: false
+```
+
+## Tips
+
+- Use `timeoutSeconds: 5` (the default) for most cases. Increase it only for services known to be slow to respond.
+- For internal mode, the CLI creates the `kubeasy-probe` pod if it doesn't exist. This adds a few seconds on the first run.
+- `expectedStatusCode: 0` means "connection refused or timed out" — use it to verify that traffic is blocked.
+- Use `hostHeader` when testing Ingress resources that route based on the `Host` header (virtual hosting).
+- When testing internal connectivity for NetworkPolicy challenges, always test both the allowed path (should succeed) and the blocked path (should fail with `expectedStatusCode: 0`).
+- The `sourcePod` `namespace` field defaults to the challenge namespace. Set it explicitly only when testing cross-namespace connectivity.

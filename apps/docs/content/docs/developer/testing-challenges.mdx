@@ -1,443 +1,206 @@
 ---
 title: Testing Challenges
-description: Comprehensive guide to testing challenges locally before submission.
+description: How to thoroughly test your challenge locally before submitting it.
 ---
 
-> **Tip:** The `kubeasy dev` commands simplify the challenge development loop — scaffold, deploy, validate, and iterate without needing API login or the OCI registry. See the [Dev Commands Reference](/developer/dev-commands) for the full guide.
+Testing a challenge before submission ensures it works correctly and provides a good learning experience. This page covers testing strategies from initial deployment to edge cases.
 
-Thorough testing ensures your challenge works correctly and provides a good learning experience. This guide covers strategies for testing challenges at every stage.
+<Callout type="info">
+The `kubeasy dev` commands provide a streamlined development loop — scaffold, lint, deploy, validate, and iterate without needing an API account or the OCI registry. See the [CLI Reference](/user/cli-reference#dev-mode) for the full command reference.
+</Callout>
 
-## Testing workflow
-
-Follow this workflow when testing a challenge:
-
-1. **Setup** -- Create a clean test environment
-2. **Deploy** -- Start the challenge
-3. **Verify problem** -- Confirm the issue is reproducible
-4. **Apply fix** -- Solve the challenge
-5. **Submit** -- Verify all objectives pass
-6. **Clean up** -- Reset for next test
-
-## Setting up a test environment
-
-### Using Kubeasy CLI (recommended)
-
-The Kubeasy CLI sets up everything automatically:
+## Recommended workflow
 
 ```bash
-# Setup creates the Kind cluster and installs all components
-kubeasy setup
+# 1. Lint: validate challenge.yaml structure (no cluster needed)
+kubeasy dev lint
+
+# 2. Test: deploy and run validations in one step
+kubeasy dev test --clean
+
+# 3. Iterate with watch mode
+kubeasy dev apply --watch    # terminal 1: auto-redeploys on file changes
+kubeasy dev validate --watch # terminal 2: re-runs validations every 5s
+
+# 4. Check pod state and logs while debugging
+kubeasy dev status
+kubeasy dev logs --follow
+
+# 5. Clean up
+kubeasy dev clean
 ```
 
-This command will:
-- Create a Kind cluster named `kubeasy`
-- Install Kyverno for policy enforcement
-- Install local-path-provisioner for PersistentVolume storage
-- Configure kubectl context
+## Step 1: Lint first
 
-### Manual setup
-
-If you prefer to set up components manually:
-
-#### Create the cluster
+Before deploying, validate your `challenge.yaml` structure:
 
 ```bash
-kind create cluster --name kubeasy-test
+kubeasy dev lint
 ```
 
-#### Install dependencies
+This checks required fields, valid enum values, objective key uniqueness, sequential order values, and the existence of the `manifests/` directory — all without a cluster. Fix all errors before proceeding.
 
-**1. Install Kyverno**:
+## Step 2: Verify the broken state
+
+Deploy the challenge and confirm the problem is **reproducible**:
 
 ```bash
-kubectl create -f https://github.com/kyverno/kyverno/releases/download/v1.17.0/install.yaml
-
-# Wait for Kyverno to be ready
-kubectl wait --for=condition=ready pod \
-  -l app.kubernetes.io/name=kyverno \
-  -n kyverno \
-  --timeout=300s
+kubeasy dev apply --clean
 ```
 
-**2. Install local-path-provisioner**:
+Then inspect the cluster:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.34/deploy/local-path-storage.yaml
-
-# Wait for it to be ready
-kubectl wait --for=condition=ready pod \
-  -l app=local-path-provisioner \
-  -n local-path-storage \
-  --timeout=120s
+kubectl get pods
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+kubectl get events --sort-by='.lastTimestamp'
 ```
 
-## Testing the broken state
+Ask yourself: if I were a user encountering this for the first time, would I see clear evidence of the problem? The broken state should be observable using standard `kubectl` commands.
 
-### 1. Start the challenge
+**Run validations against the broken state** — they should all fail:
 
 ```bash
-kubeasy challenge start <challenge-slug>
+kubeasy dev validate
 ```
 
-Or if testing locally before the challenge is published, apply manifests and policies manually:
+If any validation passes before the user applies a fix, review your objective logic.
+
+## Step 3: Test Kyverno policies
+
+Apply the bypass that your policies should block, and confirm it's rejected:
 
 ```bash
-# Create namespace
-kubectl create namespace <challenge-slug>
-
-# Apply manifests
-kubectl apply -f manifests/ -n <challenge-slug>
-
-# Apply Kyverno policies
-kubectl apply -f policies/
-```
-
-### 2. Verify resources are created
-
-```bash
-# Check resources in the namespace
-kubectl get all -n <challenge-slug>
-```
-
-### 3. Confirm the problem exists
-
-Depending on the challenge type:
-
-**For pod failures**:
-
-```bash
-kubectl get pods -n <challenge-slug>
-kubectl describe pod <pod-name> -n <challenge-slug>
-```
-
-Expected: Pod should show errors in events or status.
-
-**For connectivity issues**:
-
-```bash
-kubectl run -it --rm debug --image=curlimages/curl --restart=Never -n <challenge-slug> \
-  -- curl http://service-name:port
-```
-
-Expected: Connection should fail or return an error.
-
-**For log-based issues**:
-
-```bash
-kubectl logs <pod-name> -n <challenge-slug>
-```
-
-Expected: Logs should show error messages.
-
-## Testing Kyverno policies
-
-Apply Kyverno policies and verify they work:
-
-```bash
-kubectl apply -f policies/
+# If you protect an image:
+kubectl set image deployment/my-app app=nginx:latest
+# Expected: admission webhook denied the request
 ```
 
 Check policy status:
-
 ```bash
-kubectl get clusterpolicy
+kubectl get clusterpolicies
 kubectl describe clusterpolicy <policy-name>
 ```
 
-**Test enforcement** -- try a change the policy should block:
+Policies must match the `challenge-*` namespace pattern to avoid affecting the rest of the cluster.
+
+## Step 4: Apply the fix and verify validations pass
+
+Manually apply a valid solution, then run validations:
 
 ```bash
-# This should be rejected if your policy protects the image
-kubectl set image deployment/my-app app=nginx:latest -n <challenge-slug>
+kubeasy dev validate
 ```
 
-Expected output:
-```
-Error from server: admission webhook "validate.kyverno.svc" denied the request:
-resource Deployment/my-app was blocked due to the following policies
-
-protect-challenge-image:
-  preserve-image: 'Cannot change the application image'
-```
-
-## Testing the solution
-
-### 1. Apply the fix
-
-Manually apply the fix that solves the challenge:
+All objectives should pass. If some fail unexpectedly:
+1. Read the failure message — it tells you exactly what was checked and why it failed
+2. Inspect the resource manually with `kubectl`
+3. Check that your label selectors actually match the resource
 
 ```bash
-# Example: Increase memory limits
-kubectl patch deployment data-processor -n <challenge-slug> \
-  --type='json' -p='[
-    {"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value": "128Mi"},
-    {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "64Mi"}
-  ]'
+kubectl get pods --show-labels
+kubectl get pods -l app=my-app
 ```
 
-### 2. Verify resources are healthy
+## Step 5: Test alternative solutions
+
+One of the most important tests: confirm that **multiple valid approaches** all pass your objectives.
+
+If your challenge teaches fixing a memory limit, both `128Mi` and `256Mi` should work:
 
 ```bash
-kubectl get pods -n <challenge-slug>
-kubectl describe pod <pod-name> -n <challenge-slug>
+# Test solution 1
+kubectl patch deployment my-app --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value": "128Mi"}]'
+kubeasy dev validate
+
+# Reset and test solution 2
+kubeasy dev apply --clean
+kubectl patch deployment my-app --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value": "256Mi"}]'
+kubeasy dev validate
 ```
 
-Expected: Pods should be `Running` and `Ready`.
+If your validations only pass for one specific value, revisit your objective design. See [Validation Overview — Philosophy](/developer/validation-overview#philosophy-validate-outcomes-not-implementations).
 
-### 3. Submit and verify objectives pass
+## Debugging validation failures
+
+### Condition checks
 
 ```bash
-kubeasy challenge submit <challenge-slug>
+kubectl get pod <pod-name> -o jsonpath='{.status.conditions}' | jq .
 ```
 
-Review the output. Each objective shows whether it passed or failed with a message explaining why.
-
-Example output:
-```
-Condition Validation
-  pod-ready-check: PASSED - All condition checks passed
-
-Event Validation
-  no-crash-events: PASSED - No forbidden events found
-
-Status Validation
-  low-restarts: PASSED - All status checks passed
-
-All validations passed!
-```
-
-## Testing individual validation types
-
-### Testing condition checks
-
-Check resource conditions directly:
+### Status checks
 
 ```bash
-kubectl get pod <pod-name> -n <challenge-slug> -o jsonpath='{.status.conditions}'
+# Check a specific status field
+kubectl get pod <pod-name> -o jsonpath='{.status.containerStatuses[0].restartCount}'
+kubectl get deployment <name> -o jsonpath='{.status.readyReplicas}'
 ```
 
-Verify the condition you're checking exists and has the expected status.
-
-### Testing status checks
-
-Check specific status fields:
+### Log checks
 
 ```bash
-# Check restart count
-kubectl get pod <pod-name> -n <challenge-slug> \
-  -o jsonpath='{.status.containerStatuses[0].restartCount}'
-
-# Check ready replicas
-kubectl get deployment <name> -n <challenge-slug> \
-  -o jsonpath='{.status.readyReplicas}'
+kubectl logs <pod-name>
+kubectl logs <pod-name> --previous  # for terminated containers
 ```
 
-### Testing log checks
+Verify the exact strings from `expectedStrings` appear in the output.
 
-Verify logs contain expected content:
+### Event checks
 
 ```bash
-kubectl logs <pod-name> -n <challenge-slug>
+kubectl get events --sort-by='.lastTimestamp'
+kubectl get events --field-selector reason=OOMKilled
 ```
 
-Ensure the strings from your `expectedStrings` list appear in the output.
+After applying the fix, forbidden reasons should stop appearing within the `sinceSeconds` window.
 
-### Testing event checks
-
-Check for forbidden events:
+### Connectivity checks
 
 ```bash
-kubectl get events -n <challenge-slug> --sort-by='.lastTimestamp'
+# Test internal connectivity
+kubectl run -it --rm debug --image=curlimages/curl --restart=Never -- \
+  curl -v http://service-name:port/path
 ```
 
-After applying the fix, forbidden reasons (like `OOMKilled`) should stop appearing.
+## Timing considerations
 
-### Testing connectivity checks
+Some objectives are time-sensitive:
 
-Test HTTP connectivity from within the cluster:
+- **`event` and `log` validations** use `sinceSeconds` (default: 300). After applying a fix, forbidden events from before the fix may still appear within the window. This is expected — wait for the window to expire, or test with a freshly-deployed challenge (`--clean`).
+- **`triggered` validations** rely on `waitAfterSeconds`. Ensure this is long enough for the cluster to respond.
+- **`condition` validations** check current state — no timing issues.
+
+## Testing on a fresh cluster
+
+Always test on a fresh namespace before submitting:
 
 ```bash
-kubectl run -it --rm debug --image=curlimages/curl --restart=Never -n <challenge-slug> \
-  -- curl -v http://service-name:port/path
+kubeasy dev test --clean
 ```
 
-## Automated testing script
-
-Create a test script for consistent testing:
-
-```bash
-#!/bin/bash
-# test-challenge.sh
-
-set -e
-
-CHALLENGE_SLUG="memory-pressure"
-
-echo "Cleaning up any previous test..."
-kubectl delete namespace $CHALLENGE_SLUG --ignore-not-found=true
-kubectl delete clusterpolicy --selector challenge=$CHALLENGE_SLUG --ignore-not-found=true
-
-echo "Creating namespace..."
-kubectl create namespace $CHALLENGE_SLUG
-
-echo "Applying broken manifests..."
-kubectl apply -f manifests/ -n $CHALLENGE_SLUG
-
-echo "Applying Kyverno policies..."
-kubectl apply -f policies/
-
-echo "Waiting for resources..."
-sleep 10
-
-echo "Checking broken state..."
-kubectl get pods -n $CHALLENGE_SLUG
-
-echo "Applying fix..."
-kubectl patch deployment data-processor -n $CHALLENGE_SLUG \
-  --type='json' -p='[
-    {"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value": "128Mi"},
-    {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "64Mi"}
-  ]'
-
-echo "Waiting for pod to stabilize..."
-sleep 30
-
-echo "Checking fixed state..."
-kubectl get pods -n $CHALLENGE_SLUG
-
-echo "Verifying pod is Ready..."
-POD_READY=$(kubectl get pods -n $CHALLENGE_SLUG -l app=data-processor \
-  -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}')
-
-echo "Pod Ready: $POD_READY"
-
-if [ "$POD_READY" == "True" ]; then
-  echo "Test passed!"
-  exit 0
-else
-  echo "Test failed - pod not ready"
-  kubectl describe pods -n $CHALLENGE_SLUG -l app=data-processor
-  exit 1
-fi
-```
-
-Make it executable:
-
-```bash
-chmod +x test-challenge.sh
-./test-challenge.sh
-```
-
-## Testing edge cases
-
-### Multiple resources
-
-If your target matches multiple resources, ensure all pass validation:
-
-```bash
-# Deploy multiple pods
-kubectl scale deployment app --replicas=3 -n <challenge-slug>
-
-# Wait for them to be ready
-kubectl wait --for=condition=ready pod -l app=myapp -n <challenge-slug>
-
-# Submit to verify all pods pass
-kubeasy challenge submit <challenge-slug>
-```
-
-### Timing issues
-
-Some validations use `sinceSeconds` to check recent events or logs. Make sure:
-
-- `sinceSeconds` is long enough for the check to capture relevant data
-- The default is 300 seconds (5 minutes) for both `event` and `log` types
-- For `connectivity` checks, the default `timeoutSeconds` is 5
-
-### Multiple valid solutions
-
-Test that different valid fixes all pass your objectives:
-
-```bash
-# Solution 1: Increase memory limit
-kubectl patch deployment data-processor -n <challenge-slug> \
-  --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value": "128Mi"}]'
-
-# Verify it passes
-kubeasy challenge submit <challenge-slug>
-
-# Reset and try solution 2: Increase memory limit to a different value
-kubeasy challenge reset <challenge-slug>
-kubeasy challenge start <challenge-slug>
-
-kubectl patch deployment data-processor -n <challenge-slug> \
-  --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value": "256Mi"}]'
-
-# Verify this also passes
-kubeasy challenge submit <challenge-slug>
-```
-
-## Debugging validation issues
-
-### Objectives fail unexpectedly
-
-**1. Check the submission output** -- it shows exactly which objective failed and why.
-
-**2. Verify the resource state manually:**
-
-```bash
-# For condition checks
-kubectl get pod <pod-name> -n <challenge-slug> -o jsonpath='{.status.conditions}' | jq .
-
-# For status checks
-kubectl get pod <pod-name> -n <challenge-slug> -o jsonpath='{.status}' | jq .
-
-# For log checks
-kubectl logs <pod-name> -n <challenge-slug>
-
-# For event checks
-kubectl get events -n <challenge-slug> --field-selector reason=OOMKilled
-```
-
-**3. Ensure labels match** -- validation targets use `labelSelector` to find resources:
-
-```bash
-kubectl get pods -n <challenge-slug> --show-labels
-```
-
-### Challenge works locally but fails in CI
-
-- Ensure all images are publicly accessible
-- Verify the challenge doesn't depend on local-only resources
-- Check that timing assumptions are reasonable (pods may start slower in CI)
+The `--clean` flag deletes the namespace before redeploying, simulating a fresh start for the user.
 
 ## Testing checklist
 
-Before submitting, ensure:
-
-- [ ] Challenge deploys with a reproducible broken state
-- [ ] Problem is observable via standard kubectl commands
-- [ ] Kyverno policies prevent obvious bypasses
-- [ ] Applying the fix makes all objectives pass
-- [ ] Multiple valid solutions are accepted (where applicable)
-- [ ] Objective titles don't reveal the solution
-- [ ] Challenge works on a fresh Kind cluster
-- [ ] Estimated time is reasonable
-- [ ] Clean up removes all resources
+- [ ] `kubeasy dev lint` passes with no errors
+- [ ] Broken state is reproducible (`kubectl get pods` shows the problem)
+- [ ] All validations **fail** before any fix is applied
+- [ ] Kyverno policies block the intended bypasses
+- [ ] All validations **pass** after applying the fix
+- [ ] Multiple valid solutions are accepted
+- [ ] Validation titles don't reveal the solution
+- [ ] Estimated time is accurate (test with someone unfamiliar with the problem)
+- [ ] Challenge works from a clean state (`--clean`)
 
 ## Clean up
 
-After testing:
-
 ```bash
-# Reset challenge (removes resources AND server progress)
-kubeasy challenge reset <challenge-slug>
-
-# Or just remove local resources (keeps server progress)
-kubeasy challenge clean <challenge-slug>
+kubeasy dev clean
 ```
 
-## Next Steps
+## Next steps
 
-- Review [Contributing Guidelines](/developer/contributing) for submission requirements
-- See [Validation Reference](/developer/validation-reference) for complete type specifications
-- Check existing challenges for testing examples
+- [Contributing Guidelines](/developer/contributing) — PR requirements and the review process
+- [CLI Reference — Dev Mode](/user/cli-reference#dev-mode) — full reference for all `kubeasy dev` commands

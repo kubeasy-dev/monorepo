@@ -1,91 +1,80 @@
 ---
-title: Kubeasy CLI Reference
-description: Full reference of all available Kubeasy CLI commands to manage your challenges, cluster, and configuration.
+title: CLI Reference
+description: Full reference for all Kubeasy CLI commands — authentication, cluster setup, challenges, and dev tools.
 ---
 
-The `kubeasy` CLI is the main tool to interact with Kubeasy locally: start challenges, submit solutions, reset environments, and more.
+The `kubeasy` CLI is the primary tool for interacting with Kubeasy. It manages authentication, the local cluster, challenges, and provides a development environment for challenge creators.
 
-Built with Go and powered by [Cobra](https://cobra.dev/), the CLI is distributed as a single binary with no dependencies.
-
-**Installation:**
-See the [Getting Started guide](/user/getting-started) for all installation methods (install script, Homebrew, NPM, Scoop, or manual download).
+Built with Go and [Cobra](https://cobra.dev/), it ships as a single binary with no runtime dependencies.
 
 ```bash
-kubeasy version
+kubeasy version   # show version and check for updates
 ```
 
 ## Authentication
 
 ### `kubeasy login`
 
-Authenticate the CLI by entering your API key (generated from your [profile page](https://kubeasy.dev/profile)).
-The key is stored securely using the best available backend:
+Authenticate the CLI with an API key from your [Kubeasy profile page](https://kubeasy.dev/profile).
 
-1. **System keyring** (macOS Keychain, Windows Credential Manager, Linux Secret Service) -- preferred
-2. **File-based storage** (`~/.config/kubeasy-cli/credentials`) -- fallback for headless environments
+The key is stored using the best available backend:
+1. **System keyring** (macOS Keychain, Windows Credential Manager, Linux Secret Service) — preferred
+2. **File-based storage** (`~/.config/kubeasy-cli/credentials`) — fallback for headless environments
 
-You can also set the `KUBEASY_API_KEY` environment variable for CI/CD use.
+Set `KUBEASY_API_KEY` as an environment variable to skip interactive login (useful in CI).
 
-**Usage:**
 ```bash
 kubeasy login
 ```
 
-**Example:**
 ```
 $ kubeasy login
 API Key: ************************************
 API key stored in system keyring
-Welcome John Doe
+Welcome, Jane Doe
 Login successful!
 ```
+
+---
 
 ## Setup
 
 ### `kubeasy setup`
 
-Prepare your local environment for Kubeasy. This command:
+Create the local Kind cluster and install all infrastructure components. Run once per machine before starting challenges.
 
-- Creates a local Kind cluster named `kubeasy` (if one doesn't exist)
-- Installs Kyverno (policy engine for bypass prevention)
-- Installs local-path-provisioner (for PersistentVolume storage)
-
-Usually run once per machine before starting challenges. Requires authentication -- run `kubeasy login` first.
-
-**Usage:**
 ```bash
 kubeasy setup
 ```
 
-**Example output:**
-```
-$ kubeasy setup
-Kubeasy Environment Setup
+**What gets installed:**
 
-Creating kind cluster 'kubeasy' (Kubernetes 1.32)   [12s]
-Installing infrastructure (Kyverno + local-path-provisioner)   [45s]
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| Kind cluster | Kubernetes v1.35.0 | Local Kubernetes |
+| Kyverno | v1.17.1 | Bypass prevention policies |
+| local-path-provisioner | v0.0.35 | PersistentVolume storage |
+| nginx-ingress | v1.15.0 | Ingress controller |
+| Gateway API CRDs | v1.5.1 | Gateway API support |
+| cert-manager | v1.20.0 | TLS certificate management |
+| kubeasy-ca | — | Self-signed CA + ClusterIssuer |
+| cloud-provider-kind | v0.10.0 | LoadBalancer support |
 
-Kubeasy environment is ready!
-You can now start challenges with 'kubeasy challenge start <slug>'
-```
+If a cluster already exists, `kubeasy setup` checks for configuration drift and offers to recreate it if needed.
+
+---
 
 ## Challenge management
 
-All challenge-related actions are available under the `challenge` subcommand.
+### `kubeasy challenge get <slug>`
 
-### `kubeasy challenge get <challenge>`
+Display details about a challenge before starting it.
 
-View details about a specific challenge before starting it.
-
-**Usage:**
 ```bash
-kubeasy challenge get <challenge-slug>
+kubeasy challenge get pod-evicted
 ```
 
-**Example:**
 ```
-$ kubeasy challenge get pod-evicted
-
 Pod Evicted
 
 Difficulty: easy
@@ -94,214 +83,161 @@ Slug: pod-evicted
 
 Description:
 A data processing pod keeps crashing and getting evicted.
-It was working fine yesterday, but now Kubernetes keeps killing it.
+It was working fine yesterday.
 
 Initial Situation:
 A data processing application is deployed as a single pod.
 The pod starts but keeps crashing after a few seconds.
-
-Objective:
-Investigate why the pod keeps crashing and fix it so it runs stably.
 ```
 
-### `kubeasy challenge start <challenge>`
+---
 
-Start a challenge. This command:
+### `kubeasy challenge start <slug>`
 
-- Creates a dedicated namespace for the challenge
-- Pulls the challenge OCI artifact from the registry
-- Applies manifests and Kyverno policies
-- Waits for resources to be ready
-- Switches your `kubectl` context to the challenge namespace
+Start a challenge. Creates a namespace, deploys the challenge from the OCI registry, applies Kyverno policies, and switches your `kubectl` context to the challenge namespace.
 
-**Usage:**
 ```bash
-kubeasy challenge start <challenge-slug>
+kubeasy challenge start pod-evicted
 ```
 
-**Example:**
 ```
 $ kubeasy challenge start pod-evicted
-Starting Challenge: pod-evicted
 
 Challenge: Pod Evicted
-Fetching challenge details
-Checking challenge progress
 Creating namespace
 Deploying challenge
 Kubectl context configured
 
 Challenge environment is ready!
-Challenge: pod-evicted
 Namespace: pod-evicted
 Context: kind-kubeasy
 ```
 
-**After starting:**
-Your kubectl context is now set to the challenge namespace. You can immediately start investigating:
+After starting, your `kubectl` commands target the challenge namespace by default:
 
 ```bash
 kubectl get pods
-kubectl logs <pod-name>
 kubectl describe pod <pod-name>
+kubectl logs <pod-name>
 ```
 
-### `kubeasy challenge submit <challenge>`
+---
 
-Submit your solution for validation.
+### `kubeasy challenge submit <slug>`
 
-- Loads validation objectives from the challenge definition
-- Executes each validation against the cluster
-- Sends results to the Kubeasy platform
+Run all validation objectives against the cluster and submit results to the platform.
 
-**Usage:**
 ```bash
-kubeasy challenge submit <challenge-slug>
+kubeasy challenge submit pod-evicted
 ```
 
-**Example (successful submission):**
+**On success:**
 ```
-$ kubeasy challenge submit pod-evicted
-Submitting Challenge: pod-evicted
-
-Verifying challenge
-Checking progress
-Loading validations
-Running validations...
-
 Condition Validation
-  pod-running-check: PASSED - All condition checks passed
+  pod-running: PASSED - All condition checks passed
 
 Event Validation
   no-crash-events: PASSED - No forbidden events found
 
-Submission Result
 All validations passed!
-Sending results to server...
-Congratulations! Challenge 'pod-evicted' completed!
+Congratulations! Challenge 'pod-evicted' completed! +50 XP
 ```
 
-**Example (failed validation):**
+**On failure:**
 ```
-$ kubeasy challenge submit pod-evicted
-Running validations...
-
 Condition Validation
-  pod-running-check: FAILED - Condition Ready is False (expected True)
+  pod-running: FAILED - Condition Ready is False (expected True)
 
 Event Validation
   no-crash-events: FAILED - Found forbidden event: OOMKilled
 
-Submission Result
-Some validations failed
-Review the results above and try again
+Some validations failed. Review the results above and try again.
 ```
 
-### `kubeasy challenge reset <challenge>`
+Failed objectives include a message explaining what went wrong. Fix the issue and resubmit — there's no limit to submissions.
 
-Reset the challenge by removing all resources and resetting your progress on the platform.
-Use this if you want to start completely fresh.
+---
 
-**Usage:**
+### `kubeasy challenge reset <slug>`
+
+Remove all challenge resources from the cluster **and** reset your progress on the platform. Use this to start completely fresh.
+
 ```bash
-kubeasy challenge reset <challenge-slug>
+kubeasy challenge reset pod-evicted
 ```
 
-**Example:**
-```
-$ kubeasy challenge reset pod-evicted
-Resetting Challenge: pod-evicted
+---
 
-Deleting challenge resources   [5s]
-Resetting challenge progress on server
+### `kubeasy challenge clean <slug>`
 
-Challenge 'pod-evicted' reset successfully!
-You can start the challenge again with 'kubeasy challenge start pod-evicted'
-```
+Remove all challenge resources from the cluster without resetting your platform progress. Use this when you're done with a challenge and want to free up cluster resources.
 
-### `kubeasy challenge clean <challenge>`
-
-Clean up all Kubernetes resources related to the challenge, including its namespace.
-This does **not** reset your challenge progress on the platform.
-
-**Usage:**
 ```bash
-kubeasy challenge clean <challenge-slug>
+kubeasy challenge clean pod-evicted
 ```
 
-**Example:**
-```
-$ kubeasy challenge clean pod-evicted
-Cleaning Challenge: pod-evicted
+**When to use `reset` vs `clean`:**
+- `reset` — you want to retry the challenge from the beginning
+- `clean` — you've finished and just want to remove the local resources
 
-Deleting challenge resources   [5s]
-
-Challenge 'pod-evicted' cleaned successfully!
-All resources have been removed from your cluster
-```
-
-**When to use:**
-- You've finished the challenge and want to free up resources
-- You want to remove challenge resources without resetting your submission
-- You're switching to a different challenge
+---
 
 ## Dev mode
 
-The `dev` subcommands are designed for **challenge creators**. They let you scaffold, deploy, validate, and iterate on challenges locally — no API login required.
+The `kubeasy dev` commands are designed for **challenge creators**. They provide a full local development loop — scaffold, deploy, test, and iterate — without needing an API account or OCI registry.
 
-For a complete guide with workflows and examples, see the [Dev Commands Reference](/developer/dev-commands).
+See [Testing Challenges](/developer/testing-challenges) for the recommended development workflow.
 
 ### `kubeasy dev create`
 
-Scaffold a new challenge directory with a `challenge.yaml` template and the required folder structure (`manifests/`, `policies/`).
+Scaffold a new challenge directory with a `challenge.yaml` template, `manifests/`, and `policies/` folders.
 
-In interactive mode (TTY), prompts guide you through the setup. In non-interactive mode, use flags.
+In interactive mode (TTY), you'll be prompted for each field. In non-interactive mode, use flags.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--name` | string | | Challenge name |
 | `--slug` | string | | Challenge slug (auto-generated from name if omitted) |
-| `--type` | string | | Challenge type (`fix`, `build`, `migrate`) |
+| `--type` | string | | `fix`, `build`, or `migrate` |
 | `--theme` | string | | Challenge theme |
-| `--difficulty` | string | | Difficulty (`easy`, `medium`, `hard`) |
+| `--difficulty` | string | | `easy`, `medium`, or `hard` |
 | `--estimated-time` | int | `30` | Estimated time in minutes |
 | `--with-manifests` | bool | `false` | Generate starter deployment and service manifests |
 
-**Usage:**
 ```bash
 kubeasy dev create
 kubeasy dev create --name "Pod Evicted" --type fix --theme resources-scaling --difficulty easy
 ```
 
+---
+
 ### `kubeasy dev get`
 
-Display local challenge metadata by reading `challenge.yaml` from the local directory. No cluster or API required.
+Display challenge metadata from a local `challenge.yaml`. No cluster or API connection required.
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--dir` | string | | Path to challenge directory (default: auto-detect) |
+| Flag | Type | Description |
+|------|------|-------------|
+| `--dir` | string | Path to challenge directory (default: auto-detect) |
 
-**Usage:**
 ```bash
 kubeasy dev get
 kubeasy dev get --dir ./my-challenge
 ```
 
+---
+
 ### `kubeasy dev lint`
 
-Validate the structure and content of a `challenge.yaml` file. Checks required fields, valid values, objective structure, and manifests directory. No cluster needed.
+Validate the structure and content of a `challenge.yaml` without a cluster. Checks required fields, valid enum values, objective structure, unique keys, and the existence of the `manifests/` directory.
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--dir` | string | | Path to challenge directory (default: auto-detect) |
+| Flag | Type | Description |
+|------|------|-------------|
+| `--dir` | string | Path to challenge directory (default: auto-detect) |
 
-**Usage:**
 ```bash
 kubeasy dev lint
-kubeasy dev lint --dir ./my-challenge
 ```
 
-**Example output:**
 ```
 $ kubeasy dev lint
 Linting challenge: pod-evicted
@@ -309,76 +245,76 @@ Linting challenge: pod-evicted
 ✓ All checks passed (0 errors, 0 warnings)
 ```
 
+---
+
 ### `kubeasy dev apply`
 
-Deploy local challenge manifests to the Kind cluster. This is the dev equivalent of `kubeasy challenge start` but reads from the local filesystem instead of the OCI registry.
+Deploy local challenge manifests to the Kind cluster. The dev equivalent of `kubeasy challenge start`, reading from the local filesystem instead of the OCI registry.
+
+If an `image/` directory exists, the Docker image is built locally and loaded into Kind automatically.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--dir` | string | | Path to challenge directory (default: auto-detect) |
+| `--dir` | string | | Path to challenge directory |
 | `--clean` | bool | `false` | Delete existing resources before applying |
 | `--watch`, `-w` | bool | `false` | Watch for file changes and auto-redeploy |
 
-**Usage:**
 ```bash
 kubeasy dev apply
 kubeasy dev apply --clean
-kubeasy dev apply --watch
+kubeasy dev apply --watch   # auto-redeploy on file changes
 ```
+
+---
 
 ### `kubeasy dev validate`
 
-Run challenge validations against the Kind cluster and display results. Does not send results to the API.
+Run validation objectives against the cluster without submitting to the API.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--dir` | string | | Path to challenge directory (default: auto-detect) |
-| `--watch`, `-w` | bool | `false` | Re-run validations every 5 seconds |
-| `--fail-fast` | bool | `false` | Stop at the first validation failure |
+| `--dir` | string | | Path to challenge directory |
+| `--watch`, `-w` | bool | `false` | Re-run every 5 seconds |
+| `--watch-interval`, `-i` | duration | `5s` | Watch interval |
+| `--fail-fast` | bool | `false` | Stop at first failure |
 | `--json` | bool | `false` | Output results as JSON |
 
-**Usage:**
 ```bash
 kubeasy dev validate
 kubeasy dev validate --watch
-kubeasy dev validate --fail-fast --json
+kubeasy dev validate --json   # useful for CI scripts
 ```
+
+---
 
 ### `kubeasy dev test`
 
-Apply manifests and run validations in one step. Equivalent to `kubeasy dev apply` followed by `kubeasy dev validate`.
+Apply manifests and run validations in one step. Equivalent to `dev apply` followed by `dev validate`.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--dir` | string | | Path to challenge directory (default: auto-detect) |
+| `--dir` | string | | Path to challenge directory |
 | `--clean` | bool | `false` | Delete existing resources before applying |
-| `--watch`, `-w` | bool | `false` | Re-run validations every 5 seconds after apply |
-| `--fail-fast` | bool | `false` | Stop at the first validation failure |
-| `--json` | bool | `false` | Output results as JSON |
+| `--watch`, `-w` | bool | `false` | Re-run validations after apply |
+| `--fail-fast` | bool | `false` | Stop at first failure |
+| `--json` | bool | `false` | Output as JSON |
 
-**Usage:**
 ```bash
-kubeasy dev test
+kubeasy dev test --clean
 kubeasy dev test --clean --watch
 ```
 
+---
+
 ### `kubeasy dev status`
 
-Show pods, recent events, and objective count for a deployed challenge.
+Show pods, recent events (last 5 minutes), and objective count for a deployed challenge.
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--dir` | string | | Path to challenge directory (default: auto-detect) |
-
-**Usage:**
 ```bash
 kubeasy dev status
 ```
 
-**Example output:**
 ```
-$ kubeasy dev status
-
 Pods
   NAME                      STATUS    READY   RESTARTS   AGE
   data-processor-abc12      Running   1/1     0          2m
@@ -386,57 +322,56 @@ Pods
 Events (last 5m)
   AGE   TYPE     REASON    MESSAGE
   2m    Normal   Pulled    Successfully pulled image "myapp:latest"
-  2m    Normal   Started   Started container app
 
 Objectives: 3
 ```
 
+---
+
 ### `kubeasy dev logs`
 
-Stream logs from pods in the challenge namespace. Attempts to find relevant pods from `challenge.yaml` label selectors, falling back to all pods.
+Stream logs from challenge pods.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--dir` | string | | Path to challenge directory (default: auto-detect) |
-| `--follow`, `-f` | bool | `false` | Follow log output (stream continuously) |
+| `--dir` | string | | Path to challenge directory |
+| `--follow`, `-f` | bool | `false` | Follow log output continuously |
 | `--container`, `-c` | string | | Target a specific container |
-| `--tail` | int | `50` | Number of recent log lines to show |
+| `--tail` | int | `50` | Number of recent log lines |
 
-**Usage:**
 ```bash
 kubeasy dev logs
 kubeasy dev logs --follow
 kubeasy dev logs --tail 100 --container app
 ```
 
+---
+
 ### `kubeasy dev clean`
 
 Remove all Kubernetes resources for a dev challenge (deletes the namespace). No API login required.
 
-**Usage:**
 ```bash
 kubeasy dev clean
 ```
 
+---
+
 ## Shell autocompletion
 
-### `kubeasy completion`
+### `kubeasy completion <shell>`
 
-Generate completion scripts for your shell:
-
-- Bash
-- Zsh
-- Fish
-- PowerShell
-
-Example:
+Generate a shell completion script. Supported shells: `bash`, `zsh`, `fish`, `powershell`.
 
 ```bash
-kubeasy completion bash | tee -a ~/.bashrc
-```
+# Bash
+kubeasy completion bash >> ~/.bashrc
+source ~/.bashrc
 
-Or for zsh:
+# Zsh
+kubeasy completion zsh >> ~/.zshrc
+source ~/.zshrc
 
-```bash
-kubeasy completion zsh | tee -a ~/.zshrc
+# Fish
+kubeasy completion fish > ~/.config/fish/completions/kubeasy.fish
 ```

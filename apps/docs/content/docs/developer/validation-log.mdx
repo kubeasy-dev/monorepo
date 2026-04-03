@@ -1,0 +1,145 @@
+---
+title: Log Validation
+description: Verify that container logs contain expected strings, confirming application-level behavior.
+---
+
+The `log` type searches container logs for expected strings. It's useful for validating application-level outcomes that aren't visible through Kubernetes resources alone — like confirming a service connected to a database, or that a specific message was logged after startup.
+
+## When to use
+
+Use `log` when the evidence of a correct fix is in the application's output, not in Kubernetes resource state. Common use cases:
+
+- Confirming a database connection succeeded ("Connected to database")
+- Verifying application startup completed ("Server started on port 8080")
+- Checking that a background job ran ("Processing complete")
+- Asserting that an error message no longer appears
+
+`log` is particularly useful when the fix affects application behavior that Kubernetes doesn't model directly (e.g., configuration correctness).
+
+## Spec reference
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="LogSpec" />
+
+## Match modes
+
+The `matchMode` field controls how `expectedStrings` are evaluated:
+
+| Mode | Behavior |
+|------|----------|
+| `allOf` (default) | All strings must appear in the logs |
+| `anyOf` | At least one string must appear in the logs |
+
+Use `anyOf` when different valid solutions produce different log messages, and you want any of them to pass.
+
+## Examples
+
+### Confirm a service connected to its dependency
+
+```yaml
+- key: db-connected
+  title: "Database Connected"
+  description: "The application successfully connected to the database"
+  order: 1
+  type: log
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: backend
+    expectedStrings:
+      - "Connected to database"
+    sinceSeconds: 300
+```
+
+### Check multiple expected log messages (all required)
+
+```yaml
+- key: startup-complete
+  title: "Application Started"
+  description: "All startup steps completed successfully"
+  order: 1
+  type: log
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    expectedStrings:
+      - "Configuration loaded"
+      - "Database connection established"
+      - "Server listening on :8080"
+    matchMode: "allOf"
+    sinceSeconds: 300
+```
+
+### Accept any of several valid log messages
+
+Use `anyOf` when there are multiple valid solutions that produce different log output:
+
+```yaml
+- key: config-loaded
+  title: "Configuration Applied"
+  description: "The application loaded its configuration"
+  order: 1
+  type: log
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    expectedStrings:
+      - "Config loaded from ConfigMap"
+      - "Config loaded from environment"
+      - "Config loaded from file"
+    matchMode: "anyOf"
+    sinceSeconds: 300
+```
+
+### Target a specific container in a multi-container pod
+
+```yaml
+- key: sidecar-ready
+  title: "Sidecar Ready"
+  description: "The proxy sidecar is initialized"
+  order: 2
+  type: log
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    container: "envoy"
+    expectedStrings:
+      - "all clusters warmed"
+    sinceSeconds: 120
+```
+
+### Check logs from a previously crashed container
+
+Use `previous: true` to look at logs from the last terminated container. This is useful for challenges where the goal is to fix a pod that keeps crashing:
+
+```yaml
+- key: no-error-on-exit
+  title: "Clean Exit"
+  description: "The previous container run did not exit with a fatal error"
+  order: 2
+  type: log
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    expectedStrings:
+      - "Shutdown complete"
+    previous: true
+    sinceSeconds: 300
+```
+
+## Tips
+
+- Use short, unique strings that won't match accidentally — a partial string like `"Connected"` could match unrelated log lines.
+- `sinceSeconds` defaults to 300 (5 minutes). For applications that take time to start or run background jobs, increase this value.
+- If a challenge has multiple valid solutions that produce different log output, use `matchMode: "anyOf"` rather than `"allOf"`.
+- Avoid checking for the absence of log strings — use `event` validation for that (e.g., no `OOMKilled` events).
+- Log validation is inherently time-sensitive. If logs are buffered or delayed, increase `sinceSeconds` accordingly.
+- When multiple pods match the `labelSelector`, the validation checks logs from all of them — any pod logging the expected string counts as a pass.

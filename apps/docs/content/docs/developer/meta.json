@@ -1,6 +1,6 @@
 {
-  "title": "Kubeasy Developer Guide",
-  "description": "How to develop new challenges for Kubeasy",
+  "title": "Developer Guide",
+  "description": "Create and contribute challenges for Kubeasy",
   "icon": "CodeXml",
   "root": true,
   "pages": [
@@ -9,12 +9,18 @@
     "challenge-structure",
     "---Building Challenges---",
     "creating-challenge",
-    "validation-rules",
+    "validation-overview",
+    "---Validation Types---",
+    "validation-condition",
+    "validation-status",
+    "validation-log",
+    "validation-event",
+    "validation-connectivity",
+    "validation-rbac",
+    "validation-spec",
+    "validation-triggered",
+    "---Testing & Contributing---",
     "testing-challenges",
-    "---Contributing---",
-    "contributing",
-    "---Reference---",
-    "validation-reference",
-    "dev-commands"
+    "contributing"
   ]
 }

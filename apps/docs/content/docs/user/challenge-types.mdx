@@ -1,0 +1,72 @@
+---
+title: Challenge Types
+description: Understand the three types of Kubeasy challenges — fix, build, and migrate — and what each one asks of you.
+---
+
+Every Kubeasy challenge has a type that defines the nature of the problem. Understanding the type helps you know what kind of thinking is required before you even start.
+
+There are three challenge types: **fix**, **build**, and **migrate**.
+
+## Fix
+
+A **fix** challenge starts with a broken setup. Something that was (or should be) working isn't. Your job is to identify the root cause and repair it.
+
+This is the most common challenge type and the closest to real-world on-call incidents. The initial state is intentionally broken — resources exist, but something is misconfigured, missing, or wrong.
+
+**What you'll do:**
+- Investigate the cluster state with `kubectl get`, `kubectl describe`, `kubectl logs`
+- Identify the failure mode (crash, misconfiguration, missing permission, etc.)
+- Apply the fix directly to the cluster
+- Validate that everything is now healthy
+
+**Example scenarios:**
+- A pod keeps OOMKilled because its memory limit is too low
+- A deployment never becomes ready because the liveness probe path is wrong
+- An application can't reach a service because a NetworkPolicy blocks egress
+
+## Build
+
+A **build** challenge starts with a minimal or empty state. You need to create the Kubernetes resources required to meet the objectives from scratch — or nearly from scratch.
+
+This type tests constructive knowledge: can you write a working Deployment, configure the right RBAC rules, or set up a Service that correctly routes traffic?
+
+**What you'll do:**
+- Read the objective carefully to understand what the end state must look like
+- Create and apply the necessary Kubernetes manifests
+- Validate that your resources meet all the objectives
+
+**Example scenarios:**
+- Deploy a stateful application with persistent storage
+- Create a ServiceAccount with the minimum necessary permissions for an application
+- Set up an Ingress that routes traffic to multiple services
+
+## Migrate
+
+A **migrate** challenge starts with a working but outdated or suboptimal configuration. You need to transform it to meet a new requirement, standard, or best practice — without breaking what already works.
+
+This type tests your understanding of Kubernetes evolution: version migrations, configuration improvements, and adopting new patterns.
+
+**What you'll do:**
+- Understand the current setup and why it needs to change
+- Apply the migration without downtime or regressions
+- Validate that the new configuration meets the objectives
+
+**Example scenarios:**
+- Migrate from a Deployment using a deprecated API version to the current one
+- Replace hard-coded environment variables with references to a Secret
+- Switch from a ClusterIP service to a LoadBalancer with proper annotations
+
+## Comparison
+
+| | Fix | Build | Migrate |
+|---|---|---|---|
+| Starting state | Broken setup | Empty or minimal | Working but outdated |
+| Primary skill | Debugging | Construction | Transformation |
+| Common tools | `kubectl describe`, `kubectl logs` | `kubectl apply` | `kubectl edit`, `kubectl apply` |
+| Validates | Outcome is healthy | Outcome exists and works | Old issues resolved, no regressions |
+
+## Tips for all types
+
+- Read the challenge description carefully — it describes symptoms or requirements, not the solution
+- Use `kubectl describe` and `kubectl events` to understand what Kubernetes is seeing
+- The validation doesn't care *how* you fix it, only that the outcome passes — there are often multiple valid solutions

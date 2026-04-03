@@ -1,0 +1,225 @@
+---
+title: Triggered Validation
+description: Execute an action against the cluster, then validate the outcome. Used for resilience, load, and lifecycle testing.
+---
+
+The `triggered` type is a meta-validator: it runs a trigger action against the cluster, waits a configurable amount of time, then executes a set of nested validation objectives. It's the most powerful and complex validation type — use it when you need to test how the system responds to change, not just its current state.
+
+## When to use
+
+Use `triggered` when the validation requires causing something to happen first:
+
+- Test that an application recovers after a pod deletion (self-healing)
+- Verify that HPA scales up under load
+- Confirm that a rolling update completes without downtime
+- Assert that the system handles a scale-down gracefully
+
+<Callout type="warning">
+`triggered` validations cannot be nested. A `then` validation cannot itself be a `triggered` type.
+</Callout>
+
+## Spec reference
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="TriggeredSpec" />
+
+### TriggerConfig
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="TriggerConfig" />
+
+## Trigger types
+
+| Type | What it does |
+|------|-------------|
+| `delete` | Deletes a Kubernetes resource |
+| `rollout` | Updates a Deployment's container image to trigger a rollout |
+| `scale` | Patches a resource's replica count |
+| `load` | Generates HTTP traffic to a URL |
+| `wait` | Waits a specified number of seconds (no action) |
+
+## Examples
+
+### Self-healing: pod deleted and recovers
+
+Delete a pod and verify that a new one comes up healthy. This tests whether a Deployment's replica controller is working correctly.
+
+```yaml
+- key: self-healing
+  title: "Self-Healing"
+  description: "The application recovers automatically after a pod failure"
+  order: 1
+  type: triggered
+  spec:
+    trigger:
+      type: delete
+      target:
+        kind: Pod
+        labelSelector:
+          app: my-app
+    waitAfterSeconds: 30
+    then:
+      - key: pod-recovered
+        title: "Pod Recovered"
+        description: "A new pod is running after deletion"
+        order: 1
+        type: condition
+        spec:
+          target:
+            kind: Pod
+            labelSelector:
+              app: my-app
+          checks:
+            - type: Ready
+              status: "True"
+```
+
+### Rolling update: deploy new image and verify no downtime
+
+Trigger a rollout by updating the container image, then verify the deployment completes successfully.
+
+```yaml
+- key: rolling-update
+  title: "Rolling Update"
+  description: "Deployment completes rolling update without failures"
+  order: 2
+  type: triggered
+  spec:
+    trigger:
+      type: rollout
+      target:
+        kind: Deployment
+        name: web-app
+      image: "myapp:v2"
+      container: "app"
+    waitAfterSeconds: 60
+    then:
+      - key: deployment-available
+        title: "Deployment Available"
+        description: "Deployment is available after rollout"
+        order: 1
+        type: condition
+        spec:
+          target:
+            kind: Deployment
+            name: web-app
+          checks:
+            - type: Available
+              status: "True"
+      - key: no-failures
+        title: "No Failure Events"
+        description: "No failure events during rollout"
+        order: 2
+        type: event
+        spec:
+          target:
+            kind: Pod
+            labelSelector:
+              app: web-app
+          forbiddenReasons:
+            - "OOMKilled"
+            - "Error"
+          sinceSeconds: 120
+```
+
+### Load test: verify HPA scales up
+
+Generate traffic and check that the HPA scaled the deployment up:
+
+```yaml
+- key: hpa-scales-up
+  title: "HPA Scales Under Load"
+  description: "The HPA adds replicas when the application is under load"
+  order: 1
+  type: triggered
+  spec:
+    trigger:
+      type: load
+      url: "http://web-service:80/"
+      requestsPerSecond: 50
+      durationSeconds: 30
+    waitAfterSeconds: 60
+    then:
+      - key: replicas-increased
+        title: "Replicas Increased"
+        description: "More replicas are running to handle the load"
+        order: 1
+        type: status
+        spec:
+          target:
+            kind: Deployment
+            name: web-app
+          checks:
+            - field: "readyReplicas"
+              operator: ">"
+              value: 1
+```
+
+### Scale down: verify StatefulSet handles reduction
+
+```yaml
+- key: scale-down-safe
+  title: "Safe Scale Down"
+  description: "StatefulSet scales down without data loss"
+  order: 1
+  type: triggered
+  spec:
+    trigger:
+      type: scale
+      target:
+        kind: StatefulSet
+        name: postgres
+      replicas: 1
+    waitAfterSeconds: 45
+    then:
+      - key: statefulset-ready
+        title: "StatefulSet Ready"
+        description: "Remaining replica is healthy"
+        order: 1
+        type: condition
+        spec:
+          target:
+            kind: StatefulSet
+            name: postgres
+          checks:
+            - type: Ready
+              status: "True"
+```
+
+### Wait then validate (deferred check)
+
+Use `wait` when you need to give the system time to react to a change the user has already made before running the validation:
+
+```yaml
+- key: stable-after-wait
+  title: "Stable After Settling"
+  description: "Pod remains stable after a 2-minute observation window"
+  order: 1
+  type: triggered
+  spec:
+    trigger:
+      type: wait
+      waitSeconds: 120
+    waitAfterSeconds: 0
+    then:
+      - key: no-crashes
+        title: "No Crashes"
+        description: "No crash events during observation"
+        order: 1
+        type: event
+        spec:
+          target:
+            kind: Pod
+            labelSelector:
+              app: my-app
+          forbiddenReasons:
+            - "OOMKilled"
+            - "BackOff"
+          sinceSeconds: 120
+```
+
+## Tips
+
+- `waitAfterSeconds` is the time the CLI waits after the trigger completes before running the `then` validations. Set it generously — enough time for the system to respond to the trigger.
+- For `delete` triggers, the CLI deletes the resource immediately. Make sure `waitAfterSeconds` is long enough for Kubernetes to schedule and start a replacement.
+- For `load` triggers, `requestsPerSecond` is capped at 1000 and `durationSeconds` is capped at 3600. The load runs to completion before `waitAfterSeconds` starts counting.
+- The `then` validations run in parallel (same as regular validations). All must pass for the triggered objective to pass.
+- `triggered` is ideal for **build** challenges that require demonstrating operational behavior, not just configuration.

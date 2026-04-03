@@ -1,0 +1,160 @@
+---
+title: Status Validation
+description: Check arbitrary Kubernetes status fields using comparison operators.
+---
+
+The `status` type reads any field from a resource's `.status` object and compares it using an operator. It gives you precise numeric and string-based checks on fields that `condition` doesn't expose.
+
+## When to use
+
+Use `status` when you need to check a specific status value that isn't represented as a condition. Common use cases:
+
+- Ensuring a pod hasn't restarted more than N times (`restartCount < 3`)
+- Checking that a Deployment has the expected number of ready replicas
+- Verifying a pod's phase is `Running`
+- Asserting that a value falls within a numeric range
+
+`status` is more flexible than `condition` but requires knowing the exact field path within `.status`. For simple health checks, prefer `condition`.
+
+## Spec reference
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="StatusSpec" />
+
+### StatusCheck
+
+<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="StatusCheck" />
+
+## Operators
+
+| Operator | Description | Value type |
+|----------|-------------|------------|
+| `==` | Equal | Any |
+| `!=` | Not equal | Any |
+| `>` | Greater than | Number |
+| `<` | Less than | Number |
+| `>=` | Greater than or equal | Number |
+| `<=` | Less than or equal | Number |
+| `in` | Value is in the list | List |
+| `contains` | String contains substring | String |
+
+## Field path syntax
+
+Field paths are relative to `.status`. Use dot notation for nested fields and bracket notation for array access.
+
+| Syntax | Example | Meaning |
+|--------|---------|---------|
+| `field` | `phase` | `.status.phase` |
+| `field.nested` | `readyReplicas` | `.status.readyReplicas` |
+| `array[N]` | `containerStatuses[0]` | First element of the array |
+| `array[key=value]` | `containerStatuses[name=app]` | Element where `name == "app"` |
+| `array[key=value].field` | `containerStatuses[name=app].restartCount` | Field on matched element |
+
+## Examples
+
+### Pod restart count is low
+
+```yaml
+- key: low-restarts
+  title: "Stable Operation"
+  description: "The pod has not restarted excessively"
+  order: 1
+  type: status
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    checks:
+      - field: "containerStatuses[0].restartCount"
+        operator: "<"
+        value: 3
+```
+
+### Check restart count for a specific container
+
+When a pod has multiple containers, use the `name` filter to target the right one:
+
+```yaml
+- key: app-stable
+  title: "App Container Stable"
+  description: "The app container has not restarted"
+  order: 1
+  type: status
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    checks:
+      - field: "containerStatuses[name=app].restartCount"
+        operator: "=="
+        value: 0
+```
+
+### Deployment has correct replica count
+
+```yaml
+- key: replicas-ready
+  title: "Replicas Available"
+  description: "All desired replicas are ready"
+  order: 1
+  type: status
+  spec:
+    target:
+      kind: Deployment
+      name: web-app
+    checks:
+      - field: "readyReplicas"
+        operator: ">="
+        value: 2
+      - field: "availableReplicas"
+        operator: ">="
+        value: 2
+```
+
+### Pod phase is Running
+
+```yaml
+- key: pod-running
+  title: "Pod Running"
+  description: "The pod is in a Running phase"
+  order: 1
+  type: status
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    checks:
+      - field: "phase"
+        operator: "=="
+        value: "Running"
+```
+
+### Value is one of several allowed values
+
+Use `in` to accept multiple valid states:
+
+```yaml
+- key: pod-healthy
+  title: "Pod Healthy"
+  description: "Pod is in an expected phase"
+  order: 1
+  type: status
+  spec:
+    target:
+      kind: Pod
+      labelSelector:
+        app: my-app
+    checks:
+      - field: "phase"
+        operator: "in"
+        value: ["Running", "Succeeded"]
+```
+
+## Tips
+
+- Field paths are case-sensitive — match the exact casing used by Kubernetes (e.g., `readyReplicas`, not `ReadyReplicas`).
+- For restart count checks, prefer `< 3` rather than `== 0` to accept multiple valid solutions. A few restarts during startup are normal; what you want to prevent is repeated crashing.
+- Use `condition` for availability checks (`Available: "True"`) and `status` for numeric checks (`restartCount < 3`). They complement each other well.
+- When `labelSelector` matches multiple pods, all pods must pass all checks.
