@@ -39,7 +39,8 @@ RUN adduser --system --uid 1001 tanstack
 
 COPY --from=web-builder --chown=tanstack:nodejs /app/apps/web/.output .output
 COPY --from=web-deploy --chown=tanstack:nodejs /app/deployed/node_modules node_modules
+COPY --from=web-prepare --chown=tanstack:nodejs /app/out/full/apps/web/otel.mjs otel.mjs
 
 USER tanstack
-CMD ["node", ".output/server/index.mjs"]
+CMD ["node", "--import", "./otel.mjs", ".output/server/index.mjs"]
 
