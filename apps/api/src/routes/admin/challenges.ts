@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import { all } from "better-all";
 import { count, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -53,19 +54,26 @@ adminChallenges.get("/", async (c) => {
 
 // GET /api/admin/challenges/stats — global challenge stats
 adminChallenges.get("/stats", async (c) => {
-  const [submissionStats] = await db
-    .select({
-      totalSubmissions: count(userSubmission.id),
-      successfulSubmissions: sql<number>`SUM(CASE WHEN ${userSubmission.validated} = true THEN 1 ELSE 0 END)`,
-    })
-    .from(userSubmission);
-
-  const [progressStats] = await db
-    .select({
-      totalStarts: sql<number>`COUNT(DISTINCT CASE WHEN ${userProgress.status} != 'not_started' THEN ${userProgress.id} END)`,
-      totalCompletions: sql<number>`COUNT(DISTINCT CASE WHEN ${userProgress.status} = 'completed' THEN ${userProgress.id} END)`,
-    })
-    .from(userProgress);
+  const { submissionRows, progressRows } = await all({
+    async submissionRows() {
+      return db
+        .select({
+          totalSubmissions: count(userSubmission.id),
+          successfulSubmissions: sql<number>`SUM(CASE WHEN ${userSubmission.validated} = true THEN 1 ELSE 0 END)`,
+        })
+        .from(userSubmission);
+    },
+    async progressRows() {
+      return db
+        .select({
+          totalStarts: sql<number>`COUNT(DISTINCT CASE WHEN ${userProgress.status} != 'not_started' THEN ${userProgress.id} END)`,
+          totalCompletions: sql<number>`COUNT(DISTINCT CASE WHEN ${userProgress.status} = 'completed' THEN ${userProgress.id} END)`,
+        })
+        .from(userProgress);
+    },
+  });
+  const [submissionStats] = submissionRows;
+  const [progressStats] = progressRows;
 
   const totalSubs = submissionStats?.totalSubmissions ?? 0;
   const successfulSubs = Number(submissionStats?.successfulSubmissions ?? 0);

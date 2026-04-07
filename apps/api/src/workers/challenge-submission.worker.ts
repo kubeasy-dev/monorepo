@@ -4,6 +4,7 @@ import {
   createQueue,
   QUEUE_NAMES,
 } from "@kubeasy/jobs";
+import { all } from "better-all";
 import { Worker } from "bullmq";
 import { and, count, eq } from "drizzle-orm";
 import { db } from "../db/index";
@@ -56,40 +57,46 @@ export function createChallengeSubmissionWorker() {
         isFirstChallenge,
       );
 
-      // 5. Dispatch XP_AWARD jobs
-      // Base XP always awarded
-      await xpAwardQueue.add("xp-base", {
-        userId,
-        challengeId,
-        challengeSlug,
-        xpAmount: xpGain.baseXP,
-        action: "challenge_completed",
-        description: `Completed ${difficulty} challenge`,
-      } satisfies XpAwardPayload);
-
-      // First challenge bonus
-      if (isFirstChallenge && xpGain.firstChallengeBonus > 0) {
-        await xpAwardQueue.add("xp-first-challenge", {
-          userId,
-          challengeId,
-          challengeSlug,
-          xpAmount: xpGain.firstChallengeBonus,
-          action: "first_challenge",
-          description: "First challenge bonus",
-        } satisfies XpAwardPayload);
-      }
-
-      // Streak bonus
-      if (xpGain.streakBonus > 0) {
-        await xpAwardQueue.add("xp-streak", {
-          userId,
-          challengeId,
-          challengeSlug,
-          xpAmount: xpGain.streakBonus,
-          action: "daily_streak",
-          description: `${currentStreak} day streak bonus`,
-        } satisfies XpAwardPayload);
-      }
+      // 5. Dispatch XP_AWARD jobs in parallel
+      await all({
+        // Base XP always awarded
+        async base() {
+          return xpAwardQueue.add("xp-base", {
+            userId,
+            challengeId,
+            challengeSlug,
+            xpAmount: xpGain.baseXP,
+            action: "challenge_completed",
+            description: `Completed ${difficulty} challenge`,
+          } satisfies XpAwardPayload);
+        },
+        // First challenge bonus
+        async firstChallenge() {
+          if (isFirstChallenge && xpGain.firstChallengeBonus > 0) {
+            return xpAwardQueue.add("xp-first-challenge", {
+              userId,
+              challengeId,
+              challengeSlug,
+              xpAmount: xpGain.firstChallengeBonus,
+              action: "first_challenge",
+              description: "First challenge bonus",
+            } satisfies XpAwardPayload);
+          }
+        },
+        // Streak bonus
+        async streak() {
+          if (xpGain.streakBonus > 0) {
+            return xpAwardQueue.add("xp-streak", {
+              userId,
+              challengeId,
+              challengeSlug,
+              xpAmount: xpGain.streakBonus,
+              action: "daily_streak",
+              description: `${currentStreak} day streak bonus`,
+            } satisfies XpAwardPayload);
+          }
+        },
+      });
     },
     { connection, concurrency: 5 },
   );
