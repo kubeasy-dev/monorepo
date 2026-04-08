@@ -5,9 +5,13 @@ export const difficulties = [
   { value: "hard", label: "Advanced" },
 ];
 
-export const difficultyLabels: Record<string, string> = Object.fromEntries(
-  difficulties.filter((d) => d.value !== "all").map((d) => [d.value, d.label]),
-);
+import type { ChallengeDifficulty } from "@kubeasy/api-schemas/challenges";
+
+export const difficultyLabels: Record<ChallengeDifficulty, string> = {
+  easy: "Beginner",
+  medium: "Intermediate",
+  hard: "Advanced",
+};
 
 const githubOwner = "kubeasy-dev";
 

@@ -16,9 +16,12 @@ export function ChallengesQuickStartCTA() {
     setMounted(true);
   }, []);
 
-  if (!mounted || isPending || session) {
-    return null;
+  // Reserve space during SSR and session loading to avoid layout shift
+  if (!mounted || isPending) {
+    return <div className="mb-8 h-[72px]" />;
   }
+
+  if (session) return null;
 
   return (
     <div className="mb-8 p-4 bg-secondary neo-border-thick neo-shadow flex flex-col sm:flex-row items-center justify-between gap-4">

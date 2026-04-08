@@ -24,6 +24,7 @@ interface RouterContext {
 function NotFoundPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+      <title>404 — Page Not Found | Kubeasy</title>
       <div className="neo-border-thick neo-shadow bg-secondary p-10 max-w-md w-full">
         <p className="text-6xl font-black text-primary mb-4">404</p>
         <h1 className="text-2xl font-black mb-3">Page Not Found</h1>

@@ -55,7 +55,7 @@ function renderRichText(items: RichTextItem[]): React.ReactNode {
       );
     }
 
-    return <span key={i}>{content}</span>;
+    return <span key={`${item.plain_text}-${i}`}>{content}</span>;
   });
 }
 

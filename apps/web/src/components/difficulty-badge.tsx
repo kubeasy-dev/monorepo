@@ -31,7 +31,7 @@ export function DifficultyBadge({
         difficultySizes[size],
       )}
     >
-      {difficultyLabels[difficulty] ?? difficulty}
+      {difficultyLabels[difficulty]}
     </Badge>
   );
 }
