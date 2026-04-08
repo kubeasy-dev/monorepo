@@ -43,7 +43,7 @@ export default async function Page(props: PageProps<"/[[...slug]]">) {
     path: path,
   });
 
-  const markdownUrl = `${page.url}.mdx`;
+  const markdownUrl = `/docs${page.url}.mdx`;
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>

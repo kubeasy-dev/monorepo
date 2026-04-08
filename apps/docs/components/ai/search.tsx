@@ -122,10 +122,13 @@ export function AISearchInput(props: ComponentProps<"form">) {
     () => localStorage.getItem(StorageKeyInput) ?? "",
   );
   const isLoading = status === "streaming" || status === "submitted";
+  const submittingRef = useRef(false);
   const onStart = (e?: SyntheticEvent) => {
     e?.preventDefault();
+    if (submittingRef.current) return;
     const message = input.trim();
     if (message.length === 0) return;
+    submittingRef.current = true;
 
     void sendMessage({
       role: "user",
@@ -148,6 +151,7 @@ export function AISearchInput(props: ComponentProps<"form">) {
 
   useEffect(() => {
     if (isLoading) document.getElementById("nd-ai-input")?.focus();
+    else submittingRef.current = false;
   }, [isLoading]);
 
   return (
@@ -308,7 +312,7 @@ function Message({
       >
         {roleName[message.role] ?? "unknown"}
       </p>
-      <div className="prose text-sm">
+      <div className="prose text-sm break-words">
         <Markdown text={markdown} />
       </div>
 
