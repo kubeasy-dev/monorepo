@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Calendar, ChevronLeft, Clock } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { AuthorCard } from "@/components/author-card";
@@ -17,7 +17,10 @@ export const Route = createFileRoute("/blog/$slug")({
       "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
   }),
   loader: async ({ context: { queryClient }, params }) => {
-    await queryClient.ensureQueryData(blogPostDetailOptions(params.slug));
+    const data = await queryClient.ensureQueryData(
+      blogPostDetailOptions(params.slug),
+    );
+    if (!data) throw notFound();
   },
   component: BlogArticlePage,
 });
@@ -244,6 +247,10 @@ function BlockItem({ block }: { block: NotionBlock }) {
 function BlogArticlePage() {
   const { slug } = Route.useParams();
   const { data } = useSuspenseQuery(blogPostDetailOptions(slug));
+
+  // The loader already throws notFound() when data is null, so this is unreachable at runtime
+  if (!data) return null;
+
   const { post, relatedPosts } = data;
 
   const wordCount = post.blocks

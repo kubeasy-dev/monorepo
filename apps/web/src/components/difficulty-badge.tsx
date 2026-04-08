@@ -1,5 +1,6 @@
 import type { ChallengeDifficulty } from "@kubeasy/api-schemas/challenges";
 import { Badge } from "@kubeasy/ui/badge";
+import { difficultyLabels } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 const difficultyColors: Record<ChallengeDifficulty, string> = {
@@ -25,12 +26,12 @@ export function DifficultyBadge({
     <Badge
       variant="outline"
       className={cn(
-        "capitalize border-black neo-border",
+        "border-black neo-border",
         difficultyColors[difficulty],
         difficultySizes[size],
       )}
     >
-      {difficulty}
+      {difficultyLabels[difficulty] ?? difficulty}
     </Badge>
   );
 }

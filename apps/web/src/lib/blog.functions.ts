@@ -17,12 +17,15 @@ export const fetchBlogPostDetailFn = createServerFn({ method: "GET" })
   .handler(
     async ({
       data: slug,
-    }): Promise<{ post: BlogPostWithContent; relatedPosts: BlogPost[] }> => {
+    }): Promise<{
+      post: BlogPostWithContent;
+      relatedPosts: BlogPost[];
+    } | null> => {
       const [post, allPosts] = await Promise.all([
         getBlogPostWithContent(slug),
         getBlogPosts(),
       ]);
-      if (!post) throw new Error(`Blog post not found: ${slug}`);
+      if (!post) return null;
       const relatedPosts = await getRelatedBlogPosts(post, 3, allPosts);
       return { post, relatedPosts };
     },

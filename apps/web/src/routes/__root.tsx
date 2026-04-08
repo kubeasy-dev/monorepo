@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import {
   createRootRouteWithContext,
   HeadContent,
+  Link,
   Outlet,
   Scripts,
   useRouterState,
@@ -20,7 +21,28 @@ interface RouterContext {
   queryClient: QueryClient;
 }
 
+function NotFoundPage() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+      <div className="neo-border-thick neo-shadow bg-secondary p-10 max-w-md w-full">
+        <p className="text-6xl font-black text-primary mb-4">404</p>
+        <h1 className="text-2xl font-black mb-3">Page Not Found</h1>
+        <p className="text-muted-foreground font-medium mb-8">
+          The page you're looking for doesn't exist or has been moved.
+        </p>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 font-bold neo-border hover:translate-x-0.5 hover:translate-y-0.5 transition-transform"
+        >
+          Back to Home
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export const Route = createRootRouteWithContext<RouterContext>()({
+  notFoundComponent: NotFoundPage,
   head: () => ({
     meta: [
       { charSet: "utf-8" },

@@ -5,6 +5,10 @@ export const difficulties = [
   { value: "hard", label: "Advanced" },
 ];
 
+export const difficultyLabels: Record<string, string> = Object.fromEntries(
+  difficulties.filter((d) => d.value !== "all").map((d) => [d.value, d.label]),
+);
+
 const githubOwner = "kubeasy-dev";
 
 export const siteConfig = {

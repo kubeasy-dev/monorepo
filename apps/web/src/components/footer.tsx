@@ -12,7 +12,7 @@ export function Footer() {
             <Link to="/" className="flex items-center gap-2">
               <Image
                 src="/logo.png"
-                alt={siteConfig.name}
+                alt=""
                 width={32}
                 height={32}
                 className="h-8 w-8"
@@ -134,6 +134,7 @@ export function Footer() {
               href={siteConfig.links.github}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="GitHub"
               className="hover:text-primary transition-colors"
             >
               <Github className="h-5 w-5" />
@@ -142,6 +143,7 @@ export function Footer() {
               href={siteConfig.links.twitter}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="X (Twitter)"
               className="hover:text-primary transition-colors"
             >
               <Twitter className="h-5 w-5" />
