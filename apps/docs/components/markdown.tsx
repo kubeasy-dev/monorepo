@@ -108,11 +108,23 @@ export function Markdown({ text }: { text: string }) {
   );
 }
 
+const MAX_CACHE = 100;
 const cache = new Map<string, Promise<ReactNode>>();
 
-function Renderer({ text }: { text: string }) {
-  const result = cache.get(text) ?? processor.process(text);
-  cache.set(text, result);
+function setCache(key: string, value: Promise<ReactNode>) {
+  // Map preserves insertion order; deleting the first entry gives FIFO eviction
+  if (cache.size >= MAX_CACHE) {
+    const firstKey = cache.keys().next().value;
+    if (firstKey !== undefined) cache.delete(firstKey);
+  }
+  cache.set(key, value);
+}
 
+function Renderer({ text }: { text: string }) {
+  let result = cache.get(text);
+  if (!result) {
+    result = processor.process(text);
+    setCache(text, result);
+  }
   return use(result);
 }

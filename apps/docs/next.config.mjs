@@ -7,7 +7,6 @@ const config = {
   basePath: "/docs",
   output: "standalone",
   reactStrictMode: true,
-  typescript: { ignoreBuildErrors: true },
   async rewrites() {
     return [
       {

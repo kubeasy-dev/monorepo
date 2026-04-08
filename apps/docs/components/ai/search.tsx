@@ -250,7 +250,6 @@ function List(props: Omit<ComponentProps<"div">, "dir">) {
 }
 
 function Input(props: ComponentProps<"textarea">) {
-  const ref = useRef<HTMLDivElement>(null);
   const shared = cn("col-start-1 row-start-1", props.className);
 
   return (
@@ -263,7 +262,7 @@ function Input(props: ComponentProps<"textarea">) {
           shared,
         )}
       />
-      <div ref={ref} className={cn(shared, "break-all invisible")}>
+      <div className={cn(shared, "break-all invisible")}>
         {`${props.value?.toString() ?? ""}\n`}
       </div>
     </div>
@@ -272,7 +271,7 @@ function Input(props: ComponentProps<"textarea">) {
 
 const roleName: Record<string, string> = {
   user: "you",
-  assistant: "fumadocs",
+  assistant: "Kubeasy AI",
 };
 
 function Message({
@@ -511,5 +510,6 @@ export function useAISearchContext() {
 }
 
 function useChatContext() {
-  return use(Context)?.chat;
+  // biome-ignore lint/style/noNonNullAssertion: always called within AISearch provider
+  return use(Context)!.chat;
 }
