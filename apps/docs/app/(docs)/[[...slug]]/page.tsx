@@ -8,6 +8,7 @@ import {
 } from "fumadocs-ui/page";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { LLMCopyButton, ViewOptions } from "@/components/ai/page-actions";
 import { GitHubLink } from "@/components/github-link";
 import { getPageImage, source } from "@/lib/source";
 import { getMDXComponents } from "@/mdx-components";
@@ -42,11 +43,13 @@ export default async function Page(props: PageProps<"/[[...slug]]">) {
     path: path,
   });
 
+  const markdownUrl = `${page.url}.mdx`;
+
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
-      <div className="flex flex-row gap-2 items-center mb-8 border-b pb-6">
+      <div className="flex flex-row flex-wrap gap-2 items-center mb-8 border-b pb-6">
         <span className="text-sm text-muted-foreground">
           Last updated:{" "}
           {time
@@ -59,6 +62,11 @@ export default async function Page(props: PageProps<"/[[...slug]]">) {
         </span>
         <GitHubLink
           url={`https://github.com/kubeasy-dev/monorepo/blob/${branch}/${path}`}
+        />
+        <LLMCopyButton markdownUrl={markdownUrl} />
+        <ViewOptions
+          markdownUrl={markdownUrl}
+          githubUrl={`https://github.com/kubeasy-dev/monorepo/blob/${branch}/${path}`}
         />
       </div>
       <DocsBody>
