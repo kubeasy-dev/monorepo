@@ -1,4 +1,4 @@
-import { getGithubLastEdit } from "fumadocs-core/content/github";
+import { ViewOptionsPopover } from "fumadocs-ui/layouts/docs/page";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 import {
   DocsBody,
@@ -8,8 +8,7 @@ import {
 } from "fumadocs-ui/page";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { LLMCopyButton, ViewOptions } from "@/components/ai/page-actions";
-import { GitHubLink } from "@/components/github-link";
+import { MarkdownCopyButton } from "@/components/ai/page-actions";
 import { getPageImage, source } from "@/lib/source";
 import { getMDXComponents } from "@/mdx-components";
 
@@ -34,39 +33,19 @@ export default async function Page(props: PageProps<"/[[...slug]]">) {
 
   const MDX = page.data.body;
 
-  const path = `/apps/docs/content/docs/${page.path}`;
+  const owner = "kubeasy-dev";
+  const repo = "monorepo";
   const branch = "main";
-  const time = await getGithubLastEdit({
-    owner: "kubeasy-dev",
-    repo: "monorepo",
-    sha: branch,
-    path: path,
-  });
-
-  const markdownUrl = `/docs${page.url}.mdx`;
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
-      <div className="flex flex-row flex-wrap gap-2 items-center mb-8 border-b pb-6">
-        <span className="text-sm text-muted-foreground">
-          Last updated:{" "}
-          {time
-            ? new Date(time).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })
-            : "Unknown"}
-        </span>
-        <GitHubLink
-          url={`https://github.com/kubeasy-dev/monorepo/blob/${branch}/${path}`}
-        />
-        <LLMCopyButton markdownUrl={markdownUrl} />
-        <ViewOptions
-          markdownUrl={markdownUrl}
-          githubUrl={`https://github.com/kubeasy-dev/monorepo/blob/${branch}/${path}`}
+      <div className="flex flex-row flex-wrap gap-2 items-center border-b pb-6">
+        <MarkdownCopyButton markdownUrl={`${page.url}.mdx`} />
+        <ViewOptionsPopover
+          markdownUrl={`/docs/${page.url}.mdx`}
+          githubUrl={`https://github.com/${owner}/${repo}/blob/${branch}/docs/content/docs/${page.path}`}
         />
       </div>
       <DocsBody>
