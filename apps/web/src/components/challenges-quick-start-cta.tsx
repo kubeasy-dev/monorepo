@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { ArrowRight, Terminal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -31,13 +30,13 @@ export function ChallengesQuickStartCTA() {
           New to Kubeasy? Follow our setup guide to start your first challenge.
         </span>
       </div>
-      <Link
-        to="/get-started"
+      <a
+        href="/docs/user/getting-started"
         className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 font-bold neo-border hover:translate-x-0.5 hover:translate-y-0.5 transition-transform whitespace-nowrap"
       >
-        Try Free Demo
+        Get Started
         <ArrowRight className="h-4 w-4" />
-      </Link>
+      </a>
     </div>
   );
 }

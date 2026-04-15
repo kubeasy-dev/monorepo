@@ -6,6 +6,7 @@ import { HeroSection } from "@/components/hero-section";
 import { HowItWorksSection } from "@/components/how-it-works-section";
 import { OpenSourceSection } from "@/components/open-source-section";
 import { StatsSection } from "@/components/stats-section";
+import { VideoSection } from "@/components/video-section";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -16,6 +17,7 @@ function HomePage() {
     <div className="min-h-screen">
       <HeroSection />
       <StatsSection />
+      <VideoSection />
       <FeaturesSection />
       <HowItWorksSection />
       <OpenSourceSection />

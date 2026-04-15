@@ -82,10 +82,10 @@ export function Header() {
                   Sign In
                 </Link>
                 <a
-                  href="/get-started"
+                  href="/docs/user/getting-started"
                   className="inline-flex items-center justify-center h-7 gap-1 rounded-lg px-2.5 text-sm font-bold neo-border neo-shadow bg-primary text-primary-foreground"
                 >
-                  Try Demo
+                  Get Started
                 </a>
               </>
             )}

@@ -1,9 +1,9 @@
 export function StatsSection() {
   const stats = [
     {
-      value: "100%",
-      label: "Free & Open Source",
-      description: "No paywalls, ever",
+      value: "10+",
+      label: "Real Challenges",
+      description: "And growing every week",
     },
     {
       value: "Local",

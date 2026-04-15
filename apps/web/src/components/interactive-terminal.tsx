@@ -36,11 +36,11 @@ const terminalSequences = [
     ],
   },
   {
-    command: "kubectl edit pod nginx-pod",
+    command: "kubectl set image deployment/nginx-pod nginx=nginx:1.25",
     outputs: [
-      "# Edit the pod configuration...",
-      "✓ Pod updated successfully",
-      "✓ Pod is now running!",
+      "deployment.apps/nginx-pod image updated",
+      "✓ Pod restarting with correct image...",
+      "✓ Pod is now Running",
     ],
   },
   {

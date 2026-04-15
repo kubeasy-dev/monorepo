@@ -123,6 +123,7 @@ export function HowItWorksSection() {
             className="relative w-full text-left"
             onMouseEnter={() => setIsAutoPlaying(false)}
             onMouseLeave={() => setIsAutoPlaying(true)}
+            // biome-ignore lint/a11y/useSemanticElements: carousel wrapper needs role="group" without fieldset semantics
             role="group"
             aria-label="Interactive steps carousel"
           >
@@ -205,7 +206,7 @@ export function HowItWorksSection() {
 
           <div className="text-center mt-16">
             <a
-              href="/get-started"
+              href="/docs/user/getting-started"
               className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-md font-black text-lg neo-border neo-shadow hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
             >
               Start Your First Challenge

@@ -25,6 +25,10 @@ export function HeroSection() {
               <span className="text-primary">Learn Kubernetes.</span>
             </h1>
 
+            <p className="text-xl md:text-2xl font-black">
+              Real Kubernetes challenges, on your own cluster.
+            </p>
+
             <p className="text-lg md:text-xl font-medium leading-relaxed max-w-xl">
               Practice Kubernetes through real scenarios on your own machine —
               from building clean workloads to fixing broken configs and
@@ -33,7 +37,7 @@ export function HeroSection() {
 
             <div className="flex flex-wrap gap-4">
               <a
-                href="/get-started"
+                href="/docs/user/getting-started"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md font-black text-lg neo-border neo-shadow hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
               >
                 Get Started

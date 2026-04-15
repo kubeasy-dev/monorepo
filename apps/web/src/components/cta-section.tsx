@@ -1,5 +1,5 @@
-import { ArrowRight } from "lucide-react";
 import { Button } from "@kubeasy/ui/button";
+import { ArrowRight } from "lucide-react";
 import { siteConfig } from "@/lib/constants";
 
 export function CTASection() {
@@ -21,7 +21,7 @@ export function CTASection() {
                 className="text-base font-bold bg-white text-primary hover:bg-white/90 neo-border-thick neo-shadow-lg"
                 asChild
               >
-                <a href="/get-started">
+                <a href="/docs/user/getting-started">
                   Get Started
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </a>
