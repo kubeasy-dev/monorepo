@@ -43,7 +43,6 @@ processors:
       span:
         - 'attributes["http.method"] == "HEAD"'
         - 'attributes["http.request.method"] == "HEAD"'
-        - 'attributes["http.target"] == "/favicon.ico"'
         - 'IsMatch(attributes["http.target"], ".*\\.(js|css|png|svg|ico|woff2|jpg|jpeg|map)$")'
         - 'IsMatch(attributes["url.path"], ".*\\.(js|css|png|svg|ico|woff2|jpg|jpeg|map)$")'
 
