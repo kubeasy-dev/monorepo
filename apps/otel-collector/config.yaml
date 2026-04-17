@@ -27,6 +27,15 @@ processors:
     timeout: 2s
     override: false
 
+  spanmetrics:
+    metrics_exporter: otlphttp/grafana_cloud
+    latency_histogram_buckets: [1ms, 5ms, 10ms, 20ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
+    dimensions:
+      - name: db.system
+      - name: db.operation
+      - name: db.statement
+      - name: service.name
+
   transform/correlation:
     error_mode: ignore
     log_statements:
@@ -72,7 +81,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, resourcedetection, filter/healthcheck, transform/postgres, transform/redis, batch]
+      processors: [memory_limiter, resourcedetection, filter/healthcheck, transform/postgres, transform/redis, spanmetrics, batch]
       exporters: [debug, otlphttp/grafana_cloud]
     metrics:
       receivers: [otlp]
