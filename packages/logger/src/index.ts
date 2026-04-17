@@ -16,17 +16,10 @@ function getPino(): Logger {
   if (isDev) {
     pinoInstance = pino({ level }, PinoPretty({ colorize: true, sync: true }));
   } else {
-    // In production, send logs to the OTel collector via OTLP
-    // The transport is now externalized in tsup config to avoid path issues
-    pinoInstance = pino(
-      { level },
-      pino.transport({
-        target: "pino-opentelemetry-transport",
-        options: {
-          messageKey: "message",
-        },
-      }),
-    );
+    // Standard JSON logging in production
+    // The OTel instrumentation will automatically intercept and correlate logs
+    // if configured with recordLog: true or similar options
+    pinoInstance = pino({ level });
   }
 
   return pinoInstance;

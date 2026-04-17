@@ -8,7 +8,6 @@ export default defineConfig({
   splitting: true,
   clean: true,
   shims: true,
-  external: ["pino-opentelemetry-transport"],
   // Bundle les packages internes workspace (leurs sources .ts)
   noExternal: ["@kubeasy/api-schemas", "@kubeasy/jobs", "@kubeasy/logger"],
   // Injecte createRequire pour que les deps CJS (pino, etc.) puissent utiliser dynamic require() dans le bundle ESM
