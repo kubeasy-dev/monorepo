@@ -17,18 +17,15 @@ function getPino(): Logger {
     pinoInstance = pino({ level }, PinoPretty({ colorize: true, sync: true }));
   } else {
     // In production, send logs to the OTel collector via OTLP
-    // Using a direct target reference to help bundlers/runtime resolution
-    const transport = pino.transport({
-      targets: [
-        {
-          target: "pino-opentelemetry-transport",
-          options: {
-            messageKey: "message",
-          },
+    pinoInstance = pino(
+      { level },
+      pino.transport({
+        target: "pino-opentelemetry-transport",
+        options: {
+          messageKey: "message",
         },
-      ],
-    });
-    pinoInstance = pino({ level }, transport);
+      }),
+    );
   }
 
   return pinoInstance;
