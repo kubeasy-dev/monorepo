@@ -13,13 +13,18 @@ let pinoInstance: Logger | null = null;
 function getPino(): Logger {
   if (pinoInstance) return pinoInstance;
 
-  pinoInstance = isDev
-    ? pino({ level }, PinoPretty({ colorize: true, sync: true }))
-    : pino({
-        level,
-        // The instrumentation will automatically add trace_id and span_id
-        // if configured correctly in instrumentation.ts
-      });
+  if (isDev) {
+    pinoInstance = pino({ level }, PinoPretty({ colorize: true, sync: true }));
+  } else {
+    // In production, send logs to the OTel collector via OTLP
+    const transport = pino.transport({
+      target: "pino-opentelemetry-transport",
+      options: {
+        messageKey: "message",
+      },
+    });
+    pinoInstance = pino({ level }, transport);
+  }
 
   return pinoInstance;
 }
