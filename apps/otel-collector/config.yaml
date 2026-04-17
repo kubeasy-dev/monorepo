@@ -37,14 +37,6 @@ processors:
     timeout: 2s
     override: false
 
-  transform/correlation:
-    error_mode: ignore
-    log_statements:
-      - context: log
-        statements:
-          - set(attributes["loki.resource.labels"], "service_name, deployment_environment")
-          - set(attributes["service_name"], resource.attributes["service.name"])
-
   transform/postgres:
     error_mode: ignore
     trace_statements:
@@ -52,14 +44,6 @@ processors:
         statements:
           - replace_pattern(attributes["db.statement"], "\\d+", "?") where attributes["db.system"] == "postgresql"
           - replace_pattern(attributes["db.statement"], "'[^']*'", "?") where attributes["db.system"] == "postgresql"
-
-  transform/redis:
-    error_mode: ignore
-    trace_statements:
-      - context: span
-        statements:
-          - replace_pattern(attributes["db.statement"], ":[a-f0-9-]{20,}", ":?") where attributes["db.system"] == "redis"
-          - replace_pattern(attributes["db.statement"], ":\\d+", ":?") where attributes["db.system"] == "redis"
 
   filter/healthcheck:
     error_mode: ignore
@@ -81,7 +65,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, resourcedetection, filter/healthcheck, transform/postgres, transform/redis, batch]
+      processors: [memory_limiter, resourcedetection, filter/healthcheck, transform/postgres, batch]
       exporters: [debug, otlphttp/grafana_cloud, spanmetrics]
     metrics:
       receivers: [otlp, spanmetrics]
@@ -89,5 +73,5 @@ service:
       exporters: [debug, otlphttp/grafana_cloud]
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, resourcedetection, transform/correlation, batch]
+      processors: [memory_limiter, resourcedetection, batch]
       exporters: [debug, otlphttp/grafana_cloud]
