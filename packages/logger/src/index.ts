@@ -17,6 +17,7 @@ function getPino(): Logger {
     pinoInstance = pino({ level }, PinoPretty({ colorize: true, sync: true }));
   } else {
     // In production, send logs to the OTel collector via OTLP
+    // The transport is now externalized in tsup config to avoid path issues
     pinoInstance = pino(
       { level },
       pino.transport({
