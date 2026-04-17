@@ -1,4 +1,6 @@
 extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
   basicauth/grafana_cloud:
     client_auth:
       username: "${env:GRAFANA_CLOUD_INSTANCE_ID}"
@@ -56,10 +58,7 @@ processors:
         - 'attributes["http.target"] == "/healthz"'
         - 'attributes["http.target"] == "/api/healthz"'
 
-exporters:
-  debug:
-    verbosity: detailed
-  
+exporters:  
   otlphttp/grafana_cloud:
     endpoint: "${env:GRAFANA_CLOUD_OTLP_ENDPOINT}"
     auth:
@@ -71,12 +70,12 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, resourcedetection, filter/healthcheck, transform/postgres, transform/redis, batch]
-      exporters: [debug, otlphttp/grafana_cloud]
+      exporters: [otlphttp/grafana_cloud]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, resourcedetection, batch]
-      exporters: [debug, otlphttp/grafana_cloud]
+      exporters: [otlphttp/grafana_cloud]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, resourcedetection, transform/correlation, batch]
-      exporters: [debug, otlphttp/grafana_cloud]
+      exporters: [otlphttp/grafana_cloud]

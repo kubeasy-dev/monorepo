@@ -6,3 +6,4 @@ COPY ${CONFIG_PATH} /etc/otelcol/config.yaml
 
 EXPOSE 4317
 EXPOSE 4318
+EXPOSE 13133
