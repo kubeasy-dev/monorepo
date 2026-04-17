@@ -1,5 +1,5 @@
 import { logger as kubeasyLogger } from "@kubeasy/logger";
-import { context, propagation, trace } from "@opentelemetry/api";
+import { context, trace } from "@opentelemetry/api";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger as honoLogger } from "hono/logger";
@@ -12,17 +12,12 @@ const app = new Hono();
 
 // Custom OTel Middleware for better correlation
 app.use("*", async (c, next) => {
-  const carrier = c.req.header();
-  const parentContext = propagation.extract(context.active(), carrier);
-
-  return context.with(parentContext, async () => {
-    const span = trace.getSpan(context.active());
-    if (span) {
-      // Annotate existing span with Hono info
-      span.setAttribute("http.route", c.req.path);
-    }
-    await next();
-  });
+  const span = trace.getSpan(context.active());
+  if (span) {
+    // Annotate existing span with Hono info
+    span.setAttribute("http.route", c.req.path);
+  }
+  await next();
 });
 
 // CORS before everything (Better Auth reads Origin header)

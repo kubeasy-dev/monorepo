@@ -40,8 +40,11 @@ const sdk = new NodeSDK({
     new RuntimeNodeInstrumentation(),
     new PgInstrumentation({
       enhancedDatabaseReporting: true,
+      requireParentSpan: true, // Force les spans DB à être enfants d'une span existante (ex: HTTP)
     }),
-    new IORedisInstrumentation(),
+    new IORedisInstrumentation({
+      requireParentSpan: true,
+    }),
     new BullMQInstrumentation(),
     new PinoInstrumentation({
       logKeys: {
