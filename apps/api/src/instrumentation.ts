@@ -1,9 +1,4 @@
 import { BullMQInstrumentation } from "@appsignal/opentelemetry-instrumentation-bullmq";
-import { DiagConsoleLogger, DiagLogLevel, diag } from "@opentelemetry/api";
-
-// Enable diagnostics for troubleshooting
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
-
 import { W3CTraceContextPropagator } from "@opentelemetry/core";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
@@ -34,12 +29,16 @@ const sdk = new NodeSDK({
   resourceDetectors: [envDetector, processDetector],
   textMapPropagator: new W3CTraceContextPropagator(),
   traceExporter: new OTLPTraceExporter({ url: `${otlpEndpoint}/v1/traces` }),
-  logRecordProcessor: new BatchLogRecordProcessor(
-    new OTLPLogExporter({ url: `${otlpEndpoint}/v1/logs` }),
-  ),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter({ url: `${otlpEndpoint}/v1/metrics` }),
-  }),
+  logRecordProcessors: [
+    new BatchLogRecordProcessor(
+      new OTLPLogExporter({ url: `${otlpEndpoint}/v1/logs` }),
+    ),
+  ],
+  metricReaders: [
+    new PeriodicExportingMetricReader({
+      exporter: new OTLPMetricExporter({ url: `${otlpEndpoint}/v1/metrics` }),
+    }),
+  ],
   instrumentations: [
     new HttpInstrumentation(),
     new RuntimeNodeInstrumentation(),

@@ -1,4 +1,3 @@
-import { logger as kubeasyLogger } from "@kubeasy/logger";
 import { context, trace } from "@opentelemetry/api";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -31,10 +30,7 @@ app.use(
   }),
 );
 
-app.use(
-  "*",
-  honoLogger((str) => kubeasyLogger.info(str)),
-);
+app.use("*", honoLogger());
 
 // Session middleware on all /api routes (sets c.var.user, c.var.session)
 app.use("/api/*", sessionMiddleware);

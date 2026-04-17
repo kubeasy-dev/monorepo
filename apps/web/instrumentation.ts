@@ -29,12 +29,16 @@ const sdk = new NodeSDK({
   resourceDetectors: [envDetector, processDetector],
   textMapPropagator: new W3CTraceContextPropagator(),
   traceExporter: new OTLPTraceExporter({ url: `${endpoint}/v1/traces` }),
-  logRecordProcessor: new BatchLogRecordProcessor(
-    new OTLPLogExporter({ url: `${endpoint}/v1/logs` }),
-  ),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter({ url: `${endpoint}/v1/metrics` }),
-  }),
+  logRecordProcessors: [
+    new BatchLogRecordProcessor(
+      new OTLPLogExporter({ url: `${endpoint}/v1/logs` }),
+    ),
+  ],
+  metricReaders: [
+    new PeriodicExportingMetricReader({
+      exporter: new OTLPMetricExporter({ url: `${endpoint}/v1/metrics` }),
+    }),
+  ],
   instrumentations: [
     new HttpInstrumentation(),
     new RuntimeNodeInstrumentation(),
