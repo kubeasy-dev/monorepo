@@ -37,6 +37,13 @@ processors:
     timeout: 2s
     override: false
 
+  transform/correlation:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["loki.resource.labels"], "service.name, deployment.environment")
+
   filter/noisy_requests:
     error_mode: ignore
     traces:
@@ -82,5 +89,5 @@ service:
       exporters: [debug, otlphttp/grafana_cloud]
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, resourcedetection, batch]
+      processors: [memory_limiter, resourcedetection, transform/correlation, batch]
       exporters: [debug, otlphttp/grafana_cloud]
