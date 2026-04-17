@@ -18,9 +18,12 @@ logger.info("Database migrations applied");
 const port = Number(process.env.PORT ?? 3001);
 
 // Capture server reference for graceful shutdown
-const server = serve({ fetch: app.fetch, port }, (info) => {
-  logger.info(`Kubeasy API running on http://localhost:${info.port}`);
-});
+const server = serve(
+  { fetch: app.fetch, port, hostname: "0.0.0.0" },
+  (info) => {
+    logger.info(`Kubeasy API running on http://${info.address}:${info.port}`);
+  },
+);
 
 // Instantiate BullMQ workers
 const workers = [

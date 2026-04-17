@@ -3,9 +3,15 @@
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
 import { PinoInstrumentation } from "@opentelemetry/instrumentation-pino";
+import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
 import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
-import { resourceFromAttributes } from "@opentelemetry/resources";
+import {
+  envDetector,
+  processDetector,
+  resourceFromAttributes,
+} from "@opentelemetry/resources";
 import { BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
@@ -19,6 +25,7 @@ const sdk = new NodeSDK({
     "service.version": process.env.npm_package_version ?? "0.0.0",
     "deployment.environment": process.env.NODE_ENV ?? "development",
   }),
+  resourceDetectors: [envDetector, processDetector],
   traceExporter: new OTLPTraceExporter({ url: `${endpoint}/v1/traces` }),
   logRecordProcessor: new BatchLogRecordProcessor(
     new OTLPLogExporter({ url: `${endpoint}/v1/logs` }),
@@ -26,7 +33,12 @@ const sdk = new NodeSDK({
   metricReader: new PeriodicExportingMetricReader({
     exporter: new OTLPMetricExporter({ url: `${endpoint}/v1/metrics` }),
   }),
-  instrumentations: [new UndiciInstrumentation(), new PinoInstrumentation()],
+  instrumentations: [
+    new HttpInstrumentation(),
+    new RuntimeNodeInstrumentation(),
+    new UndiciInstrumentation(),
+    new PinoInstrumentation(),
+  ],
 });
 
 sdk.start();

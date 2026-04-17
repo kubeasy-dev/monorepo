@@ -1,0 +1,82 @@
+extensions:
+  basicauth/grafana_cloud:
+    client_auth:
+      username: "${env:GRAFANA_CLOUD_INSTANCE_ID}"
+      password: "${env:GRAFANA_CLOUD_API_KEY}"
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+  
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 2s
+    override: false
+
+  transform/correlation:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["loki.resource.labels"], "service.name, deployment.environment")
+
+  transform/postgres:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - replace_pattern(attributes["db.statement"], "\\d+", "?") where attributes["db.system"] == "postgresql"
+          - replace_pattern(attributes["db.statement"], "'[^']*'", "?") where attributes["db.system"] == "postgresql"
+
+  transform/redis:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          # Normalise Redis (remplace les IDs dans les clés par ?)
+          - replace_pattern(attributes["db.statement"], ":[a-f0-9-]{20,}", ":?") where attributes["db.system"] == "redis"
+          - replace_pattern(attributes["db.statement"], ":\\d+", ":?") where attributes["db.system"] == "redis"
+
+  filter/healthcheck:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["http.target"] == "/healthz"'
+        - 'attributes["http.target"] == "/api/healthz"'
+
+exporters:
+  debug:
+    verbosity: detailed
+  
+  otlphttp/grafana_cloud:
+    endpoint: "${env:GRAFANA_CLOUD_OTLP_ENDPOINT}"
+    auth:
+      authenticator: basicauth/grafana_cloud
+
+service:
+  extensions: [basicauth/grafana_cloud]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, filter/healthcheck, transform/postgres, transform/redis, batch]
+      exporters: [debug, otlphttp/grafana_cloud]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [debug, otlphttp/grafana_cloud]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, transform/correlation, batch]
+      exporters: [debug, otlphttp/grafana_cloud]

@@ -51,13 +51,24 @@ import type {
 import type { Theme, ThemeListOutput } from "@kubeasy/api-schemas/themes";
 import type { XpTransaction } from "@kubeasy/api-schemas/xp";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+const API_BASE =
+  typeof window !== "undefined"
+    ? ""
+    : (() => {
+        const base =
+          typeof process !== "undefined" && process.env.VITE_API_URL
+            ? process.env.VITE_API_URL
+            : (import.meta.env.VITE_API_URL ?? "http://api:3001");
+        return base.replace(/\/api\/auth$/, "");
+      })();
 
 export async function apiFetch<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const url = `${API_BASE}/api${path}`;
+  // Ensure path starts with /
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const url = `${API_BASE}/api${normalizedPath}`;
 
   const headers: Record<string, string> = {
     ...(init.headers as Record<string, string>),
@@ -71,7 +82,6 @@ export async function apiFetch<T>(
   // `credentials: "include"` is a browser-only feature and has no effect in Node.js.
   const cookie = await getSSRCookie();
   if (cookie) headers.Cookie = cookie;
-
   const res = await fetch(url, {
     ...init,
     headers,

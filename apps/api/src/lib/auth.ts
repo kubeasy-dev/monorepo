@@ -12,7 +12,7 @@ import { redisConfig } from "./redis";
 const userSignupQueue = createQueue(QUEUE_NAMES.USER_SIGNUP, redisConfig);
 
 export const auth = betterAuth({
-  baseURL: env.API_URL,
+  baseURL: `${env.API_URL}/api/auth`,
   trustedOrigins: allowedOrigins,
   database: drizzleAdapter(db, {
     provider: "pg",

@@ -28,6 +28,18 @@ services:
       timeout: 5s
       retries: 5
 
+  otel-collector:
+    build:
+      context: ./apps/otel-collector
+      args:
+        - CONFIG_PATH=config.dev.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    depends_on:
+      - postgres
+      - redis
+
 volumes:
   postgres_data:
   redis_data:

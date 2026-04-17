@@ -11,6 +11,13 @@
 		respond "OK" 200
 	}
 
+	# OTLP Proxy — Exposes the collector to the browser via the main domain to avoid CORS
+	@otlp path /instrumentation/*
+	handle @otlp {
+		uri strip_prefix /instrumentation
+		reverse_proxy {$OTEL_COLLECTOR_UPSTREAM:otel-collector:4318}
+	}
+
 	# API routes — SSE requires immediate flush for real-time validation updates
 	@api path /api /api/*
 	handle @api {

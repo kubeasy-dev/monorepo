@@ -1,4 +1,10 @@
+import { metrics } from "@opentelemetry/api";
 import { redis } from "./redis";
+
+const meter = metrics.getMeter("kubeasy-api-cache");
+const cacheCounter = meter.createCounter("cache.operations", {
+  description: "Count of cache operations (hits, misses, errors)",
+});
 
 export const TTL = {
   STATIC: 3600, // 1 hour  — themes, types
@@ -36,9 +42,19 @@ export function cacheKey(
 
 /** Get a cached value. Returns null on miss or parse error. */
 export async function cacheGet<T>(key: string): Promise<T | null> {
-  const raw = await redis.get(key);
-  if (!raw) return null;
-  return JSON.parse(raw) as T;
+  const base = key.split(":")[1] || "unknown";
+  try {
+    const raw = await redis.get(key);
+    if (!raw) {
+      cacheCounter.add(1, { status: "miss", key_prefix: base });
+      return null;
+    }
+    cacheCounter.add(1, { status: "hit", key_prefix: base });
+    return JSON.parse(raw) as T;
+  } catch (_error) {
+    cacheCounter.add(1, { status: "error", key_prefix: base });
+    return null;
+  }
 }
 
 /** Set a cached value with a mandatory TTL in seconds. */
@@ -47,12 +63,16 @@ export async function cacheSet(
   data: unknown,
   ttlSeconds: number,
 ): Promise<void> {
+  const base = key.split(":")[1] || "unknown";
   await redis.set(key, JSON.stringify(data), "EX", ttlSeconds);
+  cacheCounter.add(1, { status: "set", key_prefix: base });
 }
 
 /** Delete a single cache key. */
 export async function cacheDel(key: string): Promise<void> {
+  const base = key.split(":")[1] || "unknown";
   await redis.del(key);
+  cacheCounter.add(1, { status: "del", key_prefix: base });
 }
 
 /**
