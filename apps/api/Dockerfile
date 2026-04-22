@@ -1,4 +1,4 @@
-FROM ghcr.io/kubeasy-dev/app-docker-base@sha256:e43a3402c16c6838ae842e22efe65921123a9a7c99c30f7a2a731648df11be21 AS base
+FROM ghcr.io/kubeasy-dev/app-docker-base@sha256:0155518e82c5ee74e4393d234d1e370fc22c45983fb18e87407cc4d00b1b9097 AS base
 
 FROM ghcr.io/kubeasy-dev/app-docker-builder@sha256:2b5a10bdf5c39bf4f366e7a93710ef847a9b1eae46a3e5ea7162a4f4c25a4d9e AS builder
 
