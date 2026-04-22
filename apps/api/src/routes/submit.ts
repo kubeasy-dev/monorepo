@@ -158,20 +158,35 @@ submit.post(
           ),
         );
 
-      // 7b. Always store submission (with attempt number and audit events)
-      await tx.insert(userSubmission).values({
-        id: nanoid(),
-        userId,
-        challengeId: challengeData.id,
-        validated,
-        objectives,
-        attemptNumber: nextAttempt,
-        auditEvents: auditEvents ?? null,
-      });
+      // 7b. Always store submission (with attempt number and audit events).
+      // The unique index on (user_id, challenge_id, attempt_number) guards against
+      // concurrent submits racing on the same MAX — catch PG error 23505 and return
+      // 409 so the caller retries rather than seeing an unhandled 500.
+      try {
+        await tx.insert(userSubmission).values({
+          id: nanoid(),
+          userId,
+          challengeId: challengeData.id,
+          validated,
+          objectives,
+          attemptNumber: nextAttempt,
+          auditEvents: auditEvents ?? null,
+        });
+      } catch (err: unknown) {
+        if (
+          typeof err === "object" &&
+          err !== null &&
+          "code" in err &&
+          (err as { code: string }).code === "23505"
+        ) {
+          return { conflict: true, progressUpdated: false, failed: false };
+        }
+        throw err;
+      }
 
       // 7c. If validation failed, no progress update needed
       if (!validated) {
-        return { progressUpdated: false, failed: true };
+        return { conflict: false, progressUpdated: false, failed: true };
       }
 
       // 7d. Atomic progress update (race guard)
@@ -207,8 +222,16 @@ submit.post(
         progressUpdated = inserted.length > 0;
       }
 
-      return { progressUpdated, failed: false };
+      return { conflict: false, progressUpdated, failed: false };
     });
+
+    // 7.5: Concurrent submit conflict — unique index on attempt_number fired
+    if (txResult.conflict) {
+      return c.json(
+        { error: "Concurrent submission detected, please retry" },
+        409,
+      );
+    }
 
     // 7.5 Track submission with outcome (fire-and-forget)
     const failedObjectives = objectives.filter((obj) => !obj.passed);

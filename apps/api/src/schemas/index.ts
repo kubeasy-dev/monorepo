@@ -28,7 +28,7 @@ export const objectiveSchema = z.object({
 });
 
 export const auditEventSchema = z.object({
-  timestamp: z.string().datetime(),
+  timestamp: z.string().datetime({ offset: true }),
   verb: z.string().max(64),
   resource: z.string().max(128),
   subresource: z.string().max(128).optional(),
