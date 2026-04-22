@@ -44,7 +44,7 @@ services:
       - redis
 
   otel-gui:
-    image: ghcr.io/metafab/otel-gui:latest
+    image: ghcr.io/metafab/otel-gui:latest@sha256:31da568518fddda2a6b9cbcb7c67183f805c8c432f4ab47e27d73c34392ba0ba
     environment:
       - PORT=55681
     ports:
