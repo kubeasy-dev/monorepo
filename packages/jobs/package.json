@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "bullmq": "5.71.0"
+    "bullmq": "5.74.1"
   },
   "devDependencies": {
     "@kubeasy/typescript-config": "workspace:*",
