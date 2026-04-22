@@ -1,4 +1,4 @@
-FROM caddy:builder AS caddy-builder
+FROM caddy:builder@sha256:10ed0251c5cd1dbb4db0b71ad43121147961a51adfec35febce2c93ea25c24f4 AS caddy-builder
 
 ARG CADDY_PLUGINS=
 
@@ -24,7 +24,7 @@ ENV VITE_API_URL=$VITE_API_URL
 
 RUN turbo run build --filter=@kubeasy/admin
 
-FROM caddy:alpine AS runner
+FROM caddy:alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d AS runner
 
 COPY --from=caddy-builder /usr/local/bin/caddy-custom /usr/bin/caddy
 COPY apps/caddy/Caddyfile /etc/caddy/Caddyfile
