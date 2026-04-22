@@ -21,14 +21,14 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.6",
     "@types/node": "24.12.0",
-    "@vitest/ui": "4.1.0",
+    "@vitest/ui": "4.1.4",
     "dotenv-cli": "11.0.0",
     "husky": "9.1.7",
     "knip": "5.86.0",
     "lint-staged": "16.3.3",
     "turbo": "2.8.17",
     "typescript": "5.9.3",
-    "vitest": "4.1.0"
+    "vitest": "4.1.4"
   },
   "packageManager": "pnpm@10.32.1",
   "lint-staged": {
@@ -41,9 +41,13 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@prisma/engines",
       "@tailwindcss/oxide",
-      "core-js",
       "esbuild",
+      "msgpackr-extract",
+      "msw",
+      "prisma",
+      "protobufjs",
       "sharp",
       "unrs-resolver"
     ]

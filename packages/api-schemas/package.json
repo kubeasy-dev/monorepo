@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@kubeasy/typescript-config": "workspace:*",
+    "@vitest/ui": "4.1.4",
     "typescript": "5.9.3",
     "vitest": "4.1.4"
   },
