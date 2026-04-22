@@ -6,6 +6,7 @@ import {
   index,
   integer,
   json,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -138,20 +139,40 @@ export const userProgress = pgTable(
   ],
 );
 
-export const userSubmission = pgTable("user_submission", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  challengeId: integer("challenge_id")
-    .notNull()
-    .references(() => challenge.id, { onDelete: "cascade" }),
-  timestamp: timestamp("timestamp").defaultNow().notNull(),
-  validated: boolean("validated").notNull().default(false),
-  // Objectives: flat list of validation results enriched from challengeObjective table
-  // Structure: {id, name, description, passed, category, message}[]
-  objectives: json("objectives"),
-});
+export const userSubmission = pgTable(
+  "user_submission",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    challengeId: integer("challenge_id")
+      .notNull()
+      .references(() => challenge.id, { onDelete: "cascade" }),
+    timestamp: timestamp("timestamp").defaultNow().notNull(),
+    validated: boolean("validated").notNull().default(false),
+    // Objectives: flat list of validation results enriched from challengeObjective table
+    // Structure: {id, name, description, passed, category, message}[]
+    objectives: json("objectives"),
+    // Attempt number: increments per (userId, challengeId) across all submissions
+    attemptNumber: integer("attempt_number").notNull(),
+    // Raw kubectl audit events captured by the CLI during the attempt
+    auditEvents: jsonb("audit_events"),
+  },
+  (table) => [
+    // Unique constraint prevents duplicate attempt numbers and serves as a race guard
+    uniqueIndex("user_submission_user_challenge_attempt_idx").on(
+      table.userId,
+      table.challengeId,
+      table.attemptNumber,
+    ),
+    // Index for MAX(attempt_number) query in submit handler
+    index("user_submission_user_challenge_idx").on(
+      table.userId,
+      table.challengeId,
+    ),
+  ],
+);
 
 export const xpActionEnum = pgEnum("xp_action", [
   "challenge_completed",

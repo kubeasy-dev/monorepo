@@ -2,8 +2,9 @@ import { zValidator } from "@hono/zod-validator";
 import { queryKeys } from "@kubeasy/api-schemas/query-keys";
 import { createQueue, QUEUE_NAMES } from "@kubeasy/jobs";
 import { logger } from "@kubeasy/logger";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { nanoid } from "nanoid";
 import { db } from "../db/index";
 import {
@@ -37,12 +38,13 @@ submit.post(
   "/:slug/submit",
   requireAuth,
   submitRateLimit,
+  bodyLimit({ maxSize: 1024 * 1024 }), // 1 MB
   zValidator("json", submitBodySchema),
   async (c) => {
     const user = c.get("user");
     const userId = user.id;
     const challengeSlug = c.req.param("slug");
-    const { results } = c.req.valid("json");
+    const { results, auditEvents } = c.req.valid("json");
 
     // 1. Find challenge by slug
     const [challengeData] = await db
@@ -138,14 +140,98 @@ submit.post(
     // 6. Determine validation result
     const validated = results.every((r) => r.passed);
 
-    // 7. Always store submission
-    await db.insert(userSubmission).values({
-      id: nanoid(),
-      userId,
-      challengeId: challengeData.id,
-      validated,
-      objectives,
+    // 7. Transaction: store submission + progress update atomically
+    const txResult = await db.transaction(async (tx) => {
+      // 7a. Compute next attempt_number for this (userId, challengeId).
+      // The CLI is the only submit client and concurrent submits from one user are
+      // practically impossible, so MAX+1 is safe. The UNIQUE index on
+      // (user_id, challenge_id, attempt_number) is a hard guard if that assumption breaks.
+      const [{ nextAttempt }] = await tx
+        .select({
+          nextAttempt: sql<number>`COALESCE(MAX(${userSubmission.attemptNumber}), 0) + 1`,
+        })
+        .from(userSubmission)
+        .where(
+          and(
+            eq(userSubmission.userId, userId),
+            eq(userSubmission.challengeId, challengeData.id),
+          ),
+        );
+
+      // 7b. Always store submission (with attempt number and audit events).
+      // The unique index on (user_id, challenge_id, attempt_number) guards against
+      // concurrent submits racing on the same MAX — catch PG error 23505 and return
+      // 409 so the caller retries rather than seeing an unhandled 500.
+      try {
+        await tx.insert(userSubmission).values({
+          id: nanoid(),
+          userId,
+          challengeId: challengeData.id,
+          validated,
+          objectives,
+          attemptNumber: nextAttempt,
+          auditEvents: auditEvents ?? null,
+        });
+      } catch (err: unknown) {
+        if (
+          typeof err === "object" &&
+          err !== null &&
+          "code" in err &&
+          (err as { code: string }).code === "23505"
+        ) {
+          return { conflict: true, progressUpdated: false, failed: false };
+        }
+        throw err;
+      }
+
+      // 7c. If validation failed, no progress update needed
+      if (!validated) {
+        return { conflict: false, progressUpdated: false, failed: true };
+      }
+
+      // 7d. Atomic progress update (race guard)
+      let progressUpdated: boolean;
+      if (existingProgress) {
+        const updated = await tx
+          .update(userProgress)
+          .set({
+            status: "completed",
+            completedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(userProgress.id, existingProgress.id),
+              ne(userProgress.status, "completed"),
+            ),
+          )
+          .returning({ id: userProgress.id });
+        progressUpdated = updated.length > 0;
+      } else {
+        const inserted = await tx
+          .insert(userProgress)
+          .values({
+            id: nanoid(),
+            userId,
+            challengeId: challengeData.id,
+            status: "completed",
+            completedAt: new Date(),
+          })
+          .onConflictDoNothing()
+          .returning({ id: userProgress.id });
+        progressUpdated = inserted.length > 0;
+      }
+
+      return { conflict: false, progressUpdated, failed: false };
     });
+
+    // 7.5: Concurrent submit conflict — unique index on attempt_number fired
+    if (txResult.conflict) {
+      return c.json(
+        { error: "Concurrent submission detected, please retry" },
+        409,
+      );
+    }
 
     // 7.5 Track submission with outcome (fire-and-forget)
     const failedObjectives = objectives.filter((obj) => !obj.passed);
@@ -172,7 +258,7 @@ submit.post(
       queryKey: queryKeys.submissions.latest(challengeSlug),
     });
     redis.publish(sseChannel, ssePayload).catch((err) => {
-      console.error("Failed to publish SSE event", {
+      logger.error("[submit] SSE publish failed", {
         channel: sseChannel,
         error: String(err),
       });
@@ -180,11 +266,13 @@ submit.post(
 
     // Invalidate all server-side user caches (progress, xp, streak, challenge list)
     cacheDelPattern(`cache:u:${userId}:*`).catch((err) => {
-      console.error("[submit] cache invalidation failed", err);
+      logger.error("[submit] cache invalidation failed", {
+        error: String(err),
+      });
     });
 
     // 8. If validation failed, return failure response
-    if (!validated) {
+    if (txResult.failed) {
       return c.json({
         success: false,
         objectives,
@@ -196,47 +284,12 @@ submit.post(
       });
     }
 
-    // 9. Atomic progress update (race guard)
-    let progressUpdated: boolean;
-    if (existingProgress) {
-      // Only update if not already completed — if RETURNING is empty, race was lost
-      const updated = await db
-        .update(userProgress)
-        .set({
-          status: "completed",
-          completedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(userProgress.id, existingProgress.id),
-            ne(userProgress.status, "completed"),
-          ),
-        )
-        .returning({ id: userProgress.id });
-      progressUpdated = updated.length > 0;
-    } else {
-      // onConflictDoNothing + unique index catches concurrent inserts
-      const inserted = await db
-        .insert(userProgress)
-        .values({
-          id: nanoid(),
-          userId,
-          challengeId: challengeData.id,
-          status: "completed",
-          completedAt: new Date(),
-        })
-        .onConflictDoNothing()
-        .returning({ id: userProgress.id });
-      progressUpdated = inserted.length > 0;
-    }
-
-    // 10. If race was lost, return early
-    if (!progressUpdated) {
+    // 9. If race was lost, return early
+    if (!txResult.progressUpdated) {
       return c.json({ success: true, objectives });
     }
 
-    // 11. Dispatch CHALLENGE_SUBMISSION BullMQ job (fire-and-forget)
+    // 10. Dispatch CHALLENGE_SUBMISSION BullMQ job (fire-and-forget)
     challengeSubmissionQueue
       .add("challenge-completed", {
         userId,
@@ -245,10 +298,12 @@ submit.post(
         difficulty: challengeData.difficulty,
       })
       .catch((err) => {
-        console.error("[submit] challenge-submission job dispatch failed", err);
+        logger.error("[submit] challenge-submission job dispatch failed", {
+          error: String(err),
+        });
       });
 
-    // 12. Return success response
+    // 11. Return success response
     return c.json({ success: true, objectives });
   },
 );

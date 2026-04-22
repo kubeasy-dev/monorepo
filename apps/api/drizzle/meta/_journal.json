@@ -15,6 +15,13 @@
       "when": 1775146377211,
       "tag": "0001_brainy_kree",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776871608465,
+      "tag": "0002_kind_wiccan",
+      "breakpoints": true
     }
   ]
 }

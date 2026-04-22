@@ -27,12 +27,25 @@ export const objectiveSchema = z.object({
   message: z.string().optional(),
 });
 
+export const auditEventSchema = z.object({
+  timestamp: z.string().datetime({ offset: true }),
+  verb: z.string().max(64),
+  resource: z.string().max(128),
+  subresource: z.string().max(128).optional(),
+  name: z.string().max(253).optional(), // k8s name max length
+  namespace: z.string().max(63).optional(), // k8s namespace max length
+  userAgent: z.string().max(512).optional(),
+  responseCode: z.number().int().min(100).max(599).optional(),
+});
+
 export const submitBodySchema = z.object({
   results: z.array(objectiveResultSchema).min(1),
+  auditEvents: z.array(auditEventSchema).max(10_000).optional(),
 });
 
 export type ObjectiveResult = z.infer<typeof objectiveResultSchema>;
 export type Objective = z.infer<typeof objectiveSchema>;
+export type AuditEvent = z.infer<typeof auditEventSchema>;
 export type SubmitBody = z.infer<typeof submitBodySchema>;
 
 // ---- Challenge list filters ----

@@ -70,33 +70,22 @@ jobs:
           git config --local user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
           git config --local user.email "${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
 
-      - name: Squash existing branch migrations
+      - name: Check for existing branch migrations
+        id: check-migrations
         run: |
           BASE=${{ github.base_ref }}
-
-          # Find .sql migration files added on this branch (not in base)
           ADDED_SQL=$(git diff origin/$BASE...HEAD --name-only --diff-filter=A -- 'apps/api/drizzle/*.sql')
-
           if [ -n "$ADDED_SQL" ]; then
-            echo "Found existing branch migrations, squashing:"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Existing branch migrations found — skipping generation to preserve manual SQL:"
             echo "$ADDED_SQL"
-
-            # Remove added SQL files
-            echo "$ADDED_SQL" | xargs rm -f
-
-            # Remove corresponding snapshot files
-            ADDED_SNAPSHOTS=$(git diff origin/$BASE...HEAD --name-only --diff-filter=A -- 'apps/api/drizzle/meta/*_snapshot.json')
-            if [ -n "$ADDED_SNAPSHOTS" ]; then
-              echo "$ADDED_SNAPSHOTS" | xargs rm -f
-            fi
-
-            # Reset _journal.json to base state so the next generate picks the right index
-            git checkout origin/$BASE -- apps/api/drizzle/meta/_journal.json
           else
-            echo "No existing branch migrations found, generating fresh."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "No existing branch migrations found, will generate."
           fi
 
       - name: Generate migration
+        if: steps.check-migrations.outputs.exists != 'true'
         working-directory: apps/api
         run: pnpm db:generate
 
