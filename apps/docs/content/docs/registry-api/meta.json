@@ -1,0 +1,7 @@
+{
+  "title": "Registry's OpenAPI",
+  "description": "View the OpenAPI schema for Kubeasy's registry",
+  "root": true,
+  "icon": "Shapes",
+  "pages": ["...(generated)"]
+}

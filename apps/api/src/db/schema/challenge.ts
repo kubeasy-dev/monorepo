@@ -1,6 +1,3 @@
-import { challengeDifficultyValues } from "@kubeasy/api-schemas/challenges";
-import { asDrizzleEnum } from "@kubeasy/api-schemas/drizzle";
-import { objectiveTypeValues } from "@kubeasy/api-schemas/objectives";
 import {
   boolean,
   index,
@@ -16,83 +13,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
-export const challengeTheme = pgTable("challenge_theme", {
-  slug: text("slug").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description").notNull(),
-  logo: text("logo"),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdate(() => /* @__PURE__ */ new Date())
-    .notNull(),
-});
-
-export const challengeType = pgTable("challenge_type", {
-  slug: text("slug").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description").notNull(),
-  logo: text("logo"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdate(() => /* @__PURE__ */ new Date())
-    .notNull(),
-});
-
-export const challengeDifficultyEnum = pgEnum(
-  "challenge_difficulty",
-  asDrizzleEnum(challengeDifficultyValues),
-);
-
-export const challenge = pgTable(
-  "challenge",
-  {
-    id: serial("id").primaryKey(),
-    slug: text("slug").unique().notNull(),
-    title: text("title").notNull(),
-    description: text("description").notNull(),
-    theme: text("theme")
-      .notNull()
-      .references(() => challengeTheme.slug, { onDelete: "cascade" }),
-    difficulty: challengeDifficultyEnum("difficulty").notNull(),
-    typeSlug: text("type")
-      .notNull()
-      .default("fix")
-      .references(() => challengeType.slug, { onDelete: "restrict" }),
-    estimatedTime: integer("estimated_time").notNull(),
-    initialSituation: text("initial_situation").notNull(),
-    ofTheWeek: boolean("of_the_week").default(false).notNull(),
-    starterFriendly: boolean("starter_friendly").default(false).notNull(),
-    available: boolean("available").default(true).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    // Index pour le filtre par difficulté
-    index("challenge_difficulty_idx").on(table.difficulty),
-    // Index pour le filtre par thème
-    index("challenge_theme_idx").on(table.theme),
-    // Index pour le filtre par type
-    index("challenge_type_idx").on(table.typeSlug),
-    // Index composite pour filtres combinés (thème + difficulté)
-    index("challenge_theme_difficulty_idx").on(table.theme, table.difficulty),
-    // Index pour la recherche par titre avec ILIKE
-    index("challenge_title_idx").on(table.title),
-    // Index pour le tri par date de création (utilisé dans getLatest)
-    index("challenge_created_at_idx").on(table.createdAt),
-    // Index pour les challenges starter-friendly
-    index("challenge_starter_friendly_idx").on(table.starterFriendly),
-    // Index composite pour le filtre de disponibilité (used in all public queries)
-    index("challenge_available_difficulty_idx").on(
-      table.available,
-      table.difficulty,
-    ),
-  ],
-);
-
 export const challengeStatusEnum = pgEnum("challenge_status", [
   "not_started",
   "in_progress",
@@ -106,9 +26,7 @@ export const userProgress = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    challengeId: integer("challenge_id")
-      .notNull()
-      .references(() => challenge.id, { onDelete: "cascade" }),
+    challengeSlug: text("challenge_slug").notNull(),
     status: challengeStatusEnum("status").notNull().default("not_started"),
     startedAt: timestamp("started_at").defaultNow().notNull(),
     completedAt: timestamp("completed_at"),
@@ -118,22 +36,17 @@ export const userProgress = pgTable(
       .notNull(),
   },
   (table) => [
-    // Unique constraint to prevent duplicate progress rows and enable onConflictDoNothing
     uniqueIndex("user_progress_user_challenge_unique_idx").on(
       table.userId,
-      table.challengeId,
+      table.challengeSlug,
     ),
-    // Index composite critique pour la requête des challenges complétés par utilisateur
-    // Utilisé dans la requête: WHERE userId = ? AND status = 'completed'
     index("user_progress_user_status_challenge_idx").on(
       table.userId,
       table.status,
-      table.challengeId,
+      table.challengeSlug,
     ),
-    // Index composite pour le LEFT JOIN et le COUNT dans la requête principale
-    // Utilisé pour: LEFT JOIN userProgress ON challenge.id = userProgress.challengeId
     index("user_progress_challenge_status_idx").on(
-      table.challengeId,
+      table.challengeSlug,
       table.status,
     ),
   ],
@@ -146,30 +59,22 @@ export const userSubmission = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    challengeId: integer("challenge_id")
-      .notNull()
-      .references(() => challenge.id, { onDelete: "cascade" }),
+    challengeSlug: text("challenge_slug").notNull(),
     timestamp: timestamp("timestamp").defaultNow().notNull(),
     validated: boolean("validated").notNull().default(false),
-    // Objectives: flat list of validation results enriched from challengeObjective table
-    // Structure: {id, name, description, passed, category, message}[]
     objectives: json("objectives"),
-    // Attempt number: increments per (userId, challengeId) across all submissions
     attemptNumber: integer("attempt_number").notNull(),
-    // Raw kubectl audit events captured by the CLI during the attempt
     auditEvents: jsonb("audit_events"),
   },
   (table) => [
-    // Unique constraint prevents duplicate attempt numbers and serves as a race guard
     uniqueIndex("user_submission_user_challenge_attempt_idx").on(
       table.userId,
-      table.challengeId,
+      table.challengeSlug,
       table.attemptNumber,
     ),
-    // Index for MAX(attempt_number) query in submit handler
     index("user_submission_user_challenge_idx").on(
       table.userId,
-      table.challengeId,
+      table.challengeSlug,
     ),
   ],
 );
@@ -182,7 +87,6 @@ export const xpActionEnum = pgEnum("xp_action", [
   "bonus",
 ]);
 
-// Table to store user's total XP
 export const userXp = pgTable(
   "user_xp",
   {
@@ -195,51 +99,7 @@ export const userXp = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [
-    // Index pour les requêtes de classement
-    index("user_xp_total_xp_idx").on(table.totalXp),
-  ],
-);
-
-// Table to store XP transaction history
-export const objectiveCategoryEnum = pgEnum(
-  "objective_category",
-  asDrizzleEnum(objectiveTypeValues),
-);
-
-// Table to store challenge objectives (parsed from validation CRDs)
-export const challengeObjective = pgTable(
-  "challenge_objective",
-  {
-    id: serial("id").primaryKey(),
-    challengeId: integer("challenge_id")
-      .notNull()
-      .references(() => challenge.id, { onDelete: "cascade" }),
-    // The CRD name (e.g., "app-ready-check") - used as unique key within challenge
-    objectiveKey: text("objective_key").notNull(),
-    // Human-readable title from annotation kubeasy.dev/title
-    title: text("title").notNull(),
-    // Description from annotation kubeasy.dev/description (required)
-    description: text("description").notNull(),
-    // Validation category (status, log, event, etc.)
-    category: objectiveCategoryEnum("category").notNull(),
-    // Order for display (based on file order or explicit annotation)
-    displayOrder: integer("display_order").notNull().default(0),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    // Unique constraint: one objective per key per challenge
-    uniqueIndex("challenge_objective_challenge_key_idx").on(
-      table.challengeId,
-      table.objectiveKey,
-    ),
-    // Index for fetching all objectives for a challenge
-    index("challenge_objective_challenge_id_idx").on(table.challengeId),
-  ],
+  (table) => [index("user_xp_total_xp_idx").on(table.totalXp)],
 );
 
 export const userXpTransaction = pgTable(
@@ -251,16 +111,12 @@ export const userXpTransaction = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     action: xpActionEnum("action").notNull(),
     xpAmount: integer("xp_amount").notNull(),
-    challengeId: integer("challenge_id").references(() => challenge.id, {
-      onDelete: "set null",
-    }),
+    challengeSlug: text("challenge_slug"),
     description: text("description"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    // Index pour récupérer l'historique d'un utilisateur
     index("user_xp_transaction_user_id_idx").on(table.userId),
-    // Index composite pour les requêtes filtrées par action
     index("user_xp_transaction_user_action_idx").on(table.userId, table.action),
   ],
 );

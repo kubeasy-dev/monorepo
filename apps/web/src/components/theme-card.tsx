@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { LucideIcon, type LucideIconName } from "./lucide-icon";
 
@@ -24,11 +23,7 @@ export function ThemeCard({ theme, progress }: ThemeCardProps) {
   const hasProgress = !!progress;
 
   return (
-    <Link
-      to="/themes/$slug"
-      params={{ slug: theme.slug }}
-      className="bg-secondary text-foreground p-8 neo-border-thick neo-shadow-lg hover:neo-shadow-xl hover:-translate-y-1 transition-all group flex flex-col"
-    >
+    <div className="bg-secondary text-foreground p-8 neo-border-thick neo-shadow-lg flex flex-col group">
       {/* Icon */}
       {theme.logo && (
         <div className="mb-6">
@@ -79,6 +74,6 @@ export function ThemeCard({ theme, progress }: ThemeCardProps) {
           </div>
         </>
       )}
-    </Link>
+    </div>
   );
 }

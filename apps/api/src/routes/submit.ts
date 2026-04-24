@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { queryKeys } from "@kubeasy/api-schemas/query-keys";
+import { SubmitBodySchema } from "@kubeasy/api-schemas/submissions";
 import { createQueue, QUEUE_NAMES } from "@kubeasy/jobs";
 import { logger } from "@kubeasy/logger";
 import { and, eq, ne, sql } from "drizzle-orm";
@@ -7,18 +8,13 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { nanoid } from "nanoid";
 import { db } from "../db/index";
-import {
-  challenge,
-  challengeObjective,
-  userProgress,
-  userSubmission,
-} from "../db/schema/index";
+import { userProgress, userSubmission } from "../db/schema/index";
 import { trackChallengeSubmitted } from "../lib/analytics-server";
 import { cacheDelPattern } from "../lib/cache";
 import { redis } from "../lib/redis";
+import { getChallenge } from "../lib/registry";
 import { slidingWindowRateLimit } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/session";
-import { submitBodySchema } from "../schemas/index";
 
 const challengeSubmissionQueue = createQueue(
   QUEUE_NAMES.CHALLENGE_SUBMISSION,
@@ -28,124 +24,72 @@ const challengeSubmissionQueue = createQueue(
 const submit = new Hono();
 
 const submitRateLimit = slidingWindowRateLimit(redis, {
-  windowMs: 10_000, // 10 seconds
-  max: 10, // 10 requests per 10-second window
-  keyFn: (c) => `submit:${c.get("user").id}`,
+  windowMs: 10_000,
+  max: 10,
+  keyFn: (c: any) => `submit:${c.get("user").id}`,
 });
 
-// POST /challenges/:slug/submit -- validate objectives, enrich results, store submission, dispatch BullMQ job
+// POST /challenges/:slug/submit -- trust CLI results, store submission, dispatch BullMQ job
 submit.post(
   "/:slug/submit",
   requireAuth,
   submitRateLimit,
   bodyLimit({ maxSize: 1024 * 1024 }), // 1 MB
-  zValidator("json", submitBodySchema),
+  zValidator("json", SubmitBodySchema),
   async (c) => {
     const user = c.get("user");
     const userId = user.id;
     const challengeSlug = c.req.param("slug");
     const { results, auditEvents } = c.req.valid("json");
 
-    // 1. Find challenge by slug
-    const [challengeData] = await db
-      .select({
-        id: challenge.id,
-        title: challenge.title,
-        difficulty: challenge.difficulty,
-      })
-      .from(challenge)
-      .where(eq(challenge.slug, challengeSlug))
-      .limit(1);
-
-    if (!challengeData) {
+    // 1. Resolve challenge from registry (gets difficulty + objectives for enrichment)
+    const detail = await getChallenge(challengeSlug);
+    if (!detail) {
       return c.json({ error: "Challenge not found" }, 404);
     }
 
-    // 2 & 3. Run independent queries in parallel: check if already completed + fetch objective metadata
-    const [[existingProgress], objectiveMetadata] = await Promise.all([
-      db
-        .select({
-          id: userProgress.id,
-          status: userProgress.status,
-          completedAt: userProgress.completedAt,
-        })
-        .from(userProgress)
-        .where(
-          and(
-            eq(userProgress.userId, userId),
-            eq(userProgress.challengeId, challengeData.id),
-          ),
-        )
-        .limit(1),
-      db
-        .select({
-          objectiveKey: challengeObjective.objectiveKey,
-          title: challengeObjective.title,
-          description: challengeObjective.description,
-          category: challengeObjective.category,
-        })
-        .from(challengeObjective)
-        .where(eq(challengeObjective.challengeId, challengeData.id)),
-    ]);
+    // 2. Check if already completed
+    const [existingProgress] = await db
+      .select({
+        id: userProgress.id,
+        status: userProgress.status,
+        completedAt: userProgress.completedAt,
+      })
+      .from(userProgress)
+      .where(
+        and(
+          eq(userProgress.userId, userId),
+          eq(userProgress.challengeSlug, challengeSlug),
+        ),
+      )
+      .limit(1);
 
     if (existingProgress?.status === "completed") {
       return c.json({ error: "Challenge already completed" }, 409);
     }
 
-    const metadataMap = new Map(
-      objectiveMetadata.map((m) => [m.objectiveKey, m]),
+    // 3. Enrich results with registry objective metadata
+    const objectiveMap = new Map(
+      (detail.objectives ?? []).map((o) => [o.key, o]),
     );
-
-    // 4. Security validation: check for missing and unknown objectives
-    const expectedKeys = new Set(objectiveMetadata.map((m) => m.objectiveKey));
-    const submittedKeys = new Set(results.map((r) => r.objectiveKey));
-
-    // Check for missing objectives (in DB but not in submission)
-    if (expectedKeys.size > 0) {
-      const missingKeys = [...expectedKeys].filter(
-        (key) => !submittedKeys.has(key),
-      );
-      if (missingKeys.length > 0) {
-        return c.json(
-          { error: `Missing required objectives: ${missingKeys.join(", ")}` },
-          422,
-        );
-      }
-    }
-
-    // Check for unknown objectives (in submission but not in DB)
-    const unknownKeys = [...submittedKeys].filter(
-      (key) => !expectedKeys.has(key),
-    );
-    if (unknownKeys.length > 0) {
-      return c.json(
-        { error: `Unknown objectives submitted: ${unknownKeys.join(", ")}` },
-        422,
-      );
-    }
-
-    // 5. Enrich results with metadata
-    const objectives = results.map((result) => {
-      const metadata = metadataMap.get(result.objectiveKey);
+    const objectives = results.map((r) => {
+      const obj = objectiveMap.get(r.objectiveKey);
       return {
-        id: result.objectiveKey,
-        name: metadata?.title ?? result.objectiveKey,
-        description: metadata?.description,
-        passed: result.passed,
-        category: metadata?.category ?? "status",
-        message: result.message ?? "",
+        key: r.objectiveKey,
+        title: obj?.title ?? r.objectiveKey,
+        description: obj?.description,
+        passed: r.passed,
+        category: obj?.type ?? "status",
+        message: r.message ?? "",
       };
     });
 
-    // 6. Determine validation result
+    // 4. Determine validation result (CLI is trusted)
     const validated = results.every((r) => r.passed);
 
-    // 7. Transaction: store submission + progress update atomically
+    // 5. Transaction: store submission + progress update atomically
     const txResult = await db.transaction(async (tx) => {
-      // 7a. Compute next attempt_number for this (userId, challengeId).
-      // The CLI is the only submit client and concurrent submits from one user are
-      // practically impossible, so MAX+1 is safe. The UNIQUE index on
-      // (user_id, challenge_id, attempt_number) is a hard guard if that assumption breaks.
+      // 5a. Compute next attempt number
       const [{ nextAttempt }] = await tx
         .select({
           nextAttempt: sql<number>`COALESCE(MAX(${userSubmission.attemptNumber}), 0) + 1`,
@@ -154,19 +98,16 @@ submit.post(
         .where(
           and(
             eq(userSubmission.userId, userId),
-            eq(userSubmission.challengeId, challengeData.id),
+            eq(userSubmission.challengeSlug, challengeSlug),
           ),
         );
 
-      // 7b. Always store submission (with attempt number and audit events).
-      // The unique index on (user_id, challenge_id, attempt_number) guards against
-      // concurrent submits racing on the same MAX — catch PG error 23505 and return
-      // 409 so the caller retries rather than seeing an unhandled 500.
+      // 5b. Insert submission (unique index on (user_id, challenge_slug, attempt_number) guards races)
       try {
         await tx.insert(userSubmission).values({
           id: nanoid(),
           userId,
-          challengeId: challengeData.id,
+          challengeSlug,
           validated,
           objectives,
           attemptNumber: nextAttempt,
@@ -184,12 +125,11 @@ submit.post(
         throw err;
       }
 
-      // 7c. If validation failed, no progress update needed
       if (!validated) {
         return { conflict: false, progressUpdated: false, failed: true };
       }
 
-      // 7d. Atomic progress update (race guard)
+      // 5c. Atomic progress update (race guard)
       let progressUpdated: boolean;
       if (existingProgress) {
         const updated = await tx
@@ -213,7 +153,7 @@ submit.post(
           .values({
             id: nanoid(),
             userId,
-            challengeId: challengeData.id,
+            challengeSlug,
             status: "completed",
             completedAt: new Date(),
           })
@@ -225,7 +165,6 @@ submit.post(
       return { conflict: false, progressUpdated, failed: false };
     });
 
-    // 7.5: Concurrent submit conflict — unique index on attempt_number fired
     if (txResult.conflict) {
       return c.json(
         { error: "Concurrent submission detected, please retry" },
@@ -233,17 +172,16 @@ submit.post(
       );
     }
 
-    // 7.5 Track submission with outcome (fire-and-forget)
+    // 6. Track submission (fire-and-forget)
     const failedObjectives = objectives.filter((obj) => !obj.passed);
     trackChallengeSubmitted(
       userId,
-      challengeData.id,
       challengeSlug,
       validated,
       failedObjectives.length > 0
         ? {
             count: failedObjectives.length,
-            ids: failedObjectives.map((o) => o.id),
+            ids: failedObjectives.map((o) => o.key),
           }
         : undefined,
     ).catch((err) => {
@@ -252,50 +190,53 @@ submit.post(
       });
     });
 
-    // 7.6 Publish generic cache-invalidation SSE event (fire-and-forget — both validated and not-validated paths)
+    // 7. SSE cache-invalidation (fire-and-forget)
     const sseChannel = `invalidate-cache:${userId}`;
-    const ssePayload = JSON.stringify({
-      queryKey: queryKeys.submissions.latest(challengeSlug),
-    });
-    redis.publish(sseChannel, ssePayload).catch((err) => {
-      logger.error("[submit] SSE publish failed", {
-        channel: sseChannel,
-        error: String(err),
+    redis
+      .publish(
+        sseChannel,
+        JSON.stringify({
+          queryKey: queryKeys.submissions.latest(challengeSlug),
+        }),
+      )
+      .catch((err) => {
+        logger.error("[submit] SSE publish failed", {
+          channel: sseChannel,
+          error: String(err),
+        });
       });
-    });
 
-    // Invalidate all server-side user caches (progress, xp, streak, challenge list)
     cacheDelPattern(`cache:u:${userId}:*`).catch((err) => {
       logger.error("[submit] cache invalidation failed", {
         error: String(err),
       });
     });
 
-    // 8. If validation failed, return failure response
     if (txResult.failed) {
-      return c.json({
-        success: false,
-        objectives,
-        failedObjectives: failedObjectives.map((obj) => ({
-          id: obj.id,
-          name: obj.name,
-          message: obj.message,
-        })),
-      });
+      return c.json(
+        {
+          success: false,
+          objectives,
+          failedObjectives: failedObjectives.map((obj) => ({
+            key: obj.key,
+            title: obj.title,
+            message: obj.message,
+          })),
+        },
+        422,
+      );
     }
 
-    // 9. If race was lost, return early
     if (!txResult.progressUpdated) {
       return c.json({ success: true, objectives });
     }
 
-    // 10. Dispatch CHALLENGE_SUBMISSION BullMQ job (fire-and-forget)
+    // 8. Dispatch CHALLENGE_SUBMISSION BullMQ job (fire-and-forget)
     challengeSubmissionQueue
       .add("challenge-completed", {
         userId,
         challengeSlug,
-        challengeId: challengeData.id,
-        difficulty: challengeData.difficulty,
+        difficulty: detail.difficulty,
       })
       .catch((err) => {
         logger.error("[submit] challenge-submission job dispatch failed", {
@@ -303,7 +244,6 @@ submit.post(
         });
       });
 
-    // 11. Return success response
     return c.json({ success: true, objectives });
   },
 );

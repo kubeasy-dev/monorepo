@@ -1,12 +1,12 @@
+import { Badge } from "@kubeasy/ui/badge";
+import { Button } from "@kubeasy/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@kubeasy/ui/card";
+import { Separator } from "@kubeasy/ui/separator";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Clock } from "lucide-react";
 import { ChallengeMission } from "@/components/challenge-mission";
 import { DifficultyBadge } from "@/components/difficulty-badge";
-import { Badge } from "@kubeasy/ui/badge";
-import { Button } from "@kubeasy/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@kubeasy/ui/card";
-import { Separator } from "@kubeasy/ui/separator";
 import {
   challengeDetailOptions,
   challengeObjectivesOptions,
@@ -64,30 +64,18 @@ function ChallengeDetailPage() {
       <div className="space-y-6 mb-8">
         <div className="flex flex-wrap items-center gap-3">
           <DifficultyBadge difficulty={challenge.difficulty} size="lg" />
-          <Link
-            to="/themes/$slug"
-            params={{ slug: challenge.themeSlug }}
-            className="hover:opacity-80 transition-opacity"
+          <Badge
+            variant="secondary"
+            className="capitalize neo-border-thick neo-shadow px-4 py-1.5 text-base font-bold"
           >
-            <Badge
-              variant="secondary"
-              className="capitalize neo-border-thick neo-shadow px-4 py-1.5 text-base font-bold cursor-pointer"
-            >
-              {challenge.theme}
-            </Badge>
-          </Link>
-          <Link
-            to="/types/$slug"
-            params={{ slug: challenge.typeSlug }}
-            className="hover:opacity-80 transition-opacity"
+            {challenge.theme}
+          </Badge>
+          <Badge
+            variant="outline"
+            className="capitalize neo-border-thick neo-shadow px-4 py-1.5 text-base font-bold"
           >
-            <Badge
-              variant="outline"
-              className="capitalize neo-border-thick neo-shadow px-4 py-1.5 text-base font-bold cursor-pointer"
-            >
-              {challenge.type}
-            </Badge>
-          </Link>
+            {challenge.type}
+          </Badge>
           {challenge.ofTheWeek && (
             <Badge className="neo-border-thick neo-shadow px-4 py-1.5 text-base font-bold bg-accent text-black">
               Challenge of the Week

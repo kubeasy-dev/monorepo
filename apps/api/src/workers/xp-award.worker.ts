@@ -13,7 +13,7 @@ export function createXpAwardWorker() {
   return new Worker<XpAwardPayload>(
     QUEUE_NAMES.XP_AWARD,
     async (job) => {
-      const { userId, challengeId, xpAmount, action, description } = job.data;
+      const { userId, challengeSlug, xpAmount, action, description } = job.data;
 
       // 1. Atomic userXp UPSERT (add xpAmount to totalXp)
       await db
@@ -32,7 +32,7 @@ export function createXpAwardWorker() {
         userId,
         action,
         xpAmount,
-        challengeId,
+        challengeSlug,
         description,
       });
 

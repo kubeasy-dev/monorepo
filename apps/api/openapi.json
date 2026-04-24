@@ -1,9 +1,9 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.3",
   "info": {
-    "title": "Kubeasy API",
+    "title": "Kubeasy CLI API",
     "version": "1.0.0",
-    "description": "Public API for the Kubeasy platform. Web routes use session cookie authentication; CLI routes use Bearer token authentication."
+    "description": "Public API for the Kubeasy platform consumed by the CLI. Web routes use session cookie authentication; CLI routes use Bearer token authentication."
   },
   "servers": [
     {
@@ -13,40 +13,6 @@
     {
       "url": "http://localhost:3024",
       "description": "Development"
-    }
-  ],
-  "tags": [
-    {
-      "name": "Challenges",
-      "description": "Challenge catalogue and objectives"
-    },
-    {
-      "name": "Progress",
-      "description": "User progress on challenges"
-    },
-    {
-      "name": "Submissions",
-      "description": "Challenge submission history"
-    },
-    {
-      "name": "User",
-      "description": "User profile and settings"
-    },
-    {
-      "name": "XP",
-      "description": "Experience points, ranking and streaks"
-    },
-    {
-      "name": "Onboarding",
-      "description": "New user onboarding flow"
-    },
-    {
-      "name": "Metadata",
-      "description": "Static reference data (themes, types)"
-    },
-    {
-      "name": "Deprecated",
-      "description": "Legacy CLI routes kept for backward compatibility"
     }
   ],
   "components": {
@@ -67,11 +33,108 @@
     "parameters": {}
   },
   "paths": {
+    "/api/user/me": {
+      "get": {
+        "operationId": "getUserMe",
+        "summary": "Get current user profile",
+        "tags": ["CLI"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "image": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": ["id", "email", "name"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/challenges": {
       "get": {
         "operationId": "listChallenges",
         "summary": "List challenges",
-        "tags": ["Challenges"],
+        "tags": ["CLI"],
         "security": [
           {
             "SessionAuth": []
@@ -117,8 +180,7 @@
           },
           {
             "schema": {
-              "type": "string",
-              "enum": ["true", "false"]
+              "type": "string"
             },
             "required": false,
             "name": "showCompleted",
@@ -138,9 +200,6 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
                           "slug": {
                             "type": "string"
                           },
@@ -175,23 +234,15 @@
                           "ofTheWeek": {
                             "type": "boolean"
                           },
-                          "createdAt": {
-                            "type": ["string", "null"],
-                            "format": "date-time"
-                          },
-                          "updatedAt": {
-                            "type": ["string", "null"],
-                            "format": "date-time"
-                          },
                           "completedCount": {
                             "type": "integer"
                           },
                           "userStatus": {
-                            "type": ["string", "null"]
+                            "type": "string",
+                            "nullable": true
                           }
                         },
                         "required": [
-                          "id",
                           "slug",
                           "title",
                           "description",
@@ -203,8 +254,6 @@
                           "estimatedTime",
                           "initialSituation",
                           "ofTheWeek",
-                          "createdAt",
-                          "updatedAt",
                           "completedCount",
                           "userStatus"
                         ]
@@ -283,7 +332,7 @@
       "get": {
         "operationId": "getChallenge",
         "summary": "Get challenge details",
-        "tags": ["Challenges"],
+        "tags": ["CLI"],
         "security": [],
         "parameters": [
           {
@@ -297,18 +346,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Challenge details, or null if not found or unavailable",
+            "description": "Challenge details",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "challenge": {
-                      "type": ["object", "null"],
+                      "type": "object",
+                      "nullable": true,
                       "properties": {
-                        "id": {
-                          "type": "integer"
-                        },
                         "slug": {
                           "type": "string"
                         },
@@ -348,18 +395,9 @@
                         },
                         "starterFriendly": {
                           "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": ["string", "null"],
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": ["string", "null"],
-                          "format": "date-time"
                         }
                       },
                       "required": [
-                        "id",
                         "slug",
                         "title",
                         "description",
@@ -372,9 +410,7 @@
                         "initialSituation",
                         "ofTheWeek",
                         "available",
-                        "starterFriendly",
-                        "createdAt",
-                        "updatedAt"
+                        "starterFriendly"
                       ]
                     }
                   },
@@ -443,66 +479,69 @@
         }
       }
     },
-    "/api/challenges/{slug}/objectives": {
+    "/api/challenges/meta": {
       "get": {
-        "operationId": "getChallengeObjectives",
-        "summary": "Get challenge objectives",
-        "tags": ["Challenges"],
-        "security": [],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          }
-        ],
+        "operationId": "getChallengeMeta",
+        "summary": "Get challenge metadata (themes, types, difficulties)",
+        "tags": ["CLI"],
         "responses": {
           "200": {
-            "description": "Challenge objectives",
+            "description": "Metadata",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "objectives": {
+                    "themes": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "objectiveKey": {
+                          "slug": {
                             "type": "string"
                           },
-                          "title": {
+                          "name": {
                             "type": "string"
                           },
                           "description": {
                             "type": "string"
                           },
-                          "category": {
+                          "logo": {
                             "type": "string"
-                          },
-                          "displayOrder": {
-                            "type": "integer"
                           }
                         },
-                        "required": [
-                          "id",
-                          "objectiveKey",
-                          "title",
-                          "description",
-                          "category",
-                          "displayOrder"
-                        ]
+                        "required": ["slug", "name", "description", "logo"]
+                      }
+                    },
+                    "types": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "logo": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["slug", "name", "description", "logo"]
+                      }
+                    },
+                    "difficulties": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
                       }
                     }
                   },
-                  "required": ["objectives"]
+                  "required": ["themes", "types", "difficulties"]
                 }
               }
             }
@@ -567,19 +606,11 @@
         }
       }
     },
-    "/api/challenges/{slug}/submit": {
-      "post": {
-        "operationId": "submitChallenge",
-        "summary": "Submit challenge validation results",
-        "tags": ["Challenges"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
+    "/api/challenges/{slug}/yaml": {
+      "get": {
+        "operationId": "getChallengeYaml",
+        "summary": "Get challenge.yaml",
+        "tags": ["CLI"],
         "parameters": [
           {
             "schema": {
@@ -590,132 +621,13 @@
             "in": "path"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "results": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "objectiveKey": {
-                          "type": "string"
-                        },
-                        "passed": {
-                          "type": "boolean"
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["objectiveKey", "passed"]
-                    },
-                    "minItems": 1
-                  },
-                  "auditEvents": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "timestamp": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "verb": {
-                          "type": "string",
-                          "maxLength": 64
-                        },
-                        "resource": {
-                          "type": "string",
-                          "maxLength": 128
-                        },
-                        "subresource": {
-                          "type": "string",
-                          "maxLength": 128
-                        },
-                        "name": {
-                          "type": "string",
-                          "maxLength": 253
-                        },
-                        "namespace": {
-                          "type": "string",
-                          "maxLength": 63
-                        },
-                        "userAgent": {
-                          "type": "string",
-                          "maxLength": 512
-                        },
-                        "responseCode": {
-                          "type": "integer",
-                          "minimum": 100,
-                          "maximum": 599
-                        }
-                      },
-                      "required": ["timestamp", "verb", "resource"]
-                    },
-                    "maxItems": 10000
-                  }
-                },
-                "required": ["results"]
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "All objectives passed",
+            "description": "Raw YAML",
             "content": {
-              "application/json": {
+              "text/plain": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [true]
-                    },
-                    "objectives": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string"
-                          },
-                          "passed": {
-                            "type": "boolean"
-                          },
-                          "category": {
-                            "type": "string",
-                            "enum": [
-                              "status",
-                              "condition",
-                              "log",
-                              "event",
-                              "connectivity",
-                              "rbac",
-                              "spec",
-                              "triggered"
-                            ]
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["id", "name", "passed", "category"]
-                      }
-                    }
-                  },
-                  "required": ["success", "objectives"]
+                  "type": "string"
                 }
               }
             }
@@ -777,113 +689,6 @@
               }
             }
           },
-          "409": {
-            "description": "Challenge already completed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Some objectives failed or missing/unknown objectives",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "success": {
-                          "type": "boolean",
-                          "enum": [false]
-                        },
-                        "objectives": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "description": {
-                                "type": "string"
-                              },
-                              "passed": {
-                                "type": "boolean"
-                              },
-                              "category": {
-                                "type": "string",
-                                "enum": [
-                                  "status",
-                                  "condition",
-                                  "log",
-                                  "event",
-                                  "connectivity",
-                                  "rbac",
-                                  "spec",
-                                  "triggered"
-                                ]
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": ["id", "name", "passed", "category"]
-                          }
-                        },
-                        "failedObjectives": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": ["id", "name", "message"]
-                          }
-                        }
-                      },
-                      "required": ["success", "objectives", "failedObjectives"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        },
-                        "details": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["error"]
-                    }
-                  ]
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -906,87 +711,29 @@
         }
       }
     },
-    "/api/progress/completion": {
+    "/api/challenges/{slug}/manifests": {
       "get": {
-        "operationId": "getCompletion",
-        "summary": "Get challenge completion stats",
-        "tags": ["Progress"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
+        "operationId": "getChallengeManifests",
+        "summary": "Get challenge manifests tar.gz",
+        "tags": ["CLI"],
         "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "enum": ["true", "false"]
-            },
-            "required": false,
-            "name": "splitByTheme",
-            "in": "query"
-          },
           {
             "schema": {
               "type": "string"
             },
-            "required": false,
-            "name": "themeSlug",
-            "in": "query"
+            "required": true,
+            "name": "slug",
+            "in": "path"
           }
         ],
         "responses": {
           "200": {
-            "description": "Completion stats",
+            "description": "Binary data",
             "content": {
-              "application/json": {
+              "application/gzip": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "completedCount": {
-                      "type": "number"
-                    },
-                    "totalCount": {
-                      "type": "number"
-                    },
-                    "percentageCompleted": {
-                      "type": "number"
-                    },
-                    "byTheme": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "themeSlug": {
-                            "type": "string"
-                          },
-                          "completedCount": {
-                            "type": "number"
-                          },
-                          "totalCount": {
-                            "type": "number"
-                          },
-                          "percentageCompleted": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "themeSlug",
-                          "completedCount",
-                          "totalCount",
-                          "percentageCompleted"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "completedCount",
-                    "totalCount",
-                    "percentageCompleted"
-                  ]
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
@@ -1012,6 +759,25 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1055,7 +821,7 @@
       "get": {
         "operationId": "getChallengeStatus",
         "summary": "Get challenge progress",
-        "tags": ["Progress"],
+        "tags": ["CLI"],
         "security": [
           {
             "SessionAuth": []
@@ -1087,11 +853,13 @@
                       "enum": ["not_started", "in_progress", "completed"]
                     },
                     "startedAt": {
-                      "type": ["string", "null"],
+                      "type": "string",
+                      "nullable": true,
                       "format": "date-time"
                     },
                     "completedAt": {
-                      "type": ["string", "null"],
+                      "type": "string",
+                      "nullable": true,
                       "format": "date-time"
                     }
                   },
@@ -1183,7 +951,7 @@
       "post": {
         "operationId": "startChallenge",
         "summary": "Start a challenge",
-        "tags": ["Progress"],
+        "tags": ["CLI"],
         "security": [
           {
             "SessionAuth": []
@@ -1215,7 +983,8 @@
                       "enum": ["in_progress", "completed"]
                     },
                     "startedAt": {
-                      "type": ["string", "null"],
+                      "type": "string",
+                      "nullable": true,
                       "format": "date-time"
                     },
                     "message": {
@@ -1310,7 +1079,7 @@
       "post": {
         "operationId": "resetChallenge",
         "summary": "Reset challenge progress",
-        "tags": ["Progress"],
+        "tags": ["CLI"],
         "security": [
           {
             "SessionAuth": []
@@ -1428,11 +1197,11 @@
         }
       }
     },
-    "/api/submissions/{slug}": {
-      "get": {
-        "operationId": "getSubmissions",
-        "summary": "Get all submissions for a challenge",
-        "tags": ["Submissions"],
+    "/api/challenges/{slug}/submit": {
+      "post": {
+        "operationId": "submitChallenge",
+        "summary": "Submit challenge validation results",
+        "tags": ["CLI"],
         "security": [
           {
             "SessionAuth": []
@@ -1451,214 +1220,102 @@
             "in": "path"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "objectiveKey": {
+                          "type": "string"
+                        },
+                        "passed": {
+                          "type": "boolean"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["objectiveKey", "passed"]
+                    },
+                    "minItems": 1
+                  },
+                  "auditEvents": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "verb": {
+                          "type": "string",
+                          "maxLength": 64
+                        },
+                        "resource": {
+                          "type": "string",
+                          "maxLength": 128
+                        },
+                        "subresource": {
+                          "type": "string",
+                          "maxLength": 128
+                        },
+                        "name": {
+                          "type": "string",
+                          "maxLength": 253
+                        },
+                        "namespace": {
+                          "type": "string",
+                          "maxLength": 63
+                        },
+                        "userAgent": {
+                          "type": "string",
+                          "maxLength": 512
+                        },
+                        "responseCode": {
+                          "type": "integer",
+                          "minimum": 100,
+                          "maximum": 599
+                        }
+                      },
+                      "required": ["timestamp", "verb", "resource"]
+                    },
+                    "maxItems": 10000
+                  }
+                },
+                "required": ["results"]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Submission list",
+            "description": "All objectives passed",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "submissions": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "objectives": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
-                          "id": {
+                          "key": {
                             "type": "string"
                           },
-                          "userId": {
-                            "type": "string"
-                          },
-                          "challengeId": {
-                            "type": "integer"
-                          },
-                          "validated": {
-                            "type": "boolean"
-                          },
-                          "objectives": {
-                            "type": ["array", "null"],
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "string"
-                                },
-                                "name": {
-                                  "type": "string"
-                                },
-                                "description": {
-                                  "type": "string"
-                                },
-                                "passed": {
-                                  "type": "boolean"
-                                },
-                                "category": {
-                                  "type": "string",
-                                  "enum": [
-                                    "status",
-                                    "condition",
-                                    "log",
-                                    "event",
-                                    "connectivity",
-                                    "rbac",
-                                    "spec",
-                                    "triggered"
-                                  ]
-                                },
-                                "message": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": ["id", "name", "passed", "category"]
-                            }
-                          },
-                          "timestamp": {
-                            "type": "string",
-                            "description": "ISO 8601 date string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "userId",
-                          "challengeId",
-                          "validated",
-                          "objectives",
-                          "timestamp"
-                        ]
-                      }
-                    }
-                  },
-                  "required": ["submissions"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/submissions/{slug}/latest": {
-      "get": {
-        "operationId": "getLatestSubmission",
-        "summary": "Get latest submission status for a challenge",
-        "tags": ["Submissions"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Latest submission status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "hasSubmission": {
-                      "type": "boolean"
-                    },
-                    "validated": {
-                      "type": "boolean"
-                    },
-                    "objectives": {
-                      "type": ["array", "null"],
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
+                          "title": {
                             "type": "string"
                           },
                           "description": {
@@ -1684,20 +1341,11 @@
                             "type": "string"
                           }
                         },
-                        "required": ["id", "name", "passed", "category"]
+                        "required": ["key", "title", "passed", "category"]
                       }
-                    },
-                    "timestamp": {
-                      "type": ["string", "null"],
-                      "description": "ISO 8601 date string"
                     }
                   },
-                  "required": [
-                    "hasSubmission",
-                    "validated",
-                    "objectives",
-                    "timestamp"
-                  ]
+                  "required": ["success", "objectives"]
                 }
               }
             }
@@ -1759,8 +1407,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "409": {
+            "description": "Challenge already completed",
             "content": {
               "application/json": {
                 "schema": {
@@ -1777,883 +1425,95 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/api/user/xp": {
-      "get": {
-        "operationId": "getUserXp",
-        "summary": "Get XP and rank info",
-        "tags": ["XP"],
-        "security": [
-          {
-            "SessionAuth": []
           },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "XP and rank",
+          "422": {
+            "description": "Some objectives failed or missing/unknown objectives",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "xpEarned": {
-                      "type": "number"
-                    },
-                    "rank": {
-                      "type": "string"
-                    },
-                    "rankInfo": {
+                  "anyOf": [
+                    {
                       "type": "object",
                       "properties": {
-                        "name": {
+                        "success": {
+                          "type": "boolean",
+                          "enum": [false]
+                        },
+                        "objectives": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "passed": {
+                                "type": "boolean"
+                              },
+                              "category": {
+                                "type": "string",
+                                "enum": [
+                                  "status",
+                                  "condition",
+                                  "log",
+                                  "event",
+                                  "connectivity",
+                                  "rbac",
+                                  "spec",
+                                  "triggered"
+                                ]
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["key", "title", "passed", "category"]
+                          }
+                        },
+                        "failedObjectives": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["key", "title", "message"]
+                          }
+                        }
+                      },
+                      "required": ["success", "objectives", "failedObjectives"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
                           "type": "string"
                         },
-                        "progress": {
-                          "type": "number"
-                        },
-                        "nextRankXp": {
-                          "type": ["number", "null"]
+                        "details": {
+                          "type": "string"
                         }
                       },
-                      "required": ["name", "progress", "nextRankXp"]
+                      "required": ["error"]
                     }
-                  },
-                  "required": ["xpEarned", "rank", "rankInfo"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/user/streak": {
-      "get": {
-        "operationId": "getUserStreak",
-        "summary": "Get current challenge streak",
-        "tags": ["Progress"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Streak info",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "currentStreak": {
-                      "type": "number"
-                    },
-                    "lastActivityDate": {
-                      "type": ["string", "null"]
-                    }
-                  },
-                  "required": ["currentStreak", "lastActivityDate"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/user/name": {
-      "patch": {
-        "operationId": "updateUserName",
-        "summary": "Update user display name",
-        "tags": ["User"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "firstName": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "lastName": {
-                    "type": "string"
-                  }
-                },
-                "required": ["firstName"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Name updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["success", "name"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/user/progress": {
-      "delete": {
-        "operationId": "deleteUserProgress",
-        "summary": "Delete all user progress and XP",
-        "tags": ["User"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Progress deleted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "deletedChallenges": {
-                      "type": "integer"
-                    },
-                    "deletedXp": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": ["success", "deletedChallenges", "deletedXp"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/user/email-topics": {
-      "get": {
-        "operationId": "getEmailTopics",
-        "summary": "List email topics with subscription status",
-        "tags": ["User"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Email topics",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "description": {
-                        "type": ["string", "null"]
-                      },
-                      "defaultSubscription": {
-                        "type": "string"
-                      },
-                      "subscribed": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "name",
-                      "description",
-                      "defaultSubscription",
-                      "subscribed"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/user/email-topics/{topicId}": {
-      "patch": {
-        "operationId": "updateEmailTopic",
-        "summary": "Update email subscription for a topic",
-        "tags": ["User"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "topicId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "subscribed": {
-                    "type": "boolean"
-                  }
-                },
-                "required": ["subscribed"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Subscription updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": ["success"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/xp/history": {
-      "get": {
-        "operationId": "getXpHistory",
-        "summary": "Get last 20 XP transactions",
-        "tags": ["XP"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "XP history",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "action": {
-                        "type": "string"
-                      },
-                      "xpAmount": {
-                        "type": "integer"
-                      },
-                      "description": {
-                        "type": ["string", "null"]
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "description": "ISO 8601 date string"
-                      },
-                      "challengeId": {
-                        "type": ["integer", "null"]
-                      },
-                      "challengeTitle": {
-                        "type": ["string", "null"]
-                      },
-                      "challengeSlug": {
-                        "type": ["string", "null"]
-                      },
-                      "challengeDifficulty": {
-                        "type": ["string", "null"]
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "action",
-                      "xpAmount",
-                      "description",
-                      "createdAt",
-                      "challengeId",
-                      "challengeTitle",
-                      "challengeSlug",
-                      "challengeDifficulty"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/onboarding": {
-      "get": {
-        "operationId": "getOnboarding",
-        "summary": "Get onboarding status",
-        "tags": ["Onboarding"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Onboarding status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "steps": {
-                      "type": "object",
-                      "properties": {
-                        "hasApiToken": {
-                          "type": "boolean"
-                        },
-                        "cliAuthenticated": {
-                          "type": "boolean"
-                        },
-                        "clusterInitialized": {
-                          "type": "boolean"
-                        },
-                        "hasStartedChallenge": {
-                          "type": "boolean"
-                        },
-                        "hasCompletedChallenge": {
-                          "type": "boolean"
-                        }
-                      },
-                      "required": [
-                        "hasApiToken",
-                        "cliAuthenticated",
-                        "clusterInitialized",
-                        "hasStartedChallenge",
-                        "hasCompletedChallenge"
-                      ]
-                    },
-                    "currentStep": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 7
-                    },
-                    "isComplete": {
-                      "type": "boolean"
-                    },
-                    "isSkipped": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "steps",
-                    "currentStep",
-                    "isComplete",
-                    "isSkipped"
                   ]
                 }
               }
             }
           },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -2676,559 +1536,11 @@
         }
       }
     },
-    "/api/onboarding/start": {
+    "/api/cli/track/login": {
       "post": {
-        "operationId": "startOnboarding",
-        "summary": "Start onboarding",
-        "tags": ["Onboarding"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": ["success"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/onboarding/complete": {
-      "post": {
-        "operationId": "completeOnboarding",
-        "summary": "Mark onboarding as completed",
-        "tags": ["Onboarding"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": ["success"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/onboarding/skip": {
-      "post": {
-        "operationId": "skipOnboarding",
-        "summary": "Skip onboarding",
-        "tags": ["Onboarding"],
-        "security": [
-          {
-            "SessionAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": ["success"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/types": {
-      "get": {
-        "operationId": "getTypes",
-        "summary": "List challenge types",
-        "tags": ["Metadata"],
-        "responses": {
-          "200": {
-            "description": "Challenge types",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "slug": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "description": {
-                        "type": "string"
-                      },
-                      "logo": {
-                        "type": ["string", "null"]
-                      }
-                    },
-                    "required": ["slug", "name", "description", "logo"]
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/themes": {
-      "get": {
-        "operationId": "getThemes",
-        "summary": "List challenge themes",
-        "tags": ["Metadata"],
-        "responses": {
-          "200": {
-            "description": "Challenge themes",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "slug": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "description": {
-                        "type": "string"
-                      },
-                      "logo": {
-                        "type": ["string", "null"]
-                      }
-                    },
-                    "required": ["slug", "name", "description", "logo"]
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/cli/user": {
-      "get": {
-        "operationId": "getUser",
-        "summary": "Get current user",
-        "deprecated": true,
-        "tags": ["Deprecated"],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "firstName": {
-                      "type": "string"
-                    },
-                    "lastName": {
-                      "type": ["string", "null"]
-                    }
-                  },
-                  "required": ["firstName", "lastName"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "loginUser",
-        "summary": "Authenticate CLI and track metadata",
-        "deprecated": true,
-        "tags": ["Deprecated"],
+        "operationId": "trackCliLogin",
+        "summary": "Track CLI login and metadata",
+        "tags": ["CLI"],
         "security": [
           {
             "BearerAuth": []
@@ -3258,23 +1570,17 @@
         },
         "responses": {
           "200": {
-            "description": "User profile with first-login flag",
+            "description": "Login tracked",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "firstName": {
-                      "type": "string"
-                    },
-                    "lastName": {
-                      "type": ["string", "null"]
-                    },
                     "firstLogin": {
                       "type": "boolean"
                     }
                   },
-                  "required": ["firstName", "lastName", "firstLogin"]
+                  "required": ["firstLogin"]
                 }
               }
             }
@@ -3343,8 +1649,7 @@
       "post": {
         "operationId": "trackSetup",
         "summary": "Track CLI cluster initialisation",
-        "deprecated": true,
-        "tags": ["Deprecated"],
+        "tags": ["CLI"],
         "security": [
           {
             "BearerAuth": []
@@ -3451,1202 +1756,6 @@
           }
         }
       }
-    },
-    "/api/cli/challenges/{slug}/submit": {
-      "post": {
-        "operationId": "cliSubmitChallenge",
-        "summary": "Submit challenge (CLI current path)",
-        "deprecated": true,
-        "tags": ["Deprecated"],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "results": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "objectiveKey": {
-                          "type": "string"
-                        },
-                        "passed": {
-                          "type": "boolean"
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["objectiveKey", "passed"]
-                    },
-                    "minItems": 1
-                  },
-                  "auditEvents": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "timestamp": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "verb": {
-                          "type": "string",
-                          "maxLength": 64
-                        },
-                        "resource": {
-                          "type": "string",
-                          "maxLength": 128
-                        },
-                        "subresource": {
-                          "type": "string",
-                          "maxLength": 128
-                        },
-                        "name": {
-                          "type": "string",
-                          "maxLength": 253
-                        },
-                        "namespace": {
-                          "type": "string",
-                          "maxLength": 63
-                        },
-                        "userAgent": {
-                          "type": "string",
-                          "maxLength": 512
-                        },
-                        "responseCode": {
-                          "type": "integer",
-                          "minimum": 100,
-                          "maximum": 599
-                        }
-                      },
-                      "required": ["timestamp", "verb", "resource"]
-                    },
-                    "maxItems": 10000
-                  }
-                },
-                "required": ["results"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "All objectives passed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [true]
-                    },
-                    "objectives": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string"
-                          },
-                          "passed": {
-                            "type": "boolean"
-                          },
-                          "category": {
-                            "type": "string",
-                            "enum": [
-                              "status",
-                              "condition",
-                              "log",
-                              "event",
-                              "connectivity",
-                              "rbac",
-                              "spec",
-                              "triggered"
-                            ]
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["id", "name", "passed", "category"]
-                      }
-                    }
-                  },
-                  "required": ["success", "objectives"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Some objectives failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "success": {
-                          "type": "boolean",
-                          "enum": [false]
-                        },
-                        "objectives": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "description": {
-                                "type": "string"
-                              },
-                              "passed": {
-                                "type": "boolean"
-                              },
-                              "category": {
-                                "type": "string",
-                                "enum": [
-                                  "status",
-                                  "condition",
-                                  "log",
-                                  "event",
-                                  "connectivity",
-                                  "rbac",
-                                  "spec",
-                                  "triggered"
-                                ]
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": ["id", "name", "passed", "category"]
-                          }
-                        },
-                        "failedObjectives": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": ["id", "name", "message"]
-                          }
-                        }
-                      },
-                      "required": ["success", "objectives", "failedObjectives"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        },
-                        "details": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["error"]
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/cli/challenge/{slug}": {
-      "get": {
-        "operationId": "cliGetChallenge",
-        "summary": "Get challenge details (legacy singular path)",
-        "deprecated": true,
-        "tags": ["Deprecated"],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Challenge details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "challenge": {
-                      "type": ["object", "null"],
-                      "properties": {
-                        "id": {
-                          "type": "integer"
-                        },
-                        "slug": {
-                          "type": "string"
-                        },
-                        "title": {
-                          "type": "string"
-                        },
-                        "description": {
-                          "type": "string"
-                        },
-                        "theme": {
-                          "type": "string"
-                        },
-                        "themeSlug": {
-                          "type": "string"
-                        },
-                        "difficulty": {
-                          "type": "string",
-                          "enum": ["easy", "medium", "hard"]
-                        },
-                        "type": {
-                          "type": "string"
-                        },
-                        "typeSlug": {
-                          "type": "string"
-                        },
-                        "estimatedTime": {
-                          "type": "integer"
-                        },
-                        "initialSituation": {
-                          "type": "string"
-                        },
-                        "ofTheWeek": {
-                          "type": "boolean"
-                        },
-                        "available": {
-                          "type": "boolean"
-                        },
-                        "starterFriendly": {
-                          "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": ["string", "null"],
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": ["string", "null"],
-                          "format": "date-time"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "slug",
-                        "title",
-                        "description",
-                        "theme",
-                        "themeSlug",
-                        "difficulty",
-                        "type",
-                        "typeSlug",
-                        "estimatedTime",
-                        "initialSituation",
-                        "ofTheWeek",
-                        "available",
-                        "starterFriendly",
-                        "createdAt",
-                        "updatedAt"
-                      ]
-                    }
-                  },
-                  "required": ["challenge"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/cli/challenge/{slug}/status": {
-      "get": {
-        "operationId": "cliGetChallengeStatus",
-        "summary": "Get challenge progress (legacy singular path)",
-        "deprecated": true,
-        "tags": ["Deprecated"],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Challenge progress",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "enum": ["not_started", "in_progress", "completed"]
-                    },
-                    "startedAt": {
-                      "type": ["string", "null"],
-                      "format": "date-time"
-                    },
-                    "completedAt": {
-                      "type": ["string", "null"],
-                      "format": "date-time"
-                    }
-                  },
-                  "required": ["status"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/cli/challenge/{slug}/start": {
-      "post": {
-        "operationId": "cliStartChallenge",
-        "summary": "Start a challenge (legacy singular path)",
-        "deprecated": true,
-        "tags": ["Deprecated"],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Challenge started",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "enum": ["in_progress", "completed"]
-                    },
-                    "startedAt": {
-                      "type": ["string", "null"],
-                      "format": "date-time"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["status"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/cli/challenge/{slug}/reset": {
-      "post": {
-        "operationId": "cliResetChallenge",
-        "summary": "Reset challenge progress (legacy singular path)",
-        "deprecated": true,
-        "tags": ["Deprecated"],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Progress reset",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["success", "message"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/cli/challenge/{slug}/submit": {
-      "post": {
-        "operationId": "cliSubmitChallengeLegacy",
-        "summary": "Submit challenge (legacy singular path)",
-        "deprecated": true,
-        "tags": ["Deprecated"],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "results": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "objectiveKey": {
-                          "type": "string"
-                        },
-                        "passed": {
-                          "type": "boolean"
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["objectiveKey", "passed"]
-                    },
-                    "minItems": 1
-                  },
-                  "auditEvents": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "timestamp": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "verb": {
-                          "type": "string",
-                          "maxLength": 64
-                        },
-                        "resource": {
-                          "type": "string",
-                          "maxLength": 128
-                        },
-                        "subresource": {
-                          "type": "string",
-                          "maxLength": 128
-                        },
-                        "name": {
-                          "type": "string",
-                          "maxLength": 253
-                        },
-                        "namespace": {
-                          "type": "string",
-                          "maxLength": 63
-                        },
-                        "userAgent": {
-                          "type": "string",
-                          "maxLength": 512
-                        },
-                        "responseCode": {
-                          "type": "integer",
-                          "minimum": 100,
-                          "maximum": 599
-                        }
-                      },
-                      "required": ["timestamp", "verb", "resource"]
-                    },
-                    "maxItems": 10000
-                  }
-                },
-                "required": ["results"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "All objectives passed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [true]
-                    },
-                    "objectives": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string"
-                          },
-                          "passed": {
-                            "type": "boolean"
-                          },
-                          "category": {
-                            "type": "string",
-                            "enum": [
-                              "status",
-                              "condition",
-                              "log",
-                              "event",
-                              "connectivity",
-                              "rbac",
-                              "spec",
-                              "triggered"
-                            ]
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["id", "name", "passed", "category"]
-                      }
-                    }
-                  },
-                  "required": ["success", "objectives"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Some objectives failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "success": {
-                          "type": "boolean",
-                          "enum": [false]
-                        },
-                        "objectives": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "description": {
-                                "type": "string"
-                              },
-                              "passed": {
-                                "type": "boolean"
-                              },
-                              "category": {
-                                "type": "string",
-                                "enum": [
-                                  "status",
-                                  "condition",
-                                  "log",
-                                  "event",
-                                  "connectivity",
-                                  "rbac",
-                                  "spec",
-                                  "triggered"
-                                ]
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": ["id", "name", "passed", "category"]
-                          }
-                        },
-                        "failedObjectives": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": ["id", "name", "message"]
-                          }
-                        }
-                      },
-                      "required": ["success", "objectives", "failedObjectives"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        },
-                        "details": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["error"]
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          }
-        }
-      }
     }
-  },
-  "webhooks": {}
+  }
 }

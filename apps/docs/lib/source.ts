@@ -10,7 +10,7 @@ export const source = loader(
   multiple({
     docs: docs.toFumadocsSource(),
     openapi: await openapiSource(openapi, {
-      baseDir: "openapi/(generated)",
+      baseDir: "registry-api/(generated)",
       meta: {
         folderStyle: "separator",
       },

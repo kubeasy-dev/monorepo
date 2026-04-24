@@ -1,5 +1,7 @@
-import type { AdminChallengeItem, AdminChallengeListOutput } from "@kubeasy/api-schemas/challenges";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type {
+  AdminChallengeItem,
+  AdminChallengeListOutput,
+} from "@kubeasy/api-schemas/challenges";
 import { Badge } from "@kubeasy/ui/badge";
 import { Switch } from "@kubeasy/ui/switch";
 import {
@@ -10,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@kubeasy/ui/table";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 
 interface ChallengesTableProps {
@@ -31,21 +34,31 @@ export function ChallengesTable({ challenges }: ChallengesTableProps) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: ({ id, available }: { id: number; available: boolean }) =>
-      apiFetch(`/admin/challenges/${id}/available`, {
+    mutationFn: ({ slug, available }: { slug: string; available: boolean }) =>
+      apiFetch(`/admin/challenges/${slug}/available`, {
         method: "PATCH",
         body: JSON.stringify({ available }),
       }),
-    onMutate: async ({ id, available }) => {
+    onMutate: async ({ slug, available }) => {
       await queryClient.cancelQueries({ queryKey: ["admin", "challenges"] });
-      const previous = queryClient.getQueryData<AdminChallengeListOutput>(["admin", "challenges"]);
-      queryClient.setQueryData<AdminChallengeListOutput>(["admin", "challenges"], (old) => ({
-        challenges: old?.challenges.map((c) => c.id === id ? { ...c, available } : c) ?? [],
-      }));
+      const previous = queryClient.getQueryData<AdminChallengeListOutput>([
+        "admin",
+        "challenges",
+      ]);
+      queryClient.setQueryData<AdminChallengeListOutput>(
+        ["admin", "challenges"],
+        (old) => ({
+          challenges:
+            old?.challenges.map((c) =>
+              c.slug === slug ? { ...c, available } : c,
+            ) ?? [],
+        }),
+      );
       return { previous };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(["admin", "challenges"], context.previous);
+      if (context?.previous)
+        queryClient.setQueryData(["admin", "challenges"], context.previous);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "challenges"] });
@@ -60,7 +73,6 @@ export function ChallengesTable({ challenges }: ChallengesTableProps) {
           <TableHead>Theme</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Difficulty</TableHead>
-          <TableHead>Created</TableHead>
           <TableHead>Completion %</TableHead>
           <TableHead>Success Rate %</TableHead>
           <TableHead>Available</TableHead>
@@ -78,17 +90,17 @@ export function ChallengesTable({ challenges }: ChallengesTableProps) {
               : "—";
 
           return (
-            <TableRow key={challenge.id}>
+            <TableRow key={challenge.slug}>
               <TableCell className="font-medium">{challenge.title}</TableCell>
               <TableCell>{challenge.theme}</TableCell>
               <TableCell>{challenge.type}</TableCell>
               <TableCell>
-                <Badge variant="outline" className={getDifficultyClassName(challenge.difficulty)}>
+                <Badge
+                  variant="outline"
+                  className={getDifficultyClassName(challenge.difficulty)}
+                >
                   {challenge.difficulty}
                 </Badge>
-              </TableCell>
-              <TableCell>
-                {new Date(challenge.createdAt).toLocaleDateString()}
               </TableCell>
               <TableCell>{completionPct}</TableCell>
               <TableCell>{successRatePct}</TableCell>
@@ -96,7 +108,10 @@ export function ChallengesTable({ challenges }: ChallengesTableProps) {
                 <Switch
                   checked={challenge.available}
                   onCheckedChange={() =>
-                    mutation.mutate({ id: challenge.id, available: !challenge.available })
+                    mutation.mutate({
+                      slug: challenge.slug,
+                      available: !challenge.available,
+                    })
                   }
                 />
               </TableCell>

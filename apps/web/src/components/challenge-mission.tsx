@@ -1,14 +1,4 @@
 import type { LatestValidationStatusOutput } from "@kubeasy/api-schemas/progress";
-import { useQuery } from "@tanstack/react-query";
-import {
-  CheckCircle2,
-  Circle,
-  Clock,
-  Loader2,
-  Target,
-  XCircle,
-} from "lucide-react";
-import { useMemo, useState } from "react";
 import { Button } from "@kubeasy/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@kubeasy/ui/card";
 import {
@@ -19,6 +9,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@kubeasy/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import {
+  CheckCircle2,
+  Circle,
+  Clock,
+  Loader2,
+  Target,
+  XCircle,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { useInvalidateCacheSSE } from "@/hooks/use-invalidate-cache-sse";
 import type { SubmissionsOutput } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
@@ -127,7 +127,7 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
       );
 
       return {
-        id: String(predefined.id),
+        id: predefined.objectiveKey,
         objectiveKey: predefined.objectiveKey,
         title: predefined.title,
         description: predefined.description,

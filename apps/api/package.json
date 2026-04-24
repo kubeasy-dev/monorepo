@@ -14,7 +14,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "openapi:generate": "tsx scripts/generate-openapi.ts"
+    "openapi:generate": "SKIP_ENV_CHECK=true tsx scripts/generate-openapi.ts"
   },
   "dependencies": {
     "@appsignal/opentelemetry-instrumentation-bullmq": "0.8.0",

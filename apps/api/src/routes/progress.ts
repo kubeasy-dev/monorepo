@@ -1,12 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
-import { and, count, eq, sql } from "drizzle-orm";
+import { CompletionPercentageQuerySchema } from "@kubeasy/api-schemas/progress";
+import { logger } from "@kubeasy/logger";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import type { Handler } from "hono";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
-import { z } from "zod";
 import { db } from "../db/index";
 import {
-  challenge,
   userProgress,
   userSubmission,
   userXp,
@@ -14,24 +14,16 @@ import {
 } from "../db/schema/index";
 import { trackChallengeStarted } from "../lib/analytics-server";
 import { cacheDel, cacheDelPattern, cached, cacheKey, TTL } from "../lib/cache";
+import { getChallenge, listChallenges } from "../lib/registry";
 import { requireAuth } from "../middleware/session";
 
 const progress = new Hono();
-
-const completionQuerySchema = z.object({
-  splitByTheme: z
-    .string()
-    .optional()
-    .transform((v) => v === "true")
-    .pipe(z.boolean()),
-  themeSlug: z.string().optional(),
-});
 
 // GET /progress/completion -- get completion percentage (global or by theme)
 progress.get(
   "/completion",
   requireAuth,
-  zValidator("query", completionQuerySchema),
+  zValidator("query", CompletionPercentageQuerySchema),
   async (c) => {
     const user = c.get("user");
     const userId = user.id;
@@ -44,65 +36,82 @@ progress.get(
 
     const data = await cached(key, TTL.USER, async () => {
       if (splitByTheme) {
-        // Single optimized query: get total and completed counts by theme
-        const byTheme = await db
-          .select({
-            themeSlug: challenge.theme,
-            totalCount: count(challenge.id),
-            completedCount: sql<number>`CAST(COUNT(CASE WHEN ${userProgress.userId} = ${userId} AND ${userProgress.status} = 'completed' THEN 1 END) AS INTEGER)`,
-          })
-          .from(challenge)
-          .leftJoin(userProgress, eq(challenge.id, userProgress.challengeId))
-          .groupBy(challenge.theme)
-          .then((results) =>
-            results.map((theme) => ({
-              themeSlug: theme.themeSlug,
-              completedCount: theme.completedCount,
-              totalCount: theme.totalCount,
-              percentageCompleted:
-                theme.totalCount > 0
-                  ? Math.round((theme.completedCount / theme.totalCount) * 100)
-                  : 0,
-            })),
-          );
+        // Fetch registry list for theme mapping + user completed slugs from DB
+        const [registryList, completedSlugs] = await Promise.all([
+          listChallenges(),
+          db
+            .select({ challengeSlug: userProgress.challengeSlug })
+            .from(userProgress)
+            .where(
+              and(
+                eq(userProgress.userId, userId),
+                eq(userProgress.status, "completed"),
+              ),
+            ),
+        ]);
 
-        // Calculate global stats from theme stats
-        const totalCount = byTheme.reduce(
-          (sum, theme) => sum + theme.totalCount,
-          0,
+        const completedSet = new Set(
+          completedSlugs.map((r) => r.challengeSlug),
         );
-        const completedCount = byTheme.reduce(
-          (sum, theme) => sum + theme.completedCount,
-          0,
+
+        // Group by theme
+        const themeStats = new Map<
+          string,
+          { totalCount: number; completedCount: number }
+        >();
+        for (const ch of registryList) {
+          const s = themeStats.get(ch.theme) ?? {
+            totalCount: 0,
+            completedCount: 0,
+          };
+          s.totalCount += 1;
+          if (completedSet.has(ch.slug)) s.completedCount += 1;
+          themeStats.set(ch.theme, s);
+        }
+
+        const byTheme = [...themeStats.entries()].map(
+          ([themeSlug, { totalCount, completedCount }]) => ({
+            themeSlug,
+            completedCount,
+            totalCount,
+            percentageCompleted:
+              totalCount > 0
+                ? Math.round((completedCount / totalCount) * 100)
+                : 0,
+          }),
         );
+
+        const totalCount = registryList.length;
+        const completedCount = completedSet.size;
         const percentageCompleted =
           totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
         return { byTheme, completedCount, totalCount, percentageCompleted };
       }
 
-      // Standard mode: single theme or all themes
-      const themeFilter = themeSlug
-        ? eq(challenge.theme, themeSlug)
-        : undefined;
+      // Standard mode: single theme or all
+      const registryList = await listChallenges();
+      const filteredSlugs = themeSlug
+        ? registryList
+            .filter((ch) => ch.theme === themeSlug)
+            .map((ch) => ch.slug)
+        : registryList.map((ch) => ch.slug);
 
-      // Get total and completed challenges in parallel (independent queries)
-      const [[totalResult], [completedResult]] = await Promise.all([
-        db.select({ count: count() }).from(challenge).where(themeFilter),
-        db
-          .select({ count: count() })
-          .from(userProgress)
-          .innerJoin(challenge, eq(userProgress.challengeId, challenge.id))
-          .where(
-            and(
-              eq(userProgress.userId, userId),
-              eq(userProgress.status, "completed"),
-              themeFilter,
-            ),
+      const totalCount = filteredSlugs.length;
+
+      const [completedResult] = await db
+        .select({ count: count() })
+        .from(userProgress)
+        .where(
+          and(
+            eq(userProgress.userId, userId),
+            eq(userProgress.status, "completed"),
+            themeSlug && filteredSlugs.length > 0
+              ? inArray(userProgress.challengeSlug, filteredSlugs)
+              : undefined,
           ),
-      ]);
+        );
 
-      const totalCount = totalResult?.count ?? 0;
       const completedCount = completedResult?.count ?? 0;
 
       return {
@@ -128,14 +137,6 @@ const handleGetStatus: Handler = async (c) => {
     cacheKey(`u:${userId}:progress:status`, { slug }),
     TTL.USER,
     async () => {
-      const [challengeData] = await db
-        .select({ id: challenge.id })
-        .from(challenge)
-        .where(eq(challenge.slug, slug))
-        .limit(1);
-
-      if (!challengeData) return null;
-
       const [progressRecord] = await db
         .select({
           status: userProgress.status,
@@ -146,30 +147,25 @@ const handleGetStatus: Handler = async (c) => {
         .where(
           and(
             eq(userProgress.userId, userId),
-            eq(userProgress.challengeId, challengeData.id),
+            eq(userProgress.challengeSlug, slug),
           ),
         )
         .limit(1);
 
-      if (!progressRecord) return { status: "not_started" as const };
-
-      return {
-        status: progressRecord.status,
-        startedAt: progressRecord.startedAt,
-        completedAt: progressRecord.completedAt,
-      };
+      return progressRecord
+        ? {
+            status: progressRecord.status,
+            startedAt: progressRecord.startedAt,
+            completedAt: progressRecord.completedAt,
+          }
+        : { status: "not_started" as const };
     },
   );
-
-  if (data === null) {
-    return c.json({ error: "Challenge not found" }, 404);
-  }
 
   return c.json(data);
 };
 
 progress.get("/:slug", requireAuth, handleGetStatus);
-// CLI legacy alias: GET /:slug/status
 progress.get("/:slug/status", requireAuth, handleGetStatus);
 
 // POST /progress/:slug/start -- create or update user progress to in_progress
@@ -178,18 +174,11 @@ progress.post("/:slug/start", requireAuth, async (c) => {
   const userId = user.id;
   const slug = c.req.param("slug");
 
-  // Find challenge by slug
-  const [challengeData] = await db
-    .select({ id: challenge.id, title: challenge.title })
-    .from(challenge)
-    .where(eq(challenge.slug, slug))
-    .limit(1);
-
-  if (!challengeData) {
+  const detail = await getChallenge(slug);
+  if (!detail) {
     return c.json({ error: "Challenge not found" }, 404);
   }
 
-  // Check if user progress already exists
   const [existingProgress] = await db
     .select({
       id: userProgress.id,
@@ -200,7 +189,7 @@ progress.post("/:slug/start", requireAuth, async (c) => {
     .where(
       and(
         eq(userProgress.userId, userId),
-        eq(userProgress.challengeId, challengeData.id),
+        eq(userProgress.challengeSlug, slug),
       ),
     )
     .limit(1);
@@ -208,7 +197,6 @@ progress.post("/:slug/start", requireAuth, async (c) => {
   const now = new Date();
 
   if (existingProgress) {
-    // Already completed
     if (existingProgress.status === "completed") {
       return c.json({
         status: existingProgress.status,
@@ -216,84 +204,68 @@ progress.post("/:slug/start", requireAuth, async (c) => {
         message: "Challenge already completed",
       });
     }
-
-    // Update to in_progress if not_started
     if (existingProgress.status === "not_started") {
       await db
         .update(userProgress)
         .set({ status: "in_progress", startedAt: now })
         .where(eq(userProgress.id, existingProgress.id));
     }
-
     return c.json({
       status: "in_progress" as const,
       startedAt: existingProgress.startedAt,
     });
   }
 
-  // Create new progress record
   await db.insert(userProgress).values({
     id: nanoid(),
     userId,
-    challengeId: challengeData.id,
+    challengeSlug: slug,
     status: "in_progress",
     startedAt: now,
   });
 
-  // Track challenge started (fire-and-forget)
-  trackChallengeStarted(
-    userId,
-    challengeData.id,
-    slug,
-    challengeData.title,
-  ).catch((err) => {
-    console.error("[progress] challenge started tracking failed", {
+  trackChallengeStarted(userId, slug, detail.title).catch((err) => {
+    logger.error("[progress] challenge started tracking failed", {
+      userId,
+      slug,
       error: String(err),
     });
   });
 
-  // Invalidate affected caches
   Promise.all([
     cacheDel(cacheKey(`u:${userId}:progress:status`, { slug })),
     cacheDelPattern(`cache:u:${userId}:progress:completion:*`),
     cacheDelPattern(`cache:u:${userId}:challenges:list:*`),
   ]).catch((err) => {
-    console.error("[progress/start] cache invalidation failed", err);
+    logger.error("[progress/start] cache invalidation failed", {
+      userId,
+      slug,
+      error: String(err),
+    });
   });
 
-  return c.json({
-    status: "in_progress" as const,
-    startedAt: now,
-  });
+  return c.json({ status: "in_progress" as const, startedAt: now });
 });
 
-// DELETE /progress/:slug/reset -- delete progress, submissions, and XP transactions for a challenge
-// Also accepts POST for CLI legacy compatibility (old CLI used POST instead of DELETE)
+// DELETE /progress/:slug/reset
 const handleReset: Handler = async (c) => {
   const user = c.get("user");
   const userId = user.id;
   const slug = c.req.param("slug");
   if (!slug) return c.json({ error: "Missing slug" }, 400);
 
-  // Find challenge by slug
-  const [challengeData] = await db
-    .select({ id: challenge.id, title: challenge.title })
-    .from(challenge)
-    .where(eq(challenge.slug, slug))
-    .limit(1);
-
-  if (!challengeData) {
+  const detail = await getChallenge(slug);
+  if (!detail) {
     return c.json({ error: "Challenge not found" }, 404);
   }
 
-  // Delete user progress, submissions, and XP transactions in parallel
   await Promise.all([
     db
       .delete(userProgress)
       .where(
         and(
           eq(userProgress.userId, userId),
-          eq(userProgress.challengeId, challengeData.id),
+          eq(userProgress.challengeSlug, slug),
         ),
       ),
     db
@@ -301,7 +273,7 @@ const handleReset: Handler = async (c) => {
       .where(
         and(
           eq(userSubmission.userId, userId),
-          eq(userSubmission.challengeId, challengeData.id),
+          eq(userSubmission.challengeSlug, slug),
         ),
       ),
     db
@@ -309,12 +281,11 @@ const handleReset: Handler = async (c) => {
       .where(
         and(
           eq(userXpTransaction.userId, userId),
-          eq(userXpTransaction.challengeId, challengeData.id),
+          eq(userXpTransaction.challengeSlug, slug),
         ),
       ),
   ]);
 
-  // Recalculate userXp.totalXp from remaining transactions
   const [xpResult] = await db
     .select({
       totalXp: sql<number>`COALESCE(SUM(${userXpTransaction.xpAmount}), 0)`,
@@ -327,9 +298,11 @@ const handleReset: Handler = async (c) => {
     .set({ totalXp: xpResult?.totalXp ?? 0 })
     .where(eq(userXp.userId, userId));
 
-  // Invalidate all user caches (progress, xp, streak, challenge list)
   cacheDelPattern(`cache:u:${userId}:*`).catch((err) => {
-    console.error("[progress/reset] cache invalidation failed", err);
+    logger.error("[progress/reset] cache invalidation failed", {
+      userId,
+      error: String(err),
+    });
   });
 
   return c.json({

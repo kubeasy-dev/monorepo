@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX "user_progress_user_challenge_unique_idx" ON "user_progress" USING btree ("user_id","challenge_id");

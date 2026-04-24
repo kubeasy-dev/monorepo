@@ -1,3 +1,4 @@
+import { Button } from "@kubeasy/ui/button";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Award, Flame, Star, Target, TrendingUp, Trophy } from "lucide-react";
@@ -5,12 +6,11 @@ import { DashboardChart } from "@/components/dashboard-chart";
 import { DashboardRecentActivity } from "@/components/dashboard-recent-activity";
 import {
   completionOptions,
-  themeListOptions,
+  registryMetaOptions,
   userStreakOptions,
   userXpOptions,
 } from "@/lib/query-options";
 import { serverLog } from "@/lib/server-log";
-import { Button } from "@kubeasy/ui/button";
 
 const GITHUB_URL = "https://github.com/kubeasy-dev/kubeasy";
 
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_protected/dashboard")({
       queryClient.ensureQueryData(completionOptions({ splitByTheme: true })),
       queryClient.ensureQueryData(userXpOptions()),
       queryClient.ensureQueryData(userStreakOptions()),
-      queryClient.ensureQueryData(themeListOptions()),
+      queryClient.ensureQueryData(registryMetaOptions()),
     ]);
   },
   component: DashboardPage,
@@ -99,7 +99,9 @@ function DashboardPage() {
                 </p>
               </div>
             </div>
-            <p className="text-sm font-bold text-foreground">Congratulations!</p>
+            <p className="text-sm font-bold text-foreground">
+              Congratulations!
+            </p>
           </div>
 
           {/* Card 4: Day Streak */}
@@ -146,7 +148,7 @@ function DashboardPage() {
               className="neo-border neo-shadow font-black h-auto py-6 flex-col gap-2"
               asChild
             >
-              <Link to="/themes">
+              <Link to="/challenges">
                 <TrendingUp className="w-8 h-8" />
                 <span>Explore Themes</span>
               </Link>

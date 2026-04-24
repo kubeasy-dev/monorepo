@@ -10,9 +10,8 @@ import {
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { useState } from "react";
-import type { ChallengeTypeItem } from "@/lib/api-client";
 import { difficulties } from "@/lib/constants";
-import { themeListOptions, typeListOptions } from "@/lib/query-options";
+import { registryMetaOptions } from "@/lib/query-options";
 
 interface ChallengesFiltersProps {
   onFilterChange: (filters: ChallengeListInput) => void;
@@ -26,8 +25,7 @@ export function ChallengesFilters({
   const [difficulty, setDifficulty] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState<string>("");
 
-  const { data: themes } = useSuspenseQuery(themeListOptions());
-  const { data: types } = useSuspenseQuery(typeListOptions());
+  const { data: meta } = useSuspenseQuery(registryMetaOptions());
 
   const buildFilters = (
     overrides: Partial<ChallengeListInput>,
@@ -90,7 +88,7 @@ export function ChallengesFilters({
           <SelectItem value="all" className="font-bold">
             All Themes
           </SelectItem>
-          {themes.map((t) => (
+          {meta.themes.map((t) => (
             <SelectItem key={t.slug} value={t.slug} className="font-bold">
               {t.name}
             </SelectItem>
@@ -105,7 +103,7 @@ export function ChallengesFilters({
           <SelectItem value="all" className="font-bold">
             All Types
           </SelectItem>
-          {(types as ChallengeTypeItem[]).map((t) => (
+          {meta.types.map((t) => (
             <SelectItem key={t.slug} value={t.slug} className="font-bold">
               {t.name}
             </SelectItem>

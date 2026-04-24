@@ -1,9 +1,10 @@
+import type { Objective } from "@kubeasy/api-schemas/submissions";
 import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { db } from "../db/index";
-import { challenge, userSubmission } from "../db/schema/index";
+import { userSubmission } from "../db/schema/index";
+import { getChallenge } from "../lib/registry";
 import { requireAuth } from "../middleware/session";
-import type { Objective } from "../schemas/index";
 
 const submissions = new Hono();
 
@@ -12,25 +13,18 @@ submissions.get("/:slug", requireAuth, async (c) => {
   const user = c.get("user");
   const slug = c.req.param("slug");
 
-  // Get challenge ID from slug
-  const [challengeData] = await db
-    .select({ id: challenge.id })
-    .from(challenge)
-    .where(eq(challenge.slug, slug))
-    .limit(1);
-
-  if (!challengeData) {
+  const detail = await getChallenge(slug);
+  if (!detail) {
     return c.json({ error: "Challenge not found" }, 404);
   }
 
-  // Get all submissions for this challenge by this user, ordered by most recent first
   const submissionsList = await db
     .select()
     .from(userSubmission)
     .where(
       and(
         eq(userSubmission.userId, user.id),
-        eq(userSubmission.challengeId, challengeData.id),
+        eq(userSubmission.challengeSlug, slug),
       ),
     )
     .orderBy(desc(userSubmission.timestamp));
@@ -43,18 +37,11 @@ submissions.get("/:slug/latest", requireAuth, async (c) => {
   const user = c.get("user");
   const slug = c.req.param("slug");
 
-  // Get challenge ID from slug
-  const [challengeData] = await db
-    .select({ id: challenge.id })
-    .from(challenge)
-    .where(eq(challenge.slug, slug))
-    .limit(1);
-
-  if (!challengeData) {
+  const detail = await getChallenge(slug);
+  if (!detail) {
     return c.json({ error: "Challenge not found" }, 404);
   }
 
-  // Get the most recent submission for this challenge by this user
   const [latestSubmission] = await db
     .select({
       id: userSubmission.id,
@@ -66,7 +53,7 @@ submissions.get("/:slug/latest", requireAuth, async (c) => {
     .where(
       and(
         eq(userSubmission.userId, user.id),
-        eq(userSubmission.challengeId, challengeData.id),
+        eq(userSubmission.challengeSlug, slug),
       ),
     )
     .orderBy(desc(userSubmission.timestamp))

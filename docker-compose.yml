@@ -28,6 +28,17 @@ services:
       timeout: 5s
       retries: 5
 
+  registry:
+    image: ghcr.io/kubeasy-dev/registry:0.3.0
+    ports:
+      - "3004:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   otel-collector:
     build:
       context: ./apps/otel-collector
@@ -42,6 +53,12 @@ services:
     depends_on:
       - postgres
       - redis
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   otel-gui:
     image: ghcr.io/metafab/otel-gui:latest@sha256:31da568518fddda2a6b9cbcb7c67183f805c8c432f4ab47e27d73c34392ba0ba

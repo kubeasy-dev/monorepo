@@ -1,7 +1,0 @@
-{
-  "title": "OpenAPI",
-  "description": "View the OpenAPI schema for Kubeasy's API",
-  "root": true,
-  "icon": "Shapes",
-  "pages": ["...(generated)"]
-}

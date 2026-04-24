@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { LucideIcon, type LucideIconName } from "./lucide-icon";
 
@@ -16,11 +15,7 @@ interface TypeCardProps {
 
 export function TypeCard({ type }: TypeCardProps) {
   return (
-    <Link
-      to="/types/$slug"
-      params={{ slug: type.slug }}
-      className="bg-secondary text-foreground p-8 neo-border-thick neo-shadow-lg hover:neo-shadow-xl hover:-translate-y-1 transition-all group flex flex-col"
-    >
+    <div className="bg-secondary text-foreground p-8 neo-border-thick neo-shadow-lg flex flex-col group">
       {/* Icon */}
       {type.logo && (
         <div className="mb-6">
@@ -51,6 +46,6 @@ export function TypeCard({ type }: TypeCardProps) {
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

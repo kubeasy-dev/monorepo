@@ -1,55 +1,73 @@
 import { zValidator } from "@hono/zod-validator";
+import { logger } from "@kubeasy/logger";
 import { all } from "better-all";
-import { count, eq, sql } from "drizzle-orm";
+import { count, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "../../db";
 import {
-  challenge,
-  challengeTheme,
-  challengeType,
+  challengeMetadata,
   userProgress,
   userSubmission,
 } from "../../db/schema";
+import { cacheDelPattern } from "../../lib/cache";
+import { getMeta, listChallenges } from "../../lib/registry";
 
 export const adminChallenges = new Hono();
 
 // GET /api/admin/challenges — list all challenges with per-challenge metrics
 adminChallenges.get("/", async (c) => {
-  const rows = await db
-    .select({
-      id: challenge.id,
-      slug: challenge.slug,
-      title: challenge.title,
-      difficulty: challenge.difficulty,
-      theme: challengeTheme.name,
-      type: challengeType.name,
-      available: challenge.available,
-      ofTheWeek: challenge.ofTheWeek,
-      createdAt: challenge.createdAt,
-      starts: sql<number>`COUNT(DISTINCT CASE WHEN ${userProgress.status} != 'not_started' THEN ${userProgress.userId} END)`,
-      completions: sql<number>`COUNT(DISTINCT CASE WHEN ${userProgress.status} = 'completed' THEN ${userProgress.userId} END)`,
-      totalSubmissions: sql<number>`(SELECT COUNT(*) FROM user_submission WHERE user_submission.challenge_id = ${challenge.id})`,
-      successfulSubmissions: sql<number>`(SELECT COUNT(*) FROM user_submission WHERE user_submission.challenge_id = ${challenge.id} AND user_submission.validated = true)`,
-    })
-    .from(challenge)
-    .leftJoin(challengeTheme, eq(challenge.theme, challengeTheme.slug))
-    .leftJoin(challengeType, eq(challenge.typeSlug, challengeType.slug))
-    .leftJoin(userProgress, eq(challenge.id, userProgress.challengeId))
-    .groupBy(
-      challenge.id,
-      challenge.slug,
-      challenge.title,
-      challenge.difficulty,
-      challengeTheme.name,
-      challengeType.name,
-      challenge.available,
-      challenge.ofTheWeek,
-      challenge.createdAt,
-    )
-    .orderBy(challenge.createdAt);
+  const [registryList, meta, metadataRows, progressStats, submissionStats] =
+    await Promise.all([
+      listChallenges(),
+      getMeta(),
+      db.select().from(challengeMetadata),
+      db
+        .select({
+          challengeSlug: userProgress.challengeSlug,
+          starts: sql<number>`COUNT(DISTINCT CASE WHEN ${userProgress.status} != 'not_started' THEN ${userProgress.userId} END)`,
+          completions: sql<number>`COUNT(DISTINCT CASE WHEN ${userProgress.status} = 'completed' THEN ${userProgress.userId} END)`,
+        })
+        .from(userProgress)
+        .groupBy(userProgress.challengeSlug),
+      db
+        .select({
+          challengeSlug: userSubmission.challengeSlug,
+          totalSubmissions: count(userSubmission.id),
+          successfulSubmissions: sql<number>`SUM(CASE WHEN ${userSubmission.validated} = true THEN 1 ELSE 0 END)`,
+        })
+        .from(userSubmission)
+        .groupBy(userSubmission.challengeSlug),
+    ]);
 
-  return c.json({ challenges: rows });
+  const themeMap = new Map(meta.themes.map((t) => [t.slug, t]));
+  const typeMap = new Map(meta.types.map((t) => [t.slug, t]));
+  const metadataMap = new Map(metadataRows.map((m) => [m.slug, m]));
+  const progressMap = new Map(progressStats.map((r) => [r.challengeSlug, r]));
+  const submissionMap = new Map(
+    submissionStats.map((r) => [r.challengeSlug, r]),
+  );
+
+  const challenges = registryList.map((ch) => {
+    const m = metadataMap.get(ch.slug);
+    const p = progressMap.get(ch.slug);
+    const s = submissionMap.get(ch.slug);
+    return {
+      slug: ch.slug,
+      title: ch.title,
+      difficulty: ch.difficulty,
+      theme: themeMap.get(ch.theme)?.name ?? ch.theme,
+      type: typeMap.get(ch.type)?.name ?? ch.type,
+      available: m?.available ?? true,
+      ofTheWeek: m?.ofTheWeek ?? false,
+      starts: Number(p?.starts ?? 0),
+      completions: Number(p?.completions ?? 0),
+      totalSubmissions: Number(s?.totalSubmissions ?? 0),
+      successfulSubmissions: Number(s?.successfulSubmissions ?? 0),
+    };
+  });
+
+  return c.json({ challenges });
 });
 
 // GET /api/admin/challenges/stats — global challenge stats
@@ -90,15 +108,33 @@ adminChallenges.get("/stats", async (c) => {
   });
 });
 
-// PATCH /api/admin/challenges/:id/available — toggle challenge availability
+// PATCH /api/admin/challenges/:slug/available — toggle challenge availability
 adminChallenges.patch(
-  "/:id/available",
+  "/:slug/available",
   zValidator("json", z.object({ available: z.boolean() })),
   async (c) => {
-    const id = Number(c.req.param("id"));
-    if (Number.isNaN(id)) return c.json({ error: "Invalid id" }, 400);
+    const slug = c.req.param("slug");
     const { available } = c.req.valid("json");
-    await db.update(challenge).set({ available }).where(eq(challenge.id, id));
+    await db
+      .insert(challengeMetadata)
+      .values({ slug, available })
+      .onConflictDoUpdate({
+        target: challengeMetadata.slug,
+        set: { available },
+      });
+
+    // Invalidate caches
+    Promise.all([
+      cacheDelPattern(`cache:challenges:detail:*${slug}*`),
+      cacheDelPattern(`cache:challenges:objectives:*${slug}*`),
+      cacheDelPattern("cache:u:*:challenges:list:*"),
+    ]).catch((err) => {
+      logger.error("[admin/challenges] cache invalidation failed", {
+        slug,
+        error: String(err),
+      });
+    });
+
     return c.json({ success: true });
   },
 );

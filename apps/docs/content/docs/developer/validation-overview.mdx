@@ -41,7 +41,7 @@ If a user solves the problem in a way you didn't anticipate but the system works
 
 Every objective in `challenge.yaml` has the same base structure, regardless of type:
 
-<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="ValidationSchema" />
+<AutoTypeTable path="../../packages/api-schemas/src/registry.ts" name="RegistryObjective" />
 
 **Key rules:**
 - `key` must be unique within the challenge, lowercase with hyphens (e.g., `pod-ready`, `no-oom-events`)
@@ -54,7 +54,7 @@ Every objective in `challenge.yaml` has the same base structure, regardless of t
 
 Most validation types use a `target` field to identify which Kubernetes resource(s) to check:
 
-<AutoTypeTable path="../../packages/api-schemas/src/objectives.ts" name="Target" />
+<AutoTypeTable path="../../packages/api-schemas/src/registry.ts" name="Target" />
 
 **Rules:**
 - `kind` is required — use the Kubernetes resource kind (e.g., `Pod`, `Deployment`, `Service`)

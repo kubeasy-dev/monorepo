@@ -41,17 +41,12 @@ export const Route = createFileRoute("/sitemap.xml")({
           url(`${base}/`, { changefreq: "daily", priority: "1.0" }),
           url(`${base}/challenges`, { changefreq: "daily", priority: "0.9" }),
           url(`${base}/blog`, { changefreq: "weekly", priority: "0.8" }),
-          url(`${base}/themes`, { changefreq: "weekly", priority: "0.7" }),
-          url(`${base}/types`, { changefreq: "monthly", priority: "0.6" }),
         ];
 
-        const [posts, challengeResult, themes, types] =
-          await Promise.allSettled([
-            getBlogPosts(),
-            api.challenges.list(),
-            api.themes.list(),
-            api.types.list(),
-          ]);
+        const [posts, challengeResult] = await Promise.allSettled([
+          getBlogPosts(),
+          api.challenges.list(),
+        ]);
 
         const blogUrls =
           posts.status === "fulfilled"
@@ -68,29 +63,8 @@ export const Route = createFileRoute("/sitemap.xml")({
           challengeResult.status === "fulfilled"
             ? challengeResult.value.challenges.map((c) =>
                 url(`${base}/challenges/${c.slug}`, {
-                  lastmod: toDate(c.updatedAt),
                   changefreq: "weekly",
                   priority: "0.8",
-                }),
-              )
-            : [];
-
-        const themeUrls =
-          themes.status === "fulfilled"
-            ? themes.value.map((t) =>
-                url(`${base}/themes/${t.slug}`, {
-                  changefreq: "monthly",
-                  priority: "0.6",
-                }),
-              )
-            : [];
-
-        const typeUrls =
-          types.status === "fulfilled"
-            ? types.value.map((t) =>
-                url(`${base}/types/${t.slug}`, {
-                  changefreq: "monthly",
-                  priority: "0.5",
                 }),
               )
             : [];
@@ -100,8 +74,6 @@ export const Route = createFileRoute("/sitemap.xml")({
           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
           ...staticUrls,
           ...challengeUrls,
-          ...themeUrls,
-          ...typeUrls,
           ...blogUrls,
           "</urlset>",
         ].join("\n");

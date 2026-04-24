@@ -10,11 +10,7 @@ import { ChallengesGrid } from "@/components/challenges-grid";
 import { ChallengesQuickStartCTA } from "@/components/challenges-quick-start-cta";
 import { authClient } from "@/lib/auth-client";
 import { siteConfig } from "@/lib/constants";
-import {
-  challengeListOptions,
-  themeListOptions,
-  typeListOptions,
-} from "@/lib/query-options";
+import { challengeListOptions, registryMetaOptions } from "@/lib/query-options";
 import { serverLog } from "@/lib/server-log";
 
 const challengeSearchSchema = z.object({
@@ -34,9 +30,10 @@ export const Route = createFileRoute("/challenges/")({
   loader: async ({ context: { queryClient } }) => {
     await serverLog.info("page.load", { page: "challenges.list" });
     await Promise.all([
-      queryClient.ensureQueryData(challengeListOptions()),
-      queryClient.ensureQueryData(themeListOptions()),
-      queryClient.ensureQueryData(typeListOptions()),
+      queryClient.ensureQueryData(
+        challengeListOptions({ showCompleted: true }),
+      ),
+      queryClient.ensureQueryData(registryMetaOptions()),
     ]);
   },
   component: ChallengesListingPage,
@@ -96,7 +93,9 @@ function ChallengesView() {
 }
 
 function ChallengesListingPage() {
-  const { data } = useSuspenseQuery(challengeListOptions());
+  const { data } = useSuspenseQuery(
+    challengeListOptions({ showCompleted: true }),
+  );
 
   return (
     <div className="container mx-auto px-4 max-w-7xl">

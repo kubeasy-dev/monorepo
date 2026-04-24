@@ -11,7 +11,7 @@ describe("GET /api/admin/challenges/stats", () => {
   it.todo("requires admin role");
 });
 
-describe("PATCH /api/admin/challenges/:id/available", () => {
+describe("PATCH /api/admin/challenges/:slug/available", () => {
   it.todo("updates available field");
   it.todo("requires admin role");
 });

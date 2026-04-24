@@ -158,12 +158,10 @@ export async function trackApiTokenCreated(userId: string) {
  */
 export async function trackChallengeStarted(
   userId: string,
-  challengeId: number,
   challengeSlug: string,
   challengeTitle: string,
 ) {
   const properties = {
-    challengeId,
     challengeSlug,
     challengeTitle,
     source: "cli",
@@ -193,14 +191,12 @@ export async function trackChallengeStarted(
  */
 export async function trackChallengeCompleted(
   userId: string,
-  challengeId: number,
   challengeSlug: string,
   difficulty: string,
   xpAwarded: number,
   isFirstChallenge: boolean,
 ) {
   const properties = {
-    challengeId,
     challengeSlug,
     difficulty,
     xpAwarded,
@@ -232,13 +228,11 @@ export async function trackChallengeCompleted(
  */
 export async function trackChallengeSubmitted(
   userId: string,
-  challengeId: number,
   challengeSlug: string,
   validated: boolean,
   failedObjectives?: { count: number; ids: string[] },
 ) {
   const properties = {
-    challengeId,
     challengeSlug,
     validated,
     source: "cli",

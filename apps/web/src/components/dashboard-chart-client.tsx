@@ -8,17 +8,17 @@ import {
   RadarChart,
   ResponsiveContainer,
 } from "recharts";
-import { completionOptions, themeListOptions } from "@/lib/query-options";
+import { completionOptions, registryMetaOptions } from "@/lib/query-options";
 
 export function DashboardChartClient() {
   const { data: completion } = useSuspenseQuery(
     completionOptions({ splitByTheme: true }),
   );
-  const { data: themeList } = useSuspenseQuery(themeListOptions());
+  const { data: meta } = useSuspenseQuery(registryMetaOptions());
 
   const chartData =
     completion?.byTheme?.map((item) => {
-      const theme = themeList?.find((t) => t.slug === item.themeSlug);
+      const theme = meta.themes.find((t) => t.slug === item.themeSlug);
       return {
         themeName: theme?.name ?? item.themeSlug,
         percentageCompleted: item.percentageCompleted,
@@ -33,7 +33,7 @@ export function DashboardChartClient() {
       : null;
 
   const bestThemeName = bestTheme
-    ? (themeList?.find((t) => t.slug === bestTheme.themeSlug)?.name ??
+    ? (meta.themes.find((t) => t.slug === bestTheme.themeSlug)?.name ??
       bestTheme.themeSlug)
     : null;
 

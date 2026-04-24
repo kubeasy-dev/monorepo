@@ -3,13 +3,11 @@ import type { QUEUE_NAMES } from "./queue-names";
 export interface ChallengeSubmissionPayload {
   userId: string;
   challengeSlug: string;
-  challengeId: number;
   difficulty: string;
 }
 
 export interface XpAwardPayload {
   userId: string;
-  challengeId: number;
   challengeSlug: string;
   xpAmount: number;
   action: "challenge_completed" | "daily_streak" | "first_challenge";

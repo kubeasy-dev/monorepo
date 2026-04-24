@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { logger as honoLogger } from "hono/logger";
 import { auth } from "./lib/auth";
 import { isAllowedOrigin } from "./lib/cors";
+import { RegistryError } from "./lib/registry";
 import { sessionMiddleware } from "./middleware/session";
 import { routes } from "./routes/index";
 
@@ -35,6 +36,13 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => {
 
 // Mount API routes
 app.route("/api", routes);
+
+app.onError((err, c) => {
+  if (err instanceof RegistryError) {
+    return c.json({ error: "Registry unavailable" }, 502);
+  }
+  throw err;
+});
 
 export { app };
 export type AppType = typeof app;

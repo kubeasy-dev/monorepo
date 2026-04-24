@@ -1,11 +1,12 @@
 import type {
   AdminChallengeListOutput,
-  AdminStatsOutput,
   ChallengeGetBySlugOutput,
   ChallengeGetObjectivesOutput,
   ChallengeListInput,
   ChallengeListOutput,
 } from "@kubeasy/api-schemas/challenges";
+import type { RegistryMeta } from "@kubeasy/api-schemas/registry";
+import type { SubmissionRecord } from "@kubeasy/api-schemas/submissions";
 import { createIsomorphicFn } from "@tanstack/react-start";
 
 const getSSRCookie = createIsomorphicFn()
@@ -15,29 +16,7 @@ const getSSRCookie = createIsomorphicFn()
     return getRequestHeaders().get("Cookie");
   });
 
-export interface ChallengeTypeItem {
-  slug: string;
-  name: string;
-  description: string;
-  logo: string | null;
-  challengeCount?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface SubmissionItem {
-  id: number;
-  userId: string;
-  challengeId: number;
-  validated: boolean;
-  objectives: unknown;
-  timestamp: string | null;
-  validatedAt?: string | null;
-}
-
-export interface SubmissionsOutput {
-  submissions: SubmissionItem[];
-}
+export type SubmissionsOutput = { submissions: SubmissionRecord[] };
 
 import type {
   CompletionPercentageOutput,
@@ -48,7 +27,6 @@ import type {
   StreakOutput,
   XpAndRankOutput,
 } from "@kubeasy/api-schemas/progress";
-import type { Theme, ThemeListOutput } from "@kubeasy/api-schemas/themes";
 import type { XpTransaction } from "@kubeasy/api-schemas/xp";
 
 const API_BASE =
@@ -111,16 +89,7 @@ export const api = {
       apiFetch<ChallengeGetBySlugOutput>(`/challenges/${slug}`),
     getObjectives: (slug: string) =>
       apiFetch<ChallengeGetObjectivesOutput>(`/challenges/${slug}/objectives`),
-  },
-
-  themes: {
-    list: () => apiFetch<ThemeListOutput>("/themes"),
-    getBySlug: (slug: string) => apiFetch<Theme>(`/themes/${slug}`),
-  },
-
-  types: {
-    list: () => apiFetch<ChallengeTypeItem[]>("/types"),
-    getBySlug: (slug: string) => apiFetch<ChallengeTypeItem>(`/types/${slug}`),
+    getMeta: () => apiFetch<RegistryMeta>("/challenges/meta"),
   },
 
   progress: {
@@ -231,6 +200,5 @@ export const api = {
 
   admin: {
     challenges: () => apiFetch<AdminChallengeListOutput>("/admin/challenges"),
-    stats: () => apiFetch<AdminStatsOutput>("/admin/stats"),
   },
 };

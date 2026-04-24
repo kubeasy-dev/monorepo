@@ -22,6 +22,18 @@ export type CompletionPercentageInput = z.infer<
   typeof CompletionPercentageInputSchema
 >;
 
+export const CompletionPercentageQuerySchema = z.object({
+  splitByTheme: z
+    .string()
+    .optional()
+    .transform((v) => v === "true")
+    .pipe(z.boolean()),
+  themeSlug: z.string().optional(),
+});
+export type CompletionPercentageQuery = z.infer<
+  typeof CompletionPercentageQuerySchema
+>;
+
 export const ThemeCompletionSchema = z.object({
   themeSlug: z.string(),
   completedCount: z.number(),

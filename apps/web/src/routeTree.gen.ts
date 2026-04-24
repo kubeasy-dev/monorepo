@@ -15,12 +15,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as GetStartedRouteImport } from './routes/get-started'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TypesIndexRouteImport } from './routes/types/index'
-import { Route as ThemesIndexRouteImport } from './routes/themes/index'
 import { Route as ChallengesIndexRouteImport } from './routes/challenges/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
-import { Route as TypesSlugRouteImport } from './routes/types/$slug'
-import { Route as ThemesSlugRouteImport } from './routes/themes/$slug'
 import { Route as ChallengesSlugRouteImport } from './routes/challenges/$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
@@ -56,16 +52,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TypesIndexRoute = TypesIndexRouteImport.update({
-  id: '/types/',
-  path: '/types/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ThemesIndexRoute = ThemesIndexRouteImport.update({
-  id: '/themes/',
-  path: '/themes/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ChallengesIndexRoute = ChallengesIndexRouteImport.update({
   id: '/challenges/',
   path: '/challenges/',
@@ -74,16 +60,6 @@ const ChallengesIndexRoute = ChallengesIndexRouteImport.update({
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TypesSlugRoute = TypesSlugRouteImport.update({
-  id: '/types/$slug',
-  path: '/types/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ThemesSlugRoute = ThemesSlugRouteImport.update({
-  id: '/themes/$slug',
-  path: '/themes/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChallengesSlugRoute = ChallengesSlugRouteImport.update({
@@ -123,12 +99,8 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
-  '/themes/$slug': typeof ThemesSlugRoute
-  '/types/$slug': typeof TypesSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/challenges/': typeof ChallengesIndexRoute
-  '/themes/': typeof ThemesIndexRoute
-  '/types/': typeof TypesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -141,12 +113,8 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
-  '/themes/$slug': typeof ThemesSlugRoute
-  '/types/$slug': typeof TypesSlugRoute
   '/blog': typeof BlogIndexRoute
   '/challenges': typeof ChallengesIndexRoute
-  '/themes': typeof ThemesIndexRoute
-  '/types': typeof TypesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,12 +129,8 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
-  '/themes/$slug': typeof ThemesSlugRoute
-  '/types/$slug': typeof TypesSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/challenges/': typeof ChallengesIndexRoute
-  '/themes/': typeof ThemesIndexRoute
-  '/types/': typeof TypesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,12 +145,8 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/blog/$slug'
     | '/challenges/$slug'
-    | '/themes/$slug'
-    | '/types/$slug'
     | '/blog/'
     | '/challenges/'
-    | '/themes/'
-    | '/types/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,12 +159,8 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/blog/$slug'
     | '/challenges/$slug'
-    | '/themes/$slug'
-    | '/types/$slug'
     | '/blog'
     | '/challenges'
-    | '/themes'
-    | '/types'
   id:
     | '__root__'
     | '/'
@@ -218,12 +174,8 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/blog/$slug'
     | '/challenges/$slug'
-    | '/themes/$slug'
-    | '/types/$slug'
     | '/blog/'
     | '/challenges/'
-    | '/themes/'
-    | '/types/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -236,12 +188,8 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   BlogSlugRoute: typeof BlogSlugRoute
   ChallengesSlugRoute: typeof ChallengesSlugRoute
-  ThemesSlugRoute: typeof ThemesSlugRoute
-  TypesSlugRoute: typeof TypesSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ChallengesIndexRoute: typeof ChallengesIndexRoute
-  ThemesIndexRoute: typeof ThemesIndexRoute
-  TypesIndexRoute: typeof TypesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -288,20 +236,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/types/': {
-      id: '/types/'
-      path: '/types'
-      fullPath: '/types/'
-      preLoaderRoute: typeof TypesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/themes/': {
-      id: '/themes/'
-      path: '/themes'
-      fullPath: '/themes/'
-      preLoaderRoute: typeof ThemesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/challenges/': {
       id: '/challenges/'
       path: '/challenges'
@@ -314,20 +248,6 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/types/$slug': {
-      id: '/types/$slug'
-      path: '/types/$slug'
-      fullPath: '/types/$slug'
-      preLoaderRoute: typeof TypesSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/themes/$slug': {
-      id: '/themes/$slug'
-      path: '/themes/$slug'
-      fullPath: '/themes/$slug'
-      preLoaderRoute: typeof ThemesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/challenges/$slug': {
@@ -392,12 +312,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   BlogSlugRoute: BlogSlugRoute,
   ChallengesSlugRoute: ChallengesSlugRoute,
-  ThemesSlugRoute: ThemesSlugRoute,
-  TypesSlugRoute: TypesSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   ChallengesIndexRoute: ChallengesIndexRoute,
-  ThemesIndexRoute: ThemesIndexRoute,
-  TypesIndexRoute: TypesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

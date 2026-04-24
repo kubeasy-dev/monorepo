@@ -1,9 +1,9 @@
-import type { Theme } from "@kubeasy/api-schemas/themes";
+import type { RegistryTheme } from "@kubeasy/api-schemas/registry";
 import { TrendingUp } from "lucide-react";
 import { LucideIcon, type LucideIconName } from "./lucide-icon";
 
 interface ThemeHeroProps {
-  theme: Theme;
+  theme: RegistryTheme;
   totalChallenges: number;
 }
 

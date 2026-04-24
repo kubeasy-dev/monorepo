@@ -21,6 +21,17 @@ const updateNameSchema = z.object({
 
 const userRouter = new Hono();
 
+// GET /user/me -- get current user profile
+userRouter.get("/me", requireAuth, async (c) => {
+  const sessionUser = c.get("user");
+  return c.json({
+    id: sessionUser.id,
+    name: sessionUser.name,
+    email: sessionUser.email,
+    image: sessionUser.image,
+  });
+});
+
 // GET /user/xp -- get XP earned and rank info
 userRouter.get("/xp", requireAuth, async (c) => {
   const sessionUser = c.get("user");

@@ -77,6 +77,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function PostHogIdentify() {
   const { data: session } = authClient.useSession();
+  const posthog = usePostHog();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const userId = session?.user?.id;
   const userEmail = session?.user?.email;
@@ -91,6 +93,11 @@ function PostHogIdentify() {
     }
   }, [userId, userEmail, userName]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname triggers pageview on route change
+  useEffect(() => {
+    posthog?.capture("$pageview", { $current_url: window.location.href });
+  }, [pathname, posthog]);
+
   return null;
 }
 
@@ -99,13 +106,6 @@ function RootComponent() {
   const isLogin = useRouterState({
     select: (s) => s.location.pathname === "/login",
   });
-  const posthog = usePostHog();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname triggers pageview on route change
-  useEffect(() => {
-    posthog?.capture("$pageview", { $current_url: window.location.href });
-  }, [pathname]);
 
   return (
     <RootDocument>

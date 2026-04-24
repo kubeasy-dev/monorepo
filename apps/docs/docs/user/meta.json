@@ -1,7 +1,0 @@
-{
-  "root": true,
-  "title": "Kubeasy User Guide",
-  "description": "How to use Kubeasy",
-  "icon": "User",
-  "pages": ["---Introduction---", "index", "what-is-kubeasy", "getting-started", "how-it-works", "---CLI---", "cli-reference", "troubleshooting"]
-}

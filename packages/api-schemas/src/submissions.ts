@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ObjectiveTypeSchema } from "./objectives";
+import { ObjectiveTypeSchema } from "./registry";
 
 // ---------- Enums ----------
 
@@ -16,8 +16,8 @@ export const ObjectiveResultSchema = z.object({
 export type ObjectiveResult = z.infer<typeof ObjectiveResultSchema>;
 
 export const ObjectiveSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  key: z.string(),
+  title: z.string(),
   description: z.string().optional(),
   passed: z.boolean(),
   category: ObjectiveCategorySchema,
@@ -52,8 +52,8 @@ export const ChallengeSubmitFailureOutputSchema = z.object({
   message: z.string(),
   failedObjectives: z.array(
     z.object({
-      id: z.string(),
-      name: z.string(),
+      key: z.string(),
+      title: z.string(),
       message: z.string(),
     }),
   ),
@@ -68,12 +68,32 @@ export const ChallengeSubmitOutputSchema = z.union([
 ]);
 export type ChallengeSubmitOutput = z.infer<typeof ChallengeSubmitOutputSchema>;
 
+// ---------- Audit & Validation ----------
+
+export const AuditEventSchema = z.object({
+  timestamp: z.string().datetime({ offset: true }),
+  verb: z.string().max(64),
+  resource: z.string().max(128),
+  subresource: z.string().max(128).optional(),
+  name: z.string().max(253).optional(), // k8s name max length
+  namespace: z.string().max(63).optional(), // k8s namespace max length
+  userAgent: z.string().max(512).optional(),
+  responseCode: z.number().int().min(100).max(599).optional(),
+});
+export type AuditEvent = z.infer<typeof AuditEventSchema>;
+
+export const SubmitBodySchema = z.object({
+  results: z.array(ObjectiveResultSchema).min(1),
+  auditEvents: z.array(AuditEventSchema).max(10_000).optional(),
+});
+export type SubmitBody = z.infer<typeof SubmitBodySchema>;
+
 // ---------- Submission record (API list/history output) ----------
 
 export const SubmissionRecordSchema = z.object({
   id: z.string(),
   userId: z.string(),
-  challengeId: z.number().int(),
+  challengeSlug: z.string(),
   validated: z.boolean(),
   objectives: z.array(ObjectiveSchema).nullable(),
   timestamp: z.string().describe("ISO 8601 date string"),

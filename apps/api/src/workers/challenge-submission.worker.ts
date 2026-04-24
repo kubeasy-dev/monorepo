@@ -34,7 +34,7 @@ export function createChallengeSubmissionWorker() {
     QUEUE_NAMES.CHALLENGE_SUBMISSION,
     async (job) => {
       const startTime = Date.now();
-      const { userId, challengeSlug, challengeId, difficulty } = job.data;
+      const { userId, challengeSlug, difficulty } = job.data;
 
       try {
         // 1 & 2. Check first challenge + calculate streak in parallel (independent DB queries)
@@ -67,7 +67,6 @@ export function createChallengeSubmissionWorker() {
         // 4. Fire analytics (fire-and-forget style, errors logged internally)
         await trackChallengeCompleted(
           userId,
-          challengeId,
           challengeSlug,
           difficulty,
           xpGain.total,
@@ -80,7 +79,6 @@ export function createChallengeSubmissionWorker() {
           async base() {
             return xpAwardQueue.add("xp-base", {
               userId,
-              challengeId,
               challengeSlug,
               xpAmount: xpGain.baseXP,
               action: "challenge_completed",
@@ -92,7 +90,6 @@ export function createChallengeSubmissionWorker() {
             if (isFirstChallenge && xpGain.firstChallengeBonus > 0) {
               return xpAwardQueue.add("xp-first-challenge", {
                 userId,
-                challengeId,
                 challengeSlug,
                 xpAmount: xpGain.firstChallengeBonus,
                 action: "first_challenge",
@@ -105,7 +102,6 @@ export function createChallengeSubmissionWorker() {
             if (xpGain.streakBonus > 0) {
               return xpAwardQueue.add("xp-streak", {
                 userId,
-                challengeId,
                 challengeSlug,
                 xpAmount: xpGain.streakBonus,
                 action: "daily_streak",

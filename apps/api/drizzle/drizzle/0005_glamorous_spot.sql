@@ -1,1 +1,0 @@
-ALTER TABLE "challenge_objective" ALTER COLUMN "description" SET NOT NULL;

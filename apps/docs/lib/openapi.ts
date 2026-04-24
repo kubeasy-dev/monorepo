@@ -5,6 +5,6 @@ import { createOpenAPI } from "fumadocs-openapi/server";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const openapi = createOpenAPI({
-  input: [path.resolve(__dirname, "../../../apps/api/openapi.json")],
+  input: [path.resolve(__dirname, "../openapi-registry.json")],
   proxyUrl: "/docs/api/proxy",
 });
