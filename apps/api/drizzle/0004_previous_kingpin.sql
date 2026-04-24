@@ -1,0 +1,1 @@
+ALTER TABLE "user_submission" ALTER COLUMN "objectives" SET DATA TYPE jsonb USING objectives::jsonb;
