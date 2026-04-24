@@ -1,0 +1,814 @@
+{
+  "components": {
+    "schemas": {
+      "ChallengeDifficulty": {
+        "enum": [
+          "easy",
+          "medium",
+          "hard"
+        ],
+        "type": "string"
+      },
+      "ChallengeTheme": {
+        "enum": [
+          "pods-containers",
+          "resources-scaling",
+          "networking",
+          "volumes-secrets",
+          "rbac-security",
+          "scheduling-affinity",
+          "jobs-cronjobs",
+          "ingress-tls",
+          "monitoring-debugging"
+        ],
+        "type": "string"
+      },
+      "ChallengeType": {
+        "enum": [
+          "fix",
+          "build",
+          "migrate"
+        ],
+        "type": "string"
+      },
+      "ConditionCheck": {
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ConditionSpec": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ConditionCheck"
+            },
+            "type": "array"
+          },
+          "target": {
+            "$ref": "#/components/schemas/Target"
+          }
+        },
+        "required": [
+          "target",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "ConnectivityCheck": {
+        "properties": {
+          "expectedStatusCode": {
+            "type": "integer"
+          },
+          "hostHeader": {
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "type": "integer"
+          },
+          "tls": {
+            "$ref": "#/components/schemas/TLSConfig"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "expectedStatusCode"
+        ],
+        "type": "object"
+      },
+      "ConnectivitySpec": {
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "sourcePod": {
+            "$ref": "#/components/schemas/SourcePod"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/ConnectivityCheck"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sourcePod",
+          "targets"
+        ],
+        "type": "object"
+      },
+      "Error": {
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "EventSpec": {
+        "properties": {
+          "forbiddenReasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "requiredReasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sinceSeconds": {
+            "type": "integer"
+          },
+          "target": {
+            "$ref": "#/components/schemas/Target"
+          }
+        },
+        "required": [
+          "target",
+          "forbiddenReasons"
+        ],
+        "type": "object"
+      },
+      "LogSpec": {
+        "properties": {
+          "container": {
+            "type": "string"
+          },
+          "expectedStrings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "matchMode": {
+            "type": "string"
+          },
+          "previous": {
+            "type": "boolean"
+          },
+          "sinceSeconds": {
+            "type": "integer"
+          },
+          "target": {
+            "$ref": "#/components/schemas/Target"
+          }
+        },
+        "required": [
+          "target",
+          "expectedStrings"
+        ],
+        "type": "object"
+      },
+      "MatchMode": {
+        "enum": [
+          "allOf",
+          "anyOf"
+        ],
+        "type": "string"
+      },
+      "ObjectiveType": {
+        "enum": [
+          "status",
+          "condition",
+          "log",
+          "event",
+          "connectivity",
+          "rbac",
+          "spec",
+          "triggered"
+        ],
+        "type": "string"
+      },
+      "RbacCheck": {
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "subresource": {
+            "type": "string"
+          },
+          "verb": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "verb",
+          "resource",
+          "allowed"
+        ],
+        "type": "object"
+      },
+      "RbacSpec": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/RbacCheck"
+            },
+            "type": "array"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "serviceAccount": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "serviceAccount",
+          "namespace",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "RegistryChallenge": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/ChallengeDifficulty"
+          },
+          "estimatedTime": {
+            "type": "integer"
+          },
+          "initialSituation": {
+            "type": "string"
+          },
+          "minRequiredVersion": {
+            "type": "string"
+          },
+          "objectives": {
+            "items": {
+              "$ref": "#/components/schemas/RegistryObjective"
+            },
+            "type": "array"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/ChallengeTheme"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ChallengeType"
+          }
+        },
+        "required": [
+          "slug",
+          "title",
+          "description",
+          "theme",
+          "difficulty",
+          "type",
+          "estimatedTime",
+          "initialSituation",
+          "objectives"
+        ],
+        "type": "object"
+      },
+      "RegistryChallengeType": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "logo"
+        ],
+        "type": "object"
+      },
+      "RegistryMeta": {
+        "properties": {
+          "difficulties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "themes": {
+            "items": {
+              "$ref": "#/components/schemas/RegistryTheme"
+            },
+            "type": "array"
+          },
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/RegistryChallengeType"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "themes",
+          "types",
+          "difficulties"
+        ],
+        "type": "object"
+      },
+      "RegistryObjective": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "spec": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusSpec"
+              },
+              {
+                "$ref": "#/components/schemas/ConditionSpec"
+              },
+              {
+                "$ref": "#/components/schemas/LogSpec"
+              },
+              {
+                "$ref": "#/components/schemas/EventSpec"
+              },
+              {
+                "$ref": "#/components/schemas/ConnectivitySpec"
+              },
+              {
+                "$ref": "#/components/schemas/RbacSpec"
+              },
+              {
+                "$ref": "#/components/schemas/SpecSpec"
+              },
+              {
+                "$ref": "#/components/schemas/TriggeredSpec"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ObjectiveType"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "description",
+          "order",
+          "type",
+          "spec"
+        ],
+        "type": "object"
+      },
+      "RegistryTheme": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "logo"
+        ],
+        "type": "object"
+      },
+      "SourcePod": {
+        "properties": {
+          "labelSelector": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SpecCheck": {
+        "properties": {
+          "contains": {},
+          "exists": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "SpecSpec": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/SpecCheck"
+            },
+            "type": "array"
+          },
+          "target": {
+            "$ref": "#/components/schemas/Target"
+          }
+        },
+        "required": [
+          "target",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "StatusCheck": {
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "field",
+          "operator",
+          "value"
+        ],
+        "type": "object"
+      },
+      "StatusSpec": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/StatusCheck"
+            },
+            "type": "array"
+          },
+          "target": {
+            "$ref": "#/components/schemas/Target"
+          }
+        },
+        "required": [
+          "target",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "TLSConfig": {
+        "properties": {
+          "insecureSkipVerify": {
+            "type": "boolean"
+          },
+          "validateExpiry": {
+            "type": "boolean"
+          },
+          "validateSANs": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "Target": {
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "labelSelector": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "TriggerConfig": {
+        "properties": {
+          "container": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "integer"
+          },
+          "image": {
+            "type": "string"
+          },
+          "replicas": {
+            "type": "integer"
+          },
+          "requestsPerSecond": {
+            "type": "integer"
+          },
+          "sourcePod": {
+            "$ref": "#/components/schemas/SourcePod"
+          },
+          "target": {
+            "$ref": "#/components/schemas/Target"
+          },
+          "type": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "waitSeconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "TriggerType": {
+        "enum": [
+          "load",
+          "wait",
+          "delete",
+          "rollout",
+          "scale"
+        ],
+        "type": "string"
+      },
+      "TriggeredSpec": {
+        "properties": {
+          "then": {
+            "items": {
+              "$ref": "#/components/schemas/RegistryObjective"
+            },
+            "type": "array"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/TriggerConfig"
+          },
+          "waitAfterSeconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "trigger",
+          "waitAfterSeconds",
+          "then"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Source of truth for Kubeasy challenges — metadata, objectives, and manifests.",
+    "title": "Kubeasy Registry API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/challenges": {
+      "get": {
+        "description": "Returns a list of all available challenges with their metadata.",
+        "operationId": "listChallenges",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RegistryChallenge"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Challenge list"
+          }
+        },
+        "summary": "List all challenges",
+        "tags": [
+          "Challenges"
+        ]
+      }
+    },
+    "/challenges/{slug}": {
+      "get": {
+        "description": "Returns full details of a challenge, including its objectives and specs.",
+        "operationId": "getChallenge",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryChallenge"
+                }
+              }
+            },
+            "description": "Challenge detail"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found"
+          }
+        },
+        "summary": "Get a single challenge",
+        "tags": [
+          "Challenges"
+        ]
+      }
+    },
+    "/challenges/{slug}/manifests": {
+      "get": {
+        "operationId": "getChallengeManifests",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/gzip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Gzipped tar archive of manifests/ and policies/"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found"
+          }
+        },
+        "summary": "Download manifests",
+        "tags": [
+          "Challenges"
+        ]
+      }
+    },
+    "/challenges/{slug}/yaml": {
+      "get": {
+        "operationId": "getChallengeYaml",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/yaml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Raw challenge.yaml text"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found"
+          }
+        },
+        "summary": "Get raw challenge.yaml",
+        "tags": [
+          "Challenges"
+        ]
+      }
+    },
+    "/meta": {
+      "get": {
+        "description": "Returns themes, types, and difficulties used by the registry.",
+        "operationId": "getMeta",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryMeta"
+                }
+              }
+            },
+            "description": "Reference data"
+          }
+        },
+        "summary": "Get reference data",
+        "tags": [
+          "Meta"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Production",
+      "url": "https://registry.kubeasy.dev"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Challenge management and retrieval",
+      "name": "Challenges"
+    },
+    {
+      "description": "Global reference data",
+      "name": "Meta"
+    }
+  ]
+}
