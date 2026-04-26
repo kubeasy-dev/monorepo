@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@better-auth/api-key": "1.6.6",
+    "@better-auth/api-key": "1.6.7",
     "@fontsource-variable/geist": "5.2.8",
     "@kubeasy/api-schemas": "workspace:*",
     "@kubeasy/logger": "workspace:*",
@@ -32,12 +32,12 @@
     "@tanstack/react-router": "1.168.23",
     "@tanstack/react-start": "1.167.42",
     "@unpic/react": "1.0.2",
-    "better-auth": "1.6.6",
+    "better-auth": "1.6.7",
     "lucide-react": "0.577.0",
     "nitro": "3.0.260311-beta",
     "p-limit": "7.3.0",
     "pg": "8.20.0",
-    "posthog-js": "1.369.5",
+    "posthog-js": "1.371.0",
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "recharts": "3.8.1",
@@ -59,7 +59,7 @@
     "tailwindcss": "4.2.4",
     "tsx": "4.21.0",
     "typescript": "5.9.3",
-    "vite": "8.0.9",
+    "vite": "8.0.10",
     "@vitest/ui": "4.1.5",
     "vitest": "4.1.5"
   }
