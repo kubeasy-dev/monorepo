@@ -7,7 +7,7 @@ import { db } from "../db/index";
 import * as schema from "../db/schema/auth";
 import { allowedOrigins } from "./cors";
 import { env } from "./env";
-import { redisConfig } from "./redis";
+import { redis, redisConfig } from "./redis";
 
 const userSignupQueue = createQueue(QUEUE_NAMES.USER_SIGNUP, redisConfig);
 
@@ -18,6 +18,21 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
+  secondaryStorage: {
+    get: async (key) => {
+      return await redis.get(key);
+    },
+    set: async (key, value, ttl) => {
+      if (ttl) {
+        await redis.set(key, value, "EX", ttl);
+      } else {
+        await redis.set(key, value);
+      }
+    },
+    delete: async (key) => {
+      await redis.del(key);
+    },
+  },
   plugins: [
     admin(),
     apiKey({
@@ -37,8 +52,7 @@ export const auth = betterAuth({
   },
   session: {
     cookieCache: {
-      enabled: true,
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      enabled: false,
     },
   },
   socialProviders: {
