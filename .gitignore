@@ -53,6 +53,10 @@ pnpm-debug.log*
 # Testing
 # ========================
 coverage/
+playwright-report/
+test-results/
+.auth/
+blob-report/
 
 # ========================
 # Docker

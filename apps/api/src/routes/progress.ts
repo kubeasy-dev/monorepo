@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { CompletionPercentageQuerySchema } from "@kubeasy/api-schemas/progress";
+import { queryKeys } from "@kubeasy/api-schemas/query-keys";
 import { logger } from "@kubeasy/logger";
 import { and, count, eq, inArray, sql } from "drizzle-orm";
 import type { Handler } from "hono";
@@ -14,6 +15,7 @@ import {
 } from "../db/schema/index";
 import { trackChallengeStarted } from "../lib/analytics-server";
 import { cacheDel, cacheDelPattern, cached, cacheKey, TTL } from "../lib/cache";
+import { redis } from "../lib/redis";
 import { getChallenge, listChallenges } from "../lib/registry";
 import { requireAuth } from "../middleware/session";
 
@@ -232,17 +234,27 @@ progress.post("/:slug/start", requireAuth, async (c) => {
     });
   });
 
-  Promise.all([
+  await Promise.all([
     cacheDel(cacheKey(`u:${userId}:progress:status`, { slug })),
-    cacheDelPattern(`cache:u:${userId}:progress:completion:*`),
-    cacheDelPattern(`cache:u:${userId}:challenges:list:*`),
-  ]).catch((err) => {
-    logger.error("[progress/start] cache invalidation failed", {
-      userId,
-      slug,
-      error: String(err),
+    cacheDelPattern(cacheKey(`u:${userId}:progress:completion:*`)),
+    cacheDelPattern(cacheKey(`u:${userId}:challenges:list:*`)),
+  ]);
+
+  // Notify UI via SSE (AFTER cache is cleared)
+  const sseChannel = `invalidate-cache:${userId}`;
+  redis
+    .publish(
+      sseChannel,
+      JSON.stringify({
+        queryKey: queryKeys.challenges.status(slug),
+      }),
+    )
+    .catch((err: unknown) => {
+      logger.error("[progress/start] SSE publish failed", {
+        channel: sseChannel,
+        error: String(err),
+      });
     });
-  });
 
   return c.json({ status: "in_progress" as const, startedAt: now });
 });

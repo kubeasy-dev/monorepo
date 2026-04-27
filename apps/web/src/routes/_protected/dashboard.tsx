@@ -78,7 +78,10 @@ function DashboardPage() {
               </div>
               <div>
                 <p className="text-sm font-bold text-foreground">Points</p>
-                <p className="text-3xl font-black text-foreground">
+                <p
+                  className="text-3xl font-black text-foreground"
+                  data-testid="total-xp"
+                >
                   {xpData?.xpEarned ?? 0}
                 </p>
               </div>

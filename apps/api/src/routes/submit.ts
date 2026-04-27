@@ -196,7 +196,7 @@ submit.post(
       .publish(
         sseChannel,
         JSON.stringify({
-          queryKey: queryKeys.submissions.latest(challengeSlug),
+          queryKey: queryKeys.challenges.submissions.all(challengeSlug),
         }),
       )
       .catch((err) => {

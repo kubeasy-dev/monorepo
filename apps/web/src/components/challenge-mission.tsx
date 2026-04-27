@@ -84,10 +84,14 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
   const { data: statusData } = useQuery({
     ...challengeStatusOptions(slug),
     enabled: isAuthenticated,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "completed" ? false : 3000;
+    },
   });
 
   const status = statusData?.status ?? "not_started";
-  useInvalidateCacheSSE(status === "in_progress");
+  useInvalidateCacheSSE(isAuthenticated);
   const isLoading =
     isLoadingObjectives ||
     isSessionLoading ||
@@ -166,7 +170,10 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
           <Target className="h-6 w-6" />
           Your Mission
           {totalObjectives > 0 && (
-            <span className="ml-auto text-base font-bold">
+            <span
+              className="ml-auto text-base font-bold"
+              data-testid="mission-score"
+            >
               {passedObjectives}/{totalObjectives}
             </span>
           )}
@@ -175,7 +182,10 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
       <CardContent className="space-y-6">
         {/* Loading state */}
         {isLoading && (
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <div
+            className="flex items-center gap-2 text-muted-foreground"
+            data-testid="loading-status"
+          >
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-sm font-medium">
               Loading validation status...
@@ -185,7 +195,10 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
 
         {/* Success Message - only when completed */}
         {isCompleted && (
-          <div className="bg-green-50 neo-border-thick rounded-lg p-4">
+          <div
+            className="bg-green-50 neo-border-thick rounded-lg p-4"
+            data-testid="success-message"
+          >
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
               <p className="font-bold text-green-900">
@@ -207,6 +220,7 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
               {displayObjectives.map((obj) => (
                 <div
                   key={obj.id}
+                  data-testid={`objective-${obj.objectiveKey}`}
                   className={cn(
                     "flex items-start gap-3 p-3 rounded-lg neo-border",
                     obj.status === true
@@ -307,6 +321,7 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
                   variant="outline"
                   size="sm"
                   className="neo-border font-bold"
+                  data-testid="view-history-button"
                 >
                   <Clock className="h-4 w-4 mr-2" />
                   View History ({submissions.length})

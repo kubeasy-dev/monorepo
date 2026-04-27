@@ -14,7 +14,7 @@ export function challengeListOptions(params?: ChallengeListInput) {
       )
     : {};
   return queryOptions({
-    queryKey: ["challenges", "list", normalized],
+    queryKey: queryKeys.challenges.list(normalized),
     queryFn: () => api.challenges.list(params),
     staleTime: 5 * 60 * 1000,
   });
@@ -22,7 +22,7 @@ export function challengeListOptions(params?: ChallengeListInput) {
 
 export function challengeDetailOptions(slug: string) {
   return queryOptions({
-    queryKey: ["challenges", "detail", slug],
+    queryKey: queryKeys.challenges.detail(slug),
     queryFn: () => api.challenges.getBySlug(slug),
     staleTime: 60 * 60 * 1000, // 1h — matches ISR revalidation window
   });
@@ -30,7 +30,7 @@ export function challengeDetailOptions(slug: string) {
 
 export function challengeObjectivesOptions(slug: string) {
   return queryOptions({
-    queryKey: ["challenges", "objectives", slug],
+    queryKey: queryKeys.challenges.objectives(slug),
     queryFn: () => api.challenges.getObjectives(slug),
     staleTime: 60 * 60 * 1000,
   });
@@ -71,9 +71,13 @@ export function completionOptions(params?: {
   });
 }
 
+import { queryKeys } from "@kubeasy/api-schemas/query-keys";
+
+// ... (existing imports)
+
 export function challengeStatusOptions(slug: string) {
   return queryOptions({
-    queryKey: ["progress", "status", slug],
+    queryKey: queryKeys.challenges.status(slug),
     queryFn: () => api.progress.status(slug),
   });
 }
@@ -82,14 +86,14 @@ export function challengeStatusOptions(slug: string) {
 
 export function submissionsOptions(slug: string) {
   return queryOptions({
-    queryKey: ["submissions", slug],
+    queryKey: queryKeys.challenges.submissions.all(slug),
     queryFn: () => api.submissions.getBySlug(slug),
   });
 }
 
 export function latestValidationOptions(slug: string) {
   return queryOptions({
-    queryKey: ["submissions", "latest", slug],
+    queryKey: queryKeys.challenges.submissions.latest(slug),
     queryFn: () => api.submissions.latestValidation(slug),
   });
 }

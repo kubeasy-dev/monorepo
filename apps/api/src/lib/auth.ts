@@ -2,7 +2,7 @@ import { apiKey } from "@better-auth/api-key";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { createQueue, QUEUE_NAMES } from "@kubeasy/jobs";
 import { betterAuth } from "better-auth";
-import { admin } from "better-auth/plugins";
+import { admin, testUtils } from "better-auth/plugins";
 import { db } from "../db/index";
 import * as schema from "../db/schema/auth";
 import { allowedOrigins } from "./cors";
@@ -40,6 +40,7 @@ export const auth = betterAuth({
         enabled: false,
       },
     }),
+    testUtils(),
   ],
   user: {
     additionalFields: {
