@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Award, Flame, Star, Target, TrendingUp, Trophy } from "lucide-react";
 import { DashboardChart } from "@/components/dashboard-chart";
 import { DashboardRecentActivity } from "@/components/dashboard-recent-activity";
+import { useInvalidateCacheSSE } from "@/hooks/use-invalidate-cache-sse";
 import {
   completionOptions,
   registryMetaOptions,
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_protected/dashboard")({
 
 function DashboardPage() {
   const { user } = Route.useRouteContext();
+  useInvalidateCacheSSE(true);
   const { data: completion } = useSuspenseQuery(
     completionOptions({ splitByTheme: true }),
   );

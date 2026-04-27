@@ -4,7 +4,7 @@
  * Uses daily_streak transactions as source of truth
  */
 
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "../../db/index";
 import { userXpTransaction } from "../../db/schema/index";
 import { MAX_STREAK_WINDOW_DAYS } from "./constants";
@@ -34,7 +34,7 @@ export async function calculateStreak(userId: string): Promise<number> {
   const windowStart = new Date(today);
   windowStart.setUTCDate(windowStart.getUTCDate() - MAX_STREAK_WINDOW_DAYS);
 
-  // Get all daily_streak transactions within the window
+  // Get all challenge completion transactions within the window
   const streakTransactions = await db
     .select({
       createdAt: userXpTransaction.createdAt,
@@ -43,7 +43,7 @@ export async function calculateStreak(userId: string): Promise<number> {
     .where(
       and(
         eq(userXpTransaction.userId, userId),
-        eq(userXpTransaction.action, "daily_streak"),
+        sql`${userXpTransaction.action} IN ('challenge_completed', 'first_challenge')`,
         gte(userXpTransaction.createdAt, windowStart),
       ),
     )

@@ -10,7 +10,12 @@ export interface XpAwardPayload {
   userId: string;
   challengeSlug: string;
   xpAmount: number;
-  action: "challenge_completed" | "daily_streak" | "first_challenge";
+  action:
+    | "challenge_completed"
+    | "daily_streak"
+    | "first_challenge"
+    | "milestone_reached"
+    | "bonus";
   description: string;
 }
 

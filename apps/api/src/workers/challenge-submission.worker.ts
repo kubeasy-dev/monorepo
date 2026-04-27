@@ -7,7 +7,7 @@ import {
 import { metrics } from "@opentelemetry/api";
 import { all } from "better-all";
 import { Worker } from "bullmq";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, gte } from "drizzle-orm";
 import { db } from "../db/index";
 import { userXpTransaction } from "../db/schema/index";
 import { trackChallengeCompleted } from "../lib/analytics-server";
@@ -37,24 +37,41 @@ export function createChallengeSubmissionWorker() {
       const { userId, challengeSlug, difficulty } = job.data;
 
       try {
-        // 1 & 2. Check first challenge + calculate streak in parallel (independent DB queries)
-        const { completedTransactions, currentStreak } = await all({
-          async completedTransactions() {
-            const [row] = await db
-              .select({ count: count() })
-              .from(userXpTransaction)
-              .where(
-                and(
-                  eq(userXpTransaction.userId, userId),
-                  eq(userXpTransaction.action, "challenge_completed"),
-                ),
-              );
-            return row;
-          },
-          async currentStreak() {
-            return calculateStreak(userId);
-          },
-        });
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+
+        // 1 & 2. Check first challenge + calculate streak + check today's bonus in parallel
+        const { completedTransactions, currentStreak, alreadyAwardedToday } =
+          await all({
+            async completedTransactions() {
+              const [row] = await db
+                .select({ count: count() })
+                .from(userXpTransaction)
+                .where(
+                  and(
+                    eq(userXpTransaction.userId, userId),
+                    eq(userXpTransaction.action, "challenge_completed"),
+                  ),
+                );
+              return row;
+            },
+            async currentStreak() {
+              return calculateStreak(userId);
+            },
+            async alreadyAwardedToday() {
+              const [row] = await db
+                .select({ count: count() })
+                .from(userXpTransaction)
+                .where(
+                  and(
+                    eq(userXpTransaction.userId, userId),
+                    eq(userXpTransaction.action, "daily_streak"),
+                    gte(userXpTransaction.createdAt, today),
+                  ),
+                );
+              return (row?.count ?? 0) > 0;
+            },
+          });
         const isFirstChallenge = (completedTransactions?.count ?? 0) === 0;
 
         // 3. Calculate XP amounts
@@ -64,7 +81,7 @@ export function createChallengeSubmissionWorker() {
           currentStreak,
         });
 
-        // 4. Fire analytics (fire-and-forget style, errors logged internally)
+        // 4. Fire analytics
         await trackChallengeCompleted(
           userId,
           challengeSlug,
@@ -73,33 +90,38 @@ export function createChallengeSubmissionWorker() {
           isFirstChallenge,
         );
 
-        // 5. Dispatch XP_AWARD jobs in parallel
+        // 5. Dispatch XP_AWARD jobs
         await all({
-          // Base XP always awarded
           async base() {
             return xpAwardQueue.add("xp-base", {
               userId,
               challengeSlug,
               xpAmount: xpGain.baseXP,
-              action: "challenge_completed",
-              description: `Completed ${difficulty} challenge`,
+              action: isFirstChallenge
+                ? "first_challenge"
+                : "challenge_completed",
+              description: isFirstChallenge
+                ? "First challenge completed"
+                : `Completed ${difficulty} challenge`,
             } satisfies XpAwardPayload);
           },
-          // First challenge bonus
           async firstChallenge() {
             if (isFirstChallenge && xpGain.firstChallengeBonus > 0) {
               return xpAwardQueue.add("xp-first-challenge", {
                 userId,
                 challengeSlug,
                 xpAmount: xpGain.firstChallengeBonus,
-                action: "first_challenge",
+                action: "bonus",
                 description: "First challenge bonus",
               } satisfies XpAwardPayload);
             }
           },
-          // Streak bonus
           async streak() {
-            if (xpGain.streakBonus > 0) {
+            if (
+              xpGain.streakBonus > 0 &&
+              !alreadyAwardedToday &&
+              !isFirstChallenge
+            ) {
               return xpAwardQueue.add("xp-streak", {
                 userId,
                 challengeSlug,
