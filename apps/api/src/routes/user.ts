@@ -14,11 +14,6 @@ import { cacheDelPattern, cached, cacheKey, TTL } from "../lib/cache";
 import { requireAuth } from "../middleware/session";
 import { calculateLevel, calculateStreak } from "../services/xp/index";
 
-const updateNameSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().optional(),
-});
-
 const userRouter = new Hono();
 
 // GET /user/me -- get current user profile
@@ -77,24 +72,6 @@ userRouter.get("/streak", requireAuth, async (c) => {
 
   return c.json(data);
 });
-
-// PATCH /user/name -- update user name
-userRouter.patch(
-  "/name",
-  requireAuth,
-  zValidator("json", updateNameSchema),
-  async (c) => {
-    const sessionUser = c.get("user");
-    const userId = sessionUser.id;
-    const { firstName, lastName } = c.req.valid("json");
-
-    const fullName = lastName ? `${firstName} ${lastName}` : firstName;
-
-    await db.update(user).set({ name: fullName }).where(eq(user.id, userId));
-
-    return c.json({ success: true, name: fullName });
-  },
-);
 
 // DELETE /user/progress -- delete ALL user progress, XP, and transactions
 userRouter.delete("/progress", requireAuth, async (c) => {
