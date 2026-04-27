@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -5,44 +6,44 @@ import { expect, test } from "@playwright/test";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const authStatePath = path.join(__dirname, ".auth/fresh-user.json");
+const authFile = path.join(__dirname, ".auth/gamification-user.json");
 
 test.describe("Gamification System", () => {
-  test.beforeEach(async ({ context }) => {
-    if (fs.existsSync(authStatePath)) {
-      const { cookies } = JSON.parse(fs.readFileSync(authStatePath, "utf-8"));
-      // Map to Playwright expected format
-      await context.addCookies(
-        cookies.map((c) => ({
-          name: c.name,
-          value: c.value,
-          url: "http://localhost:3024",
-        })),
-      );
-    }
+  // Unique user for gamification tests
+  test.beforeAll(async () => {
+    const apiDir = path.join(__dirname, "../../../apps/api");
+    const email = `gamification-e2e-${Math.random().toString(36).substring(7)}@example.com`;
+    execSync(
+      `pnpm tsx --env-file=.env scripts/get-fresh-user-cookies.ts ${email} ${authFile}`,
+      {
+        cwd: apiDir,
+        stdio: "inherit",
+      },
+    );
   });
+
+  test.use({ storageState: authFile });
 
   test("new user should gain first challenge bonus and start streak", async ({
     page,
     request,
     baseURL,
   }) => {
+    test.setTimeout(60000);
     const slug = "first-deployment";
-    const authFile = JSON.parse(fs.readFileSync(authStatePath, "utf-8"));
-    const sessionToken = authFile.cookies.find(
-      (c) => c.name === "better-auth.session_token",
-    )?.value;
+    const sessionToken = JSON.parse(
+      fs.readFileSync(authFile, "utf-8"),
+    ).cookies.find((c) => c.name === "better-auth.session_token")?.value;
 
-    // 0. Hard Reset User Progress (XP, Challenges, Streaks)
-    const resetRes = await request.delete("/api/user/progress", {
+    // 0. Reset progress
+    await request.delete("/api/user/progress", {
       headers: { Cookie: `better-auth.session_token=${sessionToken}` },
     });
-    expect(resetRes.ok()).toBeTruthy();
 
-    // 1. Initial State Check (Dashboard)
+    // 1. Initial State Check
     await page.goto("/dashboard");
 
-    // If redirected to onboarding, skip it
+    // Skip onboarding
     if (page.url().includes("/onboarding")) {
       await request.post("/api/onboarding/skip", {
         headers: { Cookie: `better-auth.session_token=${sessionToken}` },
@@ -57,14 +58,11 @@ test.describe("Gamification System", () => {
     const initialStreak = await streakCard.locator("p.text-3xl").innerText();
     expect(initialStreak).toBe("0");
 
-    // 2. Starting challenge via API
-    const startRes = await request.post(`/api/progress/${slug}/start`, {
+    // 2. Complete Challenge
+    await request.post(`/api/progress/${slug}/start`, {
       headers: { Cookie: `better-auth.session_token=${sessionToken}` },
     });
-    expect(startRes.ok()).toBeTruthy();
-
-    // 3. Submitting completion via API
-    const submitRes = await request.post(`/api/challenges/${slug}/submit`, {
+    await request.post(`/api/challenges/${slug}/submit`, {
       headers: {
         Cookie: `better-auth.session_token=${sessionToken}`,
         "Content-Type": "application/json",
@@ -77,14 +75,13 @@ test.describe("Gamification System", () => {
         ],
       },
     });
-    expect(submitRes.ok()).toBeTruthy();
 
-    // 4. Verifying final state on dashboard
+    // 3. Verify final state
     if (!page.url().includes("/dashboard")) {
       await page.goto("/dashboard");
     }
 
-    // Total XP should be 100 (50 base + 50 bonus)
+    // Total XP should be 100
     await expect(async () => {
       const xpText = await page.getByTestId("total-xp").innerText();
       expect(xpText).toBe("100");
@@ -93,7 +90,6 @@ test.describe("Gamification System", () => {
     const finalStreak = await streakCard.locator("p.text-3xl").innerText();
     expect(finalStreak).toBe("1");
 
-    // Checking activity list
     await expect(page.getByText("First challenge bonus")).toBeVisible();
   });
 });

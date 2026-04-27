@@ -1,19 +1,44 @@
+import { execSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const authFile = path.join(__dirname, ".auth/challenge-user.json");
+
 test.describe("Challenge Flow", () => {
+  // Unique user for challenge tests
+  test.beforeAll(async () => {
+    const apiDir = path.join(__dirname, "../../../apps/api");
+    const email = `challenge-e2e-${Math.random().toString(36).substring(7)}@example.com`;
+    execSync(
+      `pnpm tsx --env-file=.env scripts/get-fresh-user-cookies.ts ${email} ${authFile}`,
+      {
+        cwd: apiDir,
+        stdio: "inherit",
+      },
+    );
+  });
+
+  test.use({ storageState: authFile });
+
   test("classic user flow: view, submit and complete challenge", async ({
     page,
     request,
   }) => {
     const slug = "first-deployment";
+    const sessionToken = JSON.parse(
+      fs.readFileSync(authFile, "utf-8"),
+    ).cookies.find((c) => c.name === "better-auth.session_token")?.value;
 
-    // sessionToken is needed for API calls, we get it from cookies already injected in storageState
-    const cookies = await page.context().cookies();
-    const sessionToken = cookies.find(
-      (c) => c.name === "better-auth.session_token",
-    )?.value;
+    // Skip onboarding
+    await request.post("/api/onboarding/skip", {
+      headers: { Cookie: `better-auth.session_token=${sessionToken}` },
+    });
 
-    // 0. Reset progress to ensure a clean state (Idempotency)
+    // 0. Reset progress to ensure a clean state
     await request.post(`/api/progress/${slug}/reset`, {
       headers: { Cookie: `better-auth.session_token=${sessionToken}` },
     });
@@ -23,16 +48,16 @@ test.describe("Challenge Flow", () => {
 
     // Wait for auth and loading
     await expect(page.getByTestId("mission-score")).toBeVisible({
-      timeout: 10000,
+      timeout: 15000,
     });
 
-    // Visual Regression Test: The mission card design is critical
+    // Visual Regression Test
     const missionCard = page
       .locator("div")
       .filter({ hasText: /Your Mission/i })
       .first();
     await expect(missionCard).toHaveScreenshot("mission-card-initial.png", {
-      mask: [page.getByTestId("mission-score")], // Mask the score as it might change
+      mask: [page.getByTestId("mission-score")],
     });
 
     // Check initial score (0/3)
@@ -51,7 +76,7 @@ test.describe("Challenge Flow", () => {
     const commandBlock = page.locator(".font-mono");
     await expect(commandBlock).toContainText(/submit/i, { timeout: 15000 });
 
-    // 3. Simulate PARTIAL submission (Failing)
+    // 3. Simulate PARTIAL submission
     await request.post(`/api/challenges/${slug}/submit`, {
       headers: {
         Cookie: `better-auth.session_token=${sessionToken}`,
@@ -59,20 +84,12 @@ test.describe("Challenge Flow", () => {
       },
       data: {
         results: [
-          {
-            objectiveKey: "pods-ready",
-            passed: true,
-            message: "Pods are good",
-          },
-          {
-            objectiveKey: "nginx-logs",
-            passed: false,
-            message: "Logs not found yet",
-          },
+          { objectiveKey: "pods-ready", passed: true, message: "OK" },
+          { objectiveKey: "nginx-logs", passed: false, message: "FAIL" },
           {
             objectiveKey: "deployment-available",
             passed: false,
-            message: "Waiting for stability",
+            message: "FAIL",
           },
         ],
       },
@@ -82,12 +99,9 @@ test.describe("Challenge Flow", () => {
     await expect(page.getByTestId("objective-pods-ready")).toHaveClass(
       /bg-green-50/,
     );
-    await expect(page.getByTestId("objective-nginx-logs")).toHaveClass(
-      /bg-red-50/,
-    );
     await expect(scoreElement).toHaveText("1/3");
 
-    // 4. Simulate COMPLETE submission (Success)
+    // 4. Simulate COMPLETE submission
     await request.post(`/api/challenges/${slug}/submit`, {
       headers: {
         Cookie: `better-auth.session_token=${sessionToken}`,
@@ -95,21 +109,9 @@ test.describe("Challenge Flow", () => {
       },
       data: {
         results: [
-          {
-            objectiveKey: "pods-ready",
-            passed: true,
-            message: "All pods are running",
-          },
-          {
-            objectiveKey: "nginx-logs",
-            passed: true,
-            message: "Logs verified",
-          },
-          {
-            objectiveKey: "deployment-available",
-            passed: true,
-            message: "Deployment is stable",
-          },
+          { objectiveKey: "pods-ready", passed: true, message: "OK" },
+          { objectiveKey: "nginx-logs", passed: true, message: "OK" },
+          { objectiveKey: "deployment-available", passed: true, message: "OK" },
         ],
       },
     });

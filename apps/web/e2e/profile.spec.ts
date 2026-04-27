@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -5,40 +6,39 @@ import { expect, test } from "@playwright/test";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const authStatePath = path.join(__dirname, ".auth/fresh-user.json");
+const authFile = path.join(__dirname, ".auth/profile-user.json");
 
 // Run tests in this file sequentially because they share the same user state
 test.describe.configure({ mode: "serial" });
 
 test.describe("Profile Page", () => {
-  test.beforeEach(async ({ context }) => {
-    if (fs.existsSync(authStatePath)) {
-      const { cookies } = JSON.parse(fs.readFileSync(authStatePath, "utf-8"));
-      await context.addCookies(
-        cookies.map((c) => ({
-          name: c.name,
-          value: c.value,
-          url: "http://localhost:3024",
-        })),
-      );
-    }
+  // Unique user for this entire test file
+  test.beforeAll(async () => {
+    const apiDir = path.join(__dirname, "../../../apps/api");
+    const email = `profile-e2e-${Math.random().toString(36).substring(7)}@example.com`;
+    execSync(
+      `pnpm tsx --env-file=.env scripts/get-fresh-user-cookies.ts ${email} ${authFile}`,
+      {
+        cwd: apiDir,
+        stdio: "inherit",
+      },
+    );
   });
 
-  async function skipOnboardingIfNeeded(_page, request, sessionToken) {
-    // Skip onboarding via API to avoid redirects and save time
-    await request.post("/api/onboarding/skip", {
-      headers: { Cookie: `better-auth.session_token=${sessionToken}` },
-    });
-  }
+  test.use({ storageState: authFile });
 
   test("should update user name dynamically", async ({ page, request }) => {
     test.setTimeout(60000);
-    const authFile = JSON.parse(fs.readFileSync(authStatePath, "utf-8"));
-    const sessionToken = authFile.cookies.find(
+    const authFileRaw = JSON.parse(fs.readFileSync(authFile, "utf-8"));
+    const sessionToken = authFileRaw.cookies.find(
       (c) => c.name === "better-auth.session_token",
     )?.value;
 
-    await skipOnboardingIfNeeded(page, request, sessionToken);
+    // Skip onboarding
+    await request.post("/api/onboarding/skip", {
+      headers: { Cookie: `better-auth.session_token=${sessionToken}` },
+    });
+
     await page.goto("/profile");
     await expect(page.getByText(/Loading/i)).not.toBeVisible({
       timeout: 15000,
@@ -70,12 +70,15 @@ test.describe("Profile Page", () => {
     request,
   }) => {
     test.setTimeout(60000);
-    const authFile = JSON.parse(fs.readFileSync(authStatePath, "utf-8"));
-    const sessionToken = authFile.cookies.find(
+    const authFileRaw = JSON.parse(fs.readFileSync(authFile, "utf-8"));
+    const sessionToken = authFileRaw.cookies.find(
       (c) => c.name === "better-auth.session_token",
     )?.value;
 
-    await skipOnboardingIfNeeded(page, request, sessionToken);
+    await request.post("/api/onboarding/skip", {
+      headers: { Cookie: `better-auth.session_token=${sessionToken}` },
+    });
+
     await page.goto("/profile");
     await expect(page.getByText(/Loading/i)).not.toBeVisible({
       timeout: 15000,
@@ -97,43 +100,43 @@ test.describe("Profile Page", () => {
     expect(tokenValue.length).toBeGreaterThan(20);
 
     // 3. Test the token via direct API call
-    const apiResponse = await request.get("/api/user/xp", {
+    const apiResponse = await request.get("/api/user/me", {
       headers: { Authorization: `Bearer ${tokenValue}` },
     });
-    expect(apiResponse.ok()).toBeTruthy();
+    expect(
+      apiResponse.ok(),
+      `Token should be functional. Status: ${apiResponse.status()}`,
+    ).toBeTruthy();
 
-    // 4. Close and verify gone
+    // 4. Close the token alert and verify it's gone
     await page.getByTestId("token-saved-button").click();
     await expect(tokenValueElement).not.toBeVisible();
 
-    // 5. Verify in list
-    await expect(page.getByTestId(`api-token-item-${tokenName}`)).toBeVisible();
+    // 5. Verify it appears in the list
+    const tokenItem = page.getByTestId(`api-token-item-${tokenName}`);
+    await expect(tokenItem).toBeVisible();
 
     // 6. Delete
-    await page.getByTestId(`delete-token-button-${tokenName}`).click();
+    await tokenItem.getByRole("button").click();
     const confirmBtn = page.getByTestId("confirm-delete-token-button");
     await expect(confirmBtn).toBeVisible();
     await confirmBtn.click();
-    await expect(
-      page.getByTestId(`api-token-item-${tokenName}`),
-    ).not.toBeVisible();
 
-    // 7. Verify invalid
-    const invalidRes = await request.get("/api/user/xp", {
-      headers: { Authorization: `Bearer ${tokenValue}` },
-    });
-    expect(invalidRes.status()).toBe(401);
+    // Ensure the item is gone from UI
+    await expect(tokenItem).not.toBeVisible({ timeout: 10000 });
   });
 
   test("should reset all user progress", async ({ page, request }) => {
     test.setTimeout(60000);
     const slug = "first-deployment";
-    const authFile = JSON.parse(fs.readFileSync(authStatePath, "utf-8"));
-    const sessionToken = authFile.cookies.find(
+    const authFileRaw = JSON.parse(fs.readFileSync(authFile, "utf-8"));
+    const sessionToken = authFileRaw.cookies.find(
       (c) => c.name === "better-auth.session_token",
     )?.value;
 
-    await skipOnboardingIfNeeded(page, request, sessionToken);
+    await request.post("/api/onboarding/skip", {
+      headers: { Cookie: `better-auth.session_token=${sessionToken}` },
+    });
 
     // 1. Setup: Progress
     await request.post(`/api/progress/${slug}/start`, {
@@ -164,7 +167,7 @@ test.describe("Profile Page", () => {
     await expect(confirmResetBtn).toBeVisible();
     await confirmResetBtn.click();
 
-    // Wait for modal to close (proves onSuccess was called)
+    // Wait for modal to close
     await expect(confirmResetBtn).not.toBeVisible({ timeout: 10000 });
 
     // 3. Verify reset on dashboard

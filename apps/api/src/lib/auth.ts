@@ -36,6 +36,9 @@ export const auth = betterAuth({
   plugins: [
     admin(),
     apiKey({
+      storage: "secondary-storage",
+      fallbackToDatabase: true,
+      enableSessionForAPIKeys: true,
       rateLimit: {
         enabled: false,
       },
