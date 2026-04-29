@@ -259,6 +259,27 @@ const handleReset: Handler = async (c) => {
     return c.json({ error: "Challenge not found" }, 404);
   }
 
+  // Read progress BEFORE deletion to capture previous status
+  const [progress] = await db
+    .select({ status: userProgress.status })
+    .from(userProgress)
+    .where(
+      and(
+        eq(userProgress.userId, userId),
+        eq(userProgress.challengeSlug, slug),
+      ),
+    )
+    .limit(1);
+
+  if (!progress) {
+    return c.json({
+      success: true,
+      message: "No progress to reset.",
+    });
+  }
+
+  const isReplay = progress.status === "completed";
+
   await Promise.all([
     db
       .delete(userProgress)
@@ -276,27 +297,33 @@ const handleReset: Handler = async (c) => {
           eq(userSubmission.challengeSlug, slug),
         ),
       ),
-    db
-      .delete(userXpTransaction)
-      .where(
-        and(
-          eq(userXpTransaction.userId, userId),
-          eq(userXpTransaction.challengeSlug, slug),
-        ),
-      ),
+    ...(isReplay
+      ? []
+      : [
+          db
+            .delete(userXpTransaction)
+            .where(
+              and(
+                eq(userXpTransaction.userId, userId),
+                eq(userXpTransaction.challengeSlug, slug),
+              ),
+            ),
+        ]),
   ]);
 
-  const [xpResult] = await db
-    .select({
-      totalXp: sql<number>`COALESCE(SUM(${userXpTransaction.xpAmount}), 0)`,
-    })
-    .from(userXpTransaction)
-    .where(eq(userXpTransaction.userId, userId));
+  if (!isReplay) {
+    const [xpResult] = await db
+      .select({
+        totalXp: sql<number>`COALESCE(SUM(${userXpTransaction.xpAmount}), 0)`,
+      })
+      .from(userXpTransaction)
+      .where(eq(userXpTransaction.userId, userId));
 
-  await db
-    .update(userXp)
-    .set({ totalXp: xpResult?.totalXp ?? 0 })
-    .where(eq(userXp.userId, userId));
+    await db
+      .update(userXp)
+      .set({ totalXp: xpResult?.totalXp ?? 0 })
+      .where(eq(userXp.userId, userId));
+  }
 
   cacheDelPattern(`cache:u:${userId}:*`).catch((err) => {
     logger.error("[progress/reset] cache invalidation failed", {
@@ -307,7 +334,11 @@ const handleReset: Handler = async (c) => {
 
   return c.json({
     success: true,
-    message: "Challenge progress reset successfully",
+    isReplay,
+    previousStatus: progress.status,
+    message: isReplay
+      ? "Challenge reset. Your XP from the previous completion has been preserved."
+      : "Challenge progress reset successfully.",
   });
 };
 

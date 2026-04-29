@@ -8,7 +8,11 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { nanoid } from "nanoid";
 import { db } from "../db/index";
-import { userProgress, userSubmission } from "../db/schema/index";
+import {
+  userProgress,
+  userSubmission,
+  userXpTransaction,
+} from "../db/schema/index";
 import { trackChallengeSubmitted } from "../lib/analytics-server";
 import { cacheDelPattern } from "../lib/cache";
 import { redis } from "../lib/redis";
@@ -162,7 +166,25 @@ submit.post(
         progressUpdated = inserted.length > 0;
       }
 
-      return { conflict: false, progressUpdated, failed: false };
+      // 5d. Check for existing XP transaction (replay guard)
+      const [existingXp] = await tx
+        .select({ id: userXpTransaction.id })
+        .from(userXpTransaction)
+        .where(
+          and(
+            eq(userXpTransaction.userId, userId),
+            eq(userXpTransaction.challengeSlug, challengeSlug),
+            eq(userXpTransaction.action, "challenge_completed"),
+          ),
+        )
+        .limit(1);
+
+      return {
+        conflict: false,
+        progressUpdated,
+        failed: false,
+        hasXpAwarded: !!existingXp,
+      };
     });
 
     if (txResult.conflict) {
@@ -232,17 +254,20 @@ submit.post(
     }
 
     // 8. Dispatch CHALLENGE_SUBMISSION BullMQ job (fire-and-forget)
-    challengeSubmissionQueue
-      .add("challenge-completed", {
-        userId,
-        challengeSlug,
-        difficulty: detail.difficulty,
-      })
-      .catch((err) => {
-        logger.error("[submit] challenge-submission job dispatch failed", {
-          error: String(err),
+    // ONLY if XP hasn't been awarded yet for this challenge
+    if (!txResult.hasXpAwarded) {
+      challengeSubmissionQueue
+        .add("challenge-completed", {
+          userId,
+          challengeSlug,
+          difficulty: detail.difficulty,
+        })
+        .catch((err) => {
+          logger.error("[submit] challenge-submission job dispatch failed", {
+            error: String(err),
+          });
         });
-      });
+    }
 
     return c.json({ success: true, objectives });
   },
