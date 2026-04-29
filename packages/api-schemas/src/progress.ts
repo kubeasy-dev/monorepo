@@ -134,7 +134,7 @@ export const ResetChallengeOutputSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   isReplay: z.boolean().optional(),
-  previousStatus: z.string().optional(),
+  previousStatus: ChallengeStatusSchema.optional(),
 });
 export type ResetChallengeOutput = z.infer<typeof ResetChallengeOutputSchema>;
 

@@ -261,7 +261,7 @@ const handleReset: Handler = async (c) => {
 
   // Read progress BEFORE deletion to capture previous status
   const [progress] = await db
-    .select()
+    .select({ status: userProgress.status })
     .from(userProgress)
     .where(
       and(
@@ -311,17 +311,19 @@ const handleReset: Handler = async (c) => {
         ]),
   ]);
 
-  const [xpResult] = await db
-    .select({
-      totalXp: sql<number>`COALESCE(SUM(${userXpTransaction.xpAmount}), 0)`,
-    })
-    .from(userXpTransaction)
-    .where(eq(userXpTransaction.userId, userId));
+  if (!isReplay) {
+    const [xpResult] = await db
+      .select({
+        totalXp: sql<number>`COALESCE(SUM(${userXpTransaction.xpAmount}), 0)`,
+      })
+      .from(userXpTransaction)
+      .where(eq(userXpTransaction.userId, userId));
 
-  await db
-    .update(userXp)
-    .set({ totalXp: xpResult?.totalXp ?? 0 })
-    .where(eq(userXp.userId, userId));
+    await db
+      .update(userXp)
+      .set({ totalXp: xpResult?.totalXp ?? 0 })
+      .where(eq(userXp.userId, userId));
+  }
 
   cacheDelPattern(`cache:u:${userId}:*`).catch((err) => {
     logger.error("[progress/reset] cache invalidation failed", {

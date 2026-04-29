@@ -166,7 +166,25 @@ submit.post(
         progressUpdated = inserted.length > 0;
       }
 
-      return { conflict: false, progressUpdated, failed: false };
+      // 5d. Check for existing XP transaction (replay guard)
+      const [existingXp] = await tx
+        .select({ id: userXpTransaction.id })
+        .from(userXpTransaction)
+        .where(
+          and(
+            eq(userXpTransaction.userId, userId),
+            eq(userXpTransaction.challengeSlug, challengeSlug),
+            eq(userXpTransaction.action, "challenge_completed"),
+          ),
+        )
+        .limit(1);
+
+      return {
+        conflict: false,
+        progressUpdated,
+        failed: false,
+        hasXpAwarded: !!existingXp,
+      };
     });
 
     if (txResult.conflict) {
@@ -237,19 +255,7 @@ submit.post(
 
     // 8. Dispatch CHALLENGE_SUBMISSION BullMQ job (fire-and-forget)
     // ONLY if XP hasn't been awarded yet for this challenge
-    const [existingXp] = await db
-      .select({ id: userXpTransaction.id })
-      .from(userXpTransaction)
-      .where(
-        and(
-          eq(userXpTransaction.userId, userId),
-          eq(userXpTransaction.challengeSlug, challengeSlug),
-          eq(userXpTransaction.action, "challenge_completed"),
-        ),
-      )
-      .limit(1);
-
-    if (!existingXp) {
+    if (!txResult.hasXpAwarded) {
       challengeSubmissionQueue
         .add("challenge-completed", {
           userId,
