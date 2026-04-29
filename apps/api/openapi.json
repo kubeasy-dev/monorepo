@@ -1111,6 +1111,13 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "isReplay": {
+                      "type": "boolean"
+                    },
+                    "previousStatus": {
+                      "type": "string",
+                      "enum": ["not_started", "in_progress", "completed"]
                     }
                   },
                   "required": ["success", "message"]
