@@ -10,7 +10,10 @@
  */
 interface Umami {
   track: (eventName: string, eventData?: Record<string, unknown>) => void;
-  identify: (properties: Record<string, unknown>) => void;
+  identify: {
+    (uniqueId: string, data?: Record<string, unknown>): void;
+    (data: Record<string, unknown>): void;
+  };
 }
 
 declare global {
@@ -61,6 +64,8 @@ export function trackApiTokenCreated() {
   safeTrack("api_token_created");
 }
 
+let pendingIdentifyIntervalId: number | null = null;
+
 /**
  * Identify a user in Umami
  * This should be called after successful authentication
@@ -75,21 +80,64 @@ export function identifyUser(
     provider?: string;
   },
 ) {
-  if (!isUmamiReady()) {
-    if (process.env.NODE_ENV === "development") {
-      console.info("[Umami] User identification skipped (not loaded)");
+  if (typeof window === "undefined") return;
+
+  const runIdentify = () => {
+    try {
+      // Umami expects the unique ID as the first positional argument; passing
+      // it inside the data object would only set session data without
+      // assigning a distinctId.
+      window.umami?.identify(userId, properties);
+    } catch (error) {
+      console.error("[Umami] Failed to identify user", error);
     }
+  };
+
+  // Cancel any in-flight poll so the latest call wins and we don't fire
+  // identify multiple times with stale arguments.
+  if (pendingIdentifyIntervalId !== null) {
+    window.clearInterval(pendingIdentifyIntervalId);
+    pendingIdentifyIntervalId = null;
+  }
+
+  if (isUmamiReady()) {
+    runIdentify();
     return;
   }
 
-  try {
-    window.umami?.identify({
-      userId,
-      ...properties,
-    });
-  } catch (error) {
-    console.error("[Umami] Failed to identify user", error);
-  }
+  // The Umami script is loaded with `defer`, so it may not be ready when the
+  // session resolves on first paint. Poll briefly until it's available.
+  const startedAt = Date.now();
+  const maxWaitMs = 10_000;
+  pendingIdentifyIntervalId = window.setInterval(() => {
+    if (isUmamiReady()) {
+      if (pendingIdentifyIntervalId !== null) {
+        window.clearInterval(pendingIdentifyIntervalId);
+        pendingIdentifyIntervalId = null;
+      }
+      runIdentify();
+      return;
+    }
+    if (Date.now() - startedAt > maxWaitMs) {
+      if (pendingIdentifyIntervalId !== null) {
+        window.clearInterval(pendingIdentifyIntervalId);
+        pendingIdentifyIntervalId = null;
+      }
+      if (process.env.NODE_ENV === "development") {
+        console.info("[Umami] User identification skipped (load timeout)");
+      }
+    }
+  }, 100);
+}
+
+/**
+ * Track sign-in attempt with a social provider
+ * Fired when the user clicks a provider button on the login page, before
+ * the OAuth redirect.
+ * @param provider - The social provider (e.g., "github", "google", "microsoft")
+ */
+export function trackSignInStarted(provider: string) {
+  safeTrack("signin_started", { provider });
 }
 
 /**
