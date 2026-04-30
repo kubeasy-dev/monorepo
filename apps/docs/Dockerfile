@@ -18,6 +18,12 @@ COPY --from=docs-prepare /app/out/full/apps/docs/source.config.ts ./apps/docs/so
 RUN pnpm install --frozen-lockfile
 
 COPY --from=docs-prepare /app/out/full/ .
+
+ARG NEXT_PUBLIC_UMAMI_URL
+ENV NEXT_PUBLIC_UMAMI_URL=$NEXT_PUBLIC_UMAMI_URL
+ARG NEXT_PUBLIC_UMAMI_ID
+ENV NEXT_PUBLIC_UMAMI_ID=$NEXT_PUBLIC_UMAMI_ID
+
 RUN turbo run build --filter=@kubeasy/docs
 
 FROM base AS runner

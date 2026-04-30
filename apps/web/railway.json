@@ -3,7 +3,12 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "apps/web/Dockerfile",
-    "watchPatterns": ["apps/web/**", "packages/**"]
+    "watchPatterns": ["apps/web/**", "packages/**"],
+    "buildArgs": {
+      "VITE_API_URL": "${{VITE_API_URL}}",
+      "VITE_UMAMI_URL": "${{VITE_UMAMI_URL}}",
+      "VITE_UMAMI_ID": "${{VITE_UMAMI_ID}}"
+    }
   },
   "deploy": {
     "healthcheckPath": "/",
