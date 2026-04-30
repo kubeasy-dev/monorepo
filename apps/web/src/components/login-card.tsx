@@ -1,5 +1,3 @@
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@kubeasy/ui/button";
 import {
   Card,
@@ -8,6 +6,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@kubeasy/ui/card";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { trackSignInStarted } from "@/lib/analytics";
 import { signInWithSocialProvider } from "@/lib/auth-client";
 
 type SocialProvider = "github" | "google" | "microsoft";
@@ -151,6 +152,7 @@ export function LoginCard({ callbackUrl = "/dashboard" }: LoginCardProps) {
     try {
       setLoadingProvider(provider);
       setAuthResult({ status: "loading", provider });
+      trackSignInStarted(provider);
 
       const data = await signInWithSocialProvider(provider, callbackUrl);
 

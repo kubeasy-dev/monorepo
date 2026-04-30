@@ -131,6 +131,16 @@ export function identifyUser(
 }
 
 /**
+ * Track sign-in attempt with a social provider
+ * Fired when the user clicks a provider button on the login page, before
+ * the OAuth redirect.
+ * @param provider - The social provider (e.g., "github", "google", "microsoft")
+ */
+export function trackSignInStarted(provider: string) {
+  safeTrack("signin_started", { provider });
+}
+
+/**
  * Reset analytics state (call on logout)
  * Umami is session-based and doesn't have a direct reset method.
  * Session ends when the browser is closed or after inactivity.
