@@ -10,19 +10,18 @@ import { submit } from "./submit";
 import { user } from "./user";
 import { xp } from "./xp";
 
-const routes = new Hono();
-
-routes.get("/health", (c) => c.json({ status: "ok" }));
-
-routes.route("/challenges", challenges);
-routes.route("/challenges", submit); // POST /challenges/:slug/submit
-routes.route("/progress", progress);
-routes.route("/submissions", submissions);
-routes.route("/user", user);
-routes.route("/xp", xp);
-routes.route("/cli", cli);
-routes.route("/sse", sse);
-routes.route("/onboarding", onboarding);
-routes.route("/admin", admin);
-
-export { routes };
+// Routes are chained so that the inferred type captures every sub-route.
+// This is what enables end-to-end type-safety via `hc<AppType>` on the client
+// and is also what lets `hono-openapi` walk the tree to generate the spec.
+export const routes = new Hono()
+  .get("/health", (c) => c.json({ status: "ok" }))
+  .route("/challenges", challenges)
+  .route("/challenges", submit)
+  .route("/progress", progress)
+  .route("/submissions", submissions)
+  .route("/user", user)
+  .route("/xp", xp)
+  .route("/cli", cli)
+  .route("/sse", sse)
+  .route("/onboarding", onboarding)
+  .route("/admin", admin);

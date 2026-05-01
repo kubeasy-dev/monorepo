@@ -16,8 +16,11 @@ export function DashboardChartClient() {
   );
   const { data: meta } = useSuspenseQuery(registryMetaOptions());
 
+  const byTheme =
+    completion && "byTheme" in completion ? completion.byTheme : undefined;
+
   const chartData =
-    completion?.byTheme?.map((item) => {
+    byTheme?.map((item) => {
       const theme = meta.themes.find((t) => t.slug === item.themeSlug);
       return {
         themeName: theme?.name ?? item.themeSlug,
@@ -26,8 +29,8 @@ export function DashboardChartClient() {
     }) ?? [];
 
   const bestTheme =
-    completion?.byTheme && completion.byTheme.length > 0
-      ? completion.byTheme.reduce((best, item) =>
+    byTheme && byTheme.length > 0
+      ? byTheme.reduce((best, item) =>
           item.percentageCompleted > best.percentageCompleted ? item : best,
         )
       : null;

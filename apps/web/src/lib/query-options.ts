@@ -2,6 +2,7 @@ import type { ChallengeListInput } from "@kubeasy/api-schemas/challenges";
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "./api-client";
 import { fetchBlogPostDetailFn, fetchBlogPostsFn } from "./blog.functions";
+import { rpc } from "./rpc";
 
 // --- Challenges ---
 
@@ -67,14 +68,27 @@ export function completionOptions(params?: {
 }) {
   return queryOptions({
     queryKey: ["progress", "completion", params ?? {}],
-    queryFn: () => api.progress.completion(params),
+    queryFn: async () => {
+      const res = await rpc.progress.completion.$get({
+        query: {
+          splitByTheme: params?.splitByTheme ? "true" : undefined,
+          themeSlug: params?.themeSlug,
+        },
+      });
+      if (!res.ok) throw new Error(`completion failed: ${res.status}`);
+      return res.json();
+    },
   });
 }
 
 export function challengeStatusOptions(slug: string) {
   return queryOptions({
     queryKey: ["progress", "status", slug],
-    queryFn: () => api.progress.status(slug),
+    queryFn: async () => {
+      const res = await rpc.progress[":slug"].$get({ param: { slug } });
+      if (!res.ok) throw new Error(`status failed: ${res.status}`);
+      return res.json();
+    },
   });
 }
 

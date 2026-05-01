@@ -51,8 +51,9 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => {
   return auth.handler(c.req.raw);
 });
 
-// Mount API routes
-app.route("/api", routes);
+// Mount API routes — capture the chained return so the RPC client can infer
+// every sub-route below /api/*.
+const apiRoutes = app.route("/api", routes);
 
 app.onError((err, c) => {
   const log = c.get("log");
@@ -77,4 +78,4 @@ app.onError((err, c) => {
 });
 
 export { app };
-export type AppType = typeof app;
+export type AppType = typeof apiRoutes;
