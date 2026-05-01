@@ -4,9 +4,11 @@ import { identifyUser } from "evlog/better-auth";
 import { evlog } from "evlog/hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { openAPIRouteHandler } from "hono-openapi";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { auth } from "./lib/auth";
 import { isAllowedOrigin } from "./lib/cors";
+import { openApiConfig } from "./lib/openapi";
 import { RegistryError } from "./lib/registry";
 import type { AppEnv } from "./middleware/session";
 import { sessionMiddleware } from "./middleware/session";
@@ -54,6 +56,11 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => {
 // Mount API routes — capture the chained return so the RPC client can infer
 // every sub-route below /api/*.
 const apiRoutes = app.route("/api", routes);
+
+// Live OpenAPI spec — served from the running app so external consumers
+// (CLI codegen, postman, /docs) always see exactly what's deployed.
+// CORS already covers /api/*, so the endpoint is browser-fetchable too.
+app.get("/api/openapi.json", openAPIRouteHandler(app, openApiConfig));
 
 app.onError((err, c) => {
   const log = c.get("log");

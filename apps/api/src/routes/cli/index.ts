@@ -14,7 +14,6 @@ import { redis } from "../../lib/redis";
 import type { AppEnv } from "../../middleware/session";
 import { requireAuth } from "../../middleware/session";
 import { submit } from "../submit";
-import { legacyCli } from "./legacy";
 
 const CliUserOutputSchema = zod.object({
   firstName: zod.string(),
@@ -87,7 +86,6 @@ async function handleCliOnboarding(
 export const cli = new Hono<AppEnv>()
   .use("/*", requireAuth)
   .route("/challenges", submit)
-  .route("/challenge", legacyCli)
   .get(
     "/user",
     describeRoute({

@@ -4,7 +4,10 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/api/src/lib/openapi-apps.ts'
+      - 'apps/api/src/routes/**'
+      - 'apps/api/src/app.ts'
+      - 'apps/api/src/lib/openapi.ts'
+      - 'apps/api/src/lib/openapi-shared.ts'
       - 'apps/api/scripts/generate-openapi.ts'
       - 'apps/api/src/schemas/**'
       - 'packages/api-schemas/src/**'

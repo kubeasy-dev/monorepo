@@ -204,18 +204,6 @@ export const progress = new Hono<AppEnv>()
       return c.json(await fetchChallengeStatus(user.id, slug));
     },
   )
-  // GET /progress/:slug/status -- legacy alias for the CLI
-  .get(
-    "/:slug/status",
-    describeRoute(getStatusOpenApi),
-    requireAuth,
-    validator("param", slugParam),
-    async (c) => {
-      const user = c.get("user");
-      const { slug } = c.req.valid("param");
-      return c.json(await fetchChallengeStatus(user.id, slug));
-    },
-  )
   // POST /progress/:slug/start -- create or update user progress to in_progress
   .post(
     "/:slug/start",
