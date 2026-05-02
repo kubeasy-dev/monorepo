@@ -144,7 +144,7 @@ importers:
     dependencies:
       '@appsignal/opentelemetry-instrumentation-bullmq':
         specifier: 0.8.0
-        version: 0.8.0(bullmq@5.76.2)
+        version: 0.8.0(bullmq@5.76.3)
       '@better-auth/api-key':
         specifier: 1.6.9
         version: 1.6.9(@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.1)(kysely@0.28.16)(nanostores@1.2.0))(@better-auth/utils@0.4.0)(better-auth@1.6.9(f3ee874ca0c915bfc36aeee3b94833ef))
@@ -224,8 +224,8 @@ importers:
         specifier: 1.6.9
         version: 1.6.9(f3ee874ca0c915bfc36aeee3b94833ef)
       bullmq:
-        specifier: 5.76.2
-        version: 5.76.2
+        specifier: 5.76.3
+        version: 5.76.3
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@electric-sql/pglite@0.3.15)(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@upstash/redis@1.37.0)(kysely@0.28.16)(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3))
@@ -4854,8 +4854,8 @@ packages:
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
 
-  bullmq@5.76.2:
-    resolution: {integrity: sha512-kkNU6TPAjqV3Ep0kIaYhT79Z2IMoA7vadqjmr/zvmPicg0K/cOAecqZTihD726LbI043yPU0MBv/nMQmd5rNIg==}
+  bullmq@5.76.3:
+    resolution: {integrity: sha512-UBICMeWLYa+Dz7IGBNebXApQ1OIxNd4t6nX+AFPQ5gFA3sosW34PENe8Q1cvbjcbMTaU3xrKPorb6tM1czRSsw==}
     engines: {node: '>=12.22.0'}
 
   bullmq@5.76.4:
@@ -8624,14 +8624,14 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@appsignal/opentelemetry-instrumentation-bullmq@0.8.0(bullmq@5.76.2)':
+  '@appsignal/opentelemetry-instrumentation-bullmq@0.8.0(bullmq@5.76.3)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/instrumentation': 0.213.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/semantic-conventions': 1.40.0
       flat: 5.0.2
     optionalDependencies:
-      bullmq: 5.76.2
+      bullmq: 5.76.3
     transitivePeerDependencies:
       - supports-color
 
@@ -13005,7 +13005,7 @@ snapshots:
 
   buffer-from@1.1.2: {}
 
-  bullmq@5.76.2:
+  bullmq@5.76.3:
     dependencies:
       cron-parser: 4.9.0
       ioredis: 5.10.1
