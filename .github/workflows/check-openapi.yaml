@@ -8,7 +8,6 @@ on:
       - 'apps/api/src/lib/openapi.ts'
       - 'apps/api/src/lib/openapi-shared.ts'
       - 'apps/api/scripts/generate-openapi.ts'
-      - 'apps/api/src/schemas/**'
       - 'packages/api-schemas/src/**'
 
 jobs:
