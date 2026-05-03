@@ -4,7 +4,6 @@ import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { PgInstrumentation } from "@opentelemetry/instrumentation-pg";
-import { PinoInstrumentation } from "@opentelemetry/instrumentation-pino";
 import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
 import {
   envDetector,
@@ -48,13 +47,6 @@ const sdk = new NodeSDK({
       requireParentSpan: true,
     }),
     new BullMQInstrumentation(),
-    new PinoInstrumentation({
-      logKeys: {
-        traceId: "trace_id",
-        spanId: "span_id",
-        traceFlags: "trace_flags",
-      },
-    }),
   ],
 });
 

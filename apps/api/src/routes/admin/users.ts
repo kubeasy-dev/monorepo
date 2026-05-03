@@ -3,8 +3,9 @@ import { count, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { db } from "../../db";
 import { user, userXp } from "../../db/schema";
+import type { AppEnv } from "../../middleware/session";
 
-export const adminUsers = new Hono();
+export const adminUsers = new Hono<AppEnv>();
 
 // GET /api/admin/users — paginated user list with metrics
 adminUsers.get("/", async (c) => {

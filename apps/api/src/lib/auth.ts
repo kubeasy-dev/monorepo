@@ -3,6 +3,7 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { createQueue, QUEUE_NAMES } from "@kubeasy/jobs";
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
+import { log } from "evlog";
 import { db } from "../db/index";
 import * as schema from "../db/schema/auth";
 import { allowedOrigins } from "./cors";
@@ -39,6 +40,7 @@ export const auth = betterAuth({
       rateLimit: {
         enabled: false,
       },
+      enableSessionForAPIKeys: true,
     }),
   ],
   user: {
@@ -83,7 +85,10 @@ export const auth = betterAuth({
             });
           } catch (error) {
             // Never throw — auth must complete regardless of job dispatch failure
-            console.error("[auth] user-signup job dispatch failed", error);
+            log.error(
+              "auth",
+              `user-signup job dispatch failed: ${String(error)}`,
+            );
           }
         },
       },

@@ -88,8 +88,8 @@ The API base URL is set via `VITE_API_URL` env variable.
 
 | Package | Import path | Purpose |
 |---|---|---|
-| `@kubeasy/api-schemas` | `@kubeasy/api-schemas/challenges` etc. | Shared Zod types |
-| `@kubeasy/logger` | `@kubeasy/logger` | Server-side structured logging only |
+| `@api-schemas` | `@kubeasy/api-schemas/challenges` etc. | Shared Zod types |
+| `evlog` | `evlog` | Structured logging and errors |
 
 ## Styling
 

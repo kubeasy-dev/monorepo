@@ -5,7 +5,6 @@ import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
-import { PinoInstrumentation } from "@opentelemetry/instrumentation-pino";
 import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
 import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
 import {
@@ -54,7 +53,6 @@ const sdk = new NodeSDK({
         } catch {}
       },
     }),
-    new PinoInstrumentation(),
   ],
 });
 

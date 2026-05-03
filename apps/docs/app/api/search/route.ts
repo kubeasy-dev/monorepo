@@ -1,7 +1,10 @@
-import { source } from '@/lib/source';
-import { createFromSource } from 'fumadocs-core/search/server';
+import { createFromSource } from "fumadocs-core/search/server";
+import { withEvlog } from "@/lib/evlog";
+import { source } from "@/lib/source";
 
-export const { GET } = createFromSource(source, {
+const search = createFromSource(source, {
   // https://docs.orama.com/docs/orama-js/supported-languages
-  language: 'english',
+  language: "english",
 });
+
+export const GET = withEvlog(search.GET);

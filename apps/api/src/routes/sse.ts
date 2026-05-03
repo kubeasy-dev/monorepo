@@ -25,7 +25,10 @@ sse.get("/invalidate-cache", requireAuth, async (c) => {
         await subscriber.unsubscribe(channel);
         await subscriber.quit();
       } catch (err) {
-        console.error("SSE cleanup error", { channel, error: String(err) });
+        c.get("log").error("SSE cleanup error", {
+          channel,
+          error: String(err),
+        });
       }
     });
 

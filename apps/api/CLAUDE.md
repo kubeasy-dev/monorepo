@@ -181,7 +181,7 @@ const workers = [
 |---|---|
 | `@kubeasy/api-schemas` | Shared Zod schemas and inferred types |
 | `@kubeasy/jobs` | Queue names, job payloads, factory functions |
-| `@kubeasy/logger` | Structured logging (`import { logger } from "@kubeasy/logger"`) |
+| `evlog` | Structured logging and errors |
 
 ## Environment Variables
 

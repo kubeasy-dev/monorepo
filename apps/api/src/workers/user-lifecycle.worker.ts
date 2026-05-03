@@ -1,8 +1,8 @@
 import { QUEUE_NAMES, type UserSignupPayload } from "@kubeasy/jobs";
-import { logger } from "@kubeasy/logger";
 import { allSettled } from "better-all";
 import { Worker } from "bullmq";
 import { eq } from "drizzle-orm";
+import { createRequestLogger } from "evlog";
 import { db } from "../db/index";
 import { account, user } from "../db/schema/auth";
 import { setUserProperties, trackUserSignup } from "../lib/analytics-server";
@@ -16,6 +16,8 @@ export function createUserSignupWorker() {
     QUEUE_NAMES.USER_SIGNUP,
     async (job) => {
       const { userId, email } = job.data;
+      const log = createRequestLogger();
+      log.set({ jobId: job.id, worker: "user-signup" });
 
       // fetchProvider and resendResult start immediately in parallel.
       // identify, trackSignup and updateResendContact declare their deps via this.$.
@@ -54,12 +56,16 @@ export function createUserSignupWorker() {
 
       for (const [task, result] of Object.entries(results)) {
         if (result.status === "rejected") {
-          logger.error(`[user-signup] task "${task}" failed`, {
+          log.set({
             userId,
+            task,
             error: String(result.reason),
           });
+          log.error(`task "${task}" failed`);
         }
       }
+
+      log.emit();
     },
     { connection, concurrency: 5 },
   );

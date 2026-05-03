@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { AppEnv } from "../../middleware/session";
 import { challenges } from "../challenges";
 import { progress } from "../progress";
 import { submit } from "../submit";
@@ -17,7 +18,7 @@ import { submit } from "../submit";
  * Mount order matters: challenges is first so its GET /:slug (detail) wins
  * over progress's GET /:slug (status) for the bare slug path.
  */
-const legacyCli = new Hono();
+const legacyCli = new Hono<AppEnv>();
 
 legacyCli.route("/", challenges); // GET /:slug → detail (registered first, wins)
 legacyCli.route("/", progress); // GET /:slug/status, POST /:slug/start, POST+DELETE /:slug/reset

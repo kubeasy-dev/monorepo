@@ -122,10 +122,7 @@ onboarding.post("/complete", requireAuth, async (c) => {
   const channel = `invalidate-cache:${userId}`;
   const payload = JSON.stringify({ queryKey: queryKeys.onboarding() });
   redis.publish(channel, payload).catch((err) => {
-    console.error("[onboarding] SSE publish failed", {
-      channel,
-      error: String(err),
-    });
+    c.get("log").error("SSE publish failed", { channel, error: String(err) });
   });
 
   return c.json({ success: true });
@@ -150,10 +147,7 @@ onboarding.post("/skip", requireAuth, async (c) => {
   const channel = `invalidate-cache:${userId}`;
   const payload = JSON.stringify({ queryKey: queryKeys.onboarding() });
   redis.publish(channel, payload).catch((err) => {
-    console.error("[onboarding] SSE publish failed", {
-      channel,
-      error: String(err),
-    });
+    c.get("log").error("SSE publish failed", { channel, error: String(err) });
   });
 
   return c.json({ success: true });

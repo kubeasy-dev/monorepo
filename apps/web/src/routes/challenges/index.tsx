@@ -2,7 +2,9 @@ import type { ChallengeListInput } from "@kubeasy/api-schemas/challenges";
 import { Button } from "@kubeasy/ui/button";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import type { RequestLogger } from "evlog";
 import { Trophy } from "lucide-react";
+import { useRequest } from "nitro/context";
 import { Suspense, useState } from "react";
 import { z } from "zod";
 import { ChallengesFilters } from "@/components/challenges-filters";
@@ -11,7 +13,6 @@ import { ChallengesQuickStartCTA } from "@/components/challenges-quick-start-cta
 import { authClient } from "@/lib/auth-client";
 import { siteConfig } from "@/lib/constants";
 import { challengeListOptions, registryMetaOptions } from "@/lib/query-options";
-import { serverLog } from "@/lib/server-log";
 
 const challengeSearchSchema = z.object({
   difficulty: z.string().optional(),
@@ -28,7 +29,14 @@ export const Route = createFileRoute("/challenges/")({
     Link: `<${siteConfig.url}/challenges>; rel="alternate"; type="text/markdown"`,
   }),
   loader: async ({ context: { queryClient } }) => {
-    await serverLog.info("page.load", { page: "challenges.list" });
+    if (import.meta.env.SSR) {
+      // biome-ignore lint/correctness/useHookAtTopLevel: useRequest is a Nitro hook, not a React hook
+      const req = useRequest();
+      // evlog/nitro/v3's useLogger() requires an HTTPEvent, unavailable in TanStack Start loaders
+      const log = req.context?.log as RequestLogger | undefined;
+      log?.set({ page: "challenges.list" });
+      log?.info("page.load");
+    }
     await Promise.all([
       queryClient.ensureQueryData(
         challengeListOptions({ showCompleted: true }),

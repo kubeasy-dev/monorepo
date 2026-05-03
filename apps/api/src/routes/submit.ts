@@ -2,9 +2,8 @@ import { zValidator } from "@hono/zod-validator";
 import { queryKeys } from "@kubeasy/api-schemas/query-keys";
 import { SubmitBodySchema } from "@kubeasy/api-schemas/submissions";
 import { createQueue, QUEUE_NAMES } from "@kubeasy/jobs";
-import { logger } from "@kubeasy/logger";
 import { and, eq, ne, sql } from "drizzle-orm";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { nanoid } from "nanoid";
 import { db } from "../db/index";
@@ -18,19 +17,19 @@ import { cacheDelPattern } from "../lib/cache";
 import { redis } from "../lib/redis";
 import { getChallenge } from "../lib/registry";
 import { slidingWindowRateLimit } from "../middleware/rate-limit";
-import { requireAuth } from "../middleware/session";
+import { type AppEnv, requireAuth } from "../middleware/session";
 
 const challengeSubmissionQueue = createQueue(
   QUEUE_NAMES.CHALLENGE_SUBMISSION,
   redis.options,
 );
 
-const submit = new Hono();
+const submit = new Hono<AppEnv>();
 
 const submitRateLimit = slidingWindowRateLimit(redis, {
   windowMs: 10_000,
   max: 10,
-  keyFn: (c: any) => `submit:${c.get("user").id}`,
+  keyFn: (c: Context<AppEnv>) => `submit:${c.get("user")?.id}`,
 });
 
 // POST /challenges/:slug/submit -- trust CLI results, store submission, dispatch BullMQ job
@@ -207,7 +206,7 @@ submit.post(
           }
         : undefined,
     ).catch((err) => {
-      logger.error("[submit] challenge_submitted tracking failed", {
+      c.get("log").error("challenge_submitted tracking failed", {
         error: String(err),
       });
     });
@@ -222,16 +221,14 @@ submit.post(
         }),
       )
       .catch((err) => {
-        logger.error("[submit] SSE publish failed", {
+        c.get("log").error("SSE publish failed", {
           channel: sseChannel,
           error: String(err),
         });
       });
 
     cacheDelPattern(`cache:u:${userId}:*`).catch((err) => {
-      logger.error("[submit] cache invalidation failed", {
-        error: String(err),
-      });
+      c.get("log").error("cache invalidation failed", { error: String(err) });
     });
 
     if (txResult.failed) {
@@ -263,7 +260,7 @@ submit.post(
           difficulty: detail.difficulty,
         })
         .catch((err) => {
-          logger.error("[submit] challenge-submission job dispatch failed", {
+          c.get("log").error("challenge-submission job dispatch failed", {
             error: String(err),
           });
         });

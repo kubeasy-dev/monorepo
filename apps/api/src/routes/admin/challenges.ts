@@ -1,5 +1,4 @@
 import { zValidator } from "@hono/zod-validator";
-import { logger } from "@kubeasy/logger";
 import { all } from "better-all";
 import { count, sql } from "drizzle-orm";
 import { Hono } from "hono";
@@ -12,8 +11,9 @@ import {
 } from "../../db/schema";
 import { cacheDelPattern } from "../../lib/cache";
 import { getMeta, listChallenges } from "../../lib/registry";
+import type { AppEnv } from "../../middleware/session";
 
-export const adminChallenges = new Hono();
+export const adminChallenges = new Hono<AppEnv>();
 
 // GET /api/admin/challenges — list all challenges with per-challenge metrics
 adminChallenges.get("/", async (c) => {
@@ -129,7 +129,7 @@ adminChallenges.patch(
       cacheDelPattern(`cache:challenges:objectives:*${slug}*`),
       cacheDelPattern("cache:u:*:challenges:list:*"),
     ]).catch((err) => {
-      logger.error("[admin/challenges] cache invalidation failed", {
+      c.get("log").error("cache invalidation failed", {
         slug,
         error: String(err),
       });

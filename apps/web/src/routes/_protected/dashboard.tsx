@@ -1,7 +1,9 @@
 import { Button } from "@kubeasy/ui/button";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { RequestLogger } from "evlog";
 import { Award, Flame, Star, Target, TrendingUp, Trophy } from "lucide-react";
+import { useRequest } from "nitro/context";
 import { DashboardChart } from "@/components/dashboard-chart";
 import { DashboardRecentActivity } from "@/components/dashboard-recent-activity";
 import {
@@ -10,13 +12,19 @@ import {
   userStreakOptions,
   userXpOptions,
 } from "@/lib/query-options";
-import { serverLog } from "@/lib/server-log";
 
 const GITHUB_URL = "https://github.com/kubeasy-dev/kubeasy";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   loader: async ({ context: { queryClient } }) => {
-    await serverLog.info("page.load", { page: "dashboard" });
+    if (import.meta.env.SSR) {
+      // biome-ignore lint/correctness/useHookAtTopLevel: useRequest is a Nitro hook, not a React hook
+      const req = useRequest();
+      // evlog/nitro/v3's useLogger() requires an HTTPEvent, unavailable in TanStack Start loaders
+      const log = req.context?.log as RequestLogger | undefined;
+      log?.set({ page: "dashboard" });
+      log?.info("page.load");
+    }
     await Promise.all([
       queryClient.ensureQueryData(completionOptions({ splitByTheme: true })),
       queryClient.ensureQueryData(userXpOptions()),

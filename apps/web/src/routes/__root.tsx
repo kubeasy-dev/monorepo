@@ -9,6 +9,8 @@ import {
   Scripts,
   useRouterState,
 } from "@tanstack/react-router";
+import { createMiddleware } from "@tanstack/react-start";
+import { evlogErrorHandler } from "evlog/nitro/v3";
 import { type ReactNode, useEffect } from "react";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
@@ -45,6 +47,9 @@ const umamiUrl = import.meta.env.VITE_UMAMI_URL;
 const umamiId = import.meta.env.VITE_UMAMI_ID;
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  server: {
+    middleware: [createMiddleware().server(evlogErrorHandler)],
+  },
   notFoundComponent: NotFoundPage,
   head: () => ({
     meta: [

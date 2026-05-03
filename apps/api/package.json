@@ -26,7 +26,6 @@
     "@hono/zod-validator": "0.7.6",
     "@kubeasy/api-schemas": "workspace:*",
     "@kubeasy/jobs": "workspace:*",
-    "@kubeasy/logger": "workspace:*",
     "@opentelemetry/api": "1.9.1",
     "@opentelemetry/core": "2.7.1",
     "@opentelemetry/exporter-logs-otlp-http": "0.216.0",
@@ -35,7 +34,6 @@
     "@opentelemetry/instrumentation-http": "0.216.0",
     "@opentelemetry/instrumentation-ioredis": "0.64.0",
     "@opentelemetry/instrumentation-pg": "0.68.0",
-    "@opentelemetry/instrumentation-pino": "0.62.0",
     "@opentelemetry/instrumentation-runtime-node": "0.29.0",
     "@opentelemetry/resources": "2.7.1",
     "@opentelemetry/sdk-logs": "0.216.0",
@@ -46,13 +44,14 @@
     "better-auth": "1.6.9",
     "bullmq": "5.76.4",
     "drizzle-orm": "0.45.2",
+    "evlog": "^2.14.0",
     "hono": "4.12.15",
     "ioredis": "5.10.1",
     "nanoid": "5.1.9",
     "pg": "8.20.0",
     "posthog-node": "5.31.0",
     "resend": "6.12.2",
-    "zod": "4.4.1"
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@kubeasy/typescript-config": "workspace:*",

@@ -4,14 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@kubeasy/ui/card";
 import { Separator } from "@kubeasy/ui/separator";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import type { RequestLogger } from "evlog";
 import { ArrowLeft, Clock } from "lucide-react";
+import { useRequest } from "nitro/context";
 import { ChallengeMission } from "@/components/challenge-mission";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import {
   challengeDetailOptions,
   challengeObjectivesOptions,
 } from "@/lib/query-options";
-import { serverLog } from "@/lib/server-log";
 
 export const Route = createFileRoute("/challenges/$slug")({
   headers: () => ({
@@ -19,10 +20,14 @@ export const Route = createFileRoute("/challenges/$slug")({
       "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
   }),
   loader: async ({ context: { queryClient }, params }) => {
-    await serverLog.info("page.load", {
-      page: "challenges.detail",
-      slug: params.slug,
-    });
+    if (import.meta.env.SSR) {
+      // biome-ignore lint/correctness/useHookAtTopLevel: useRequest is a Nitro hook, not a React hook
+      const req = useRequest();
+      // evlog/nitro/v3's useLogger() requires an HTTPEvent, unavailable in TanStack Start loaders
+      const log = req.context?.log as RequestLogger | undefined;
+      log?.set({ page: "challenges.detail", slug: params.slug });
+      log?.info("page.load");
+    }
     // SSR prefetch: base challenge data (WEB-03)
     await Promise.all([
       queryClient.ensureQueryData(challengeDetailOptions(params.slug)),

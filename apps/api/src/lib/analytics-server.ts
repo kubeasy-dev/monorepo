@@ -5,7 +5,7 @@
  * (especially for CLI interactions).
  */
 
-import { logger } from "@kubeasy/logger";
+import { log } from "evlog";
 import { PostHog } from "posthog-node";
 
 // Initialize PostHog client for server-side tracking
@@ -27,15 +27,15 @@ if (posthogKey && posthogHost) {
     });
 
     if (isDevelopment) {
-      logger.info("PostHog Server disabled in development mode");
+      log.info({ message: "PostHog Server disabled in development mode" });
     }
   } catch (error) {
-    logger.error("PostHog Server failed to initialize", {
-      error: String(error),
-    });
+    log.error({ message: `PostHog Server failed to initialize: ${error}` });
   }
 } else if (isDevelopment) {
-  logger.info("PostHog Server not initialized: missing environment variables");
+  log.info({
+    message: "PostHog Server not initialized: missing environment variables",
+  });
 }
 
 /**
@@ -78,7 +78,8 @@ async function safePostHogOperation(
   // - Second branch: client exists but is disabled (disabled: true in dev config)
   if (!posthogClient) {
     if (isDevelopment && devLog) {
-      logger.debug(`PostHog Server: ${devLog.event}`, {
+      log.debug({
+        message: `PostHog Server: ${devLog.event}`,
         event: devLog.event,
         ...toScalarAttributes(devLog.properties),
       });
@@ -87,7 +88,8 @@ async function safePostHogOperation(
   }
 
   if (isDevelopment && devLog) {
-    logger.debug(`PostHog Server: ${devLog.event}`, {
+    log.debug({
+      message: `PostHog Server: ${devLog.event}`,
       event: devLog.event,
       ...toScalarAttributes(devLog.properties),
     });
@@ -98,7 +100,9 @@ async function safePostHogOperation(
     await fn(posthogClient);
   } catch (error) {
     // Log but don't throw - analytics failures shouldn't break the application
-    logger.error(`PostHog Server: ${operation} failed`, {
+    log.error({
+      message: "PostHog Server operation failed",
+      operation,
       error: String(error),
     });
   }
@@ -388,7 +392,8 @@ export async function captureServerException(
   additionalProperties?: Record<string, unknown>,
 ): Promise<void> {
   if (isDevelopment) {
-    logger.debug("PostHog Server: $exception", {
+    log.debug({
+      message: "PostHog Server: $exception",
       error: error instanceof Error ? error.message : String(error),
       ...toScalarAttributes(additionalProperties),
     });
@@ -403,8 +408,8 @@ export async function captureServerException(
     posthogClient.captureException(error, distinctId, additionalProperties);
     await posthogClient.flush();
   } catch (captureError) {
-    logger.error("PostHog Server: captureServerException failed", {
-      error: String(captureError),
+    log.error({
+      message: `PostHog Server: captureServerException failed: ${captureError}`,
     });
   }
 }
@@ -427,8 +432,6 @@ export async function shutdownPostHog() {
   try {
     await posthogClient.shutdown();
   } catch (error) {
-    logger.error("PostHog Server: failed to shutdown", {
-      error: String(error),
-    });
+    log.error({ message: `PostHog Server: failed to shutdown: ${error}` });
   }
 }

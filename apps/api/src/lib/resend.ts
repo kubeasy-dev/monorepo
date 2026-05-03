@@ -1,3 +1,4 @@
+import { createError } from "evlog";
 import { Resend } from "resend";
 import { captureServerException } from "./analytics-server";
 import { env } from "./env";
@@ -23,7 +24,11 @@ export async function createResendContact(params: {
     });
 
     if (!contact.data?.id) {
-      throw new Error("Failed to create contact in Resend");
+      throw createError({
+        message: "Failed to create contact in Resend",
+        status: 502,
+        why: "Resend API returned no contact ID",
+      });
     }
 
     return { contactId: contact.data.id };
@@ -72,7 +77,11 @@ export async function getContactSubscriptions(
     // Response is { data: PaginatedData<ContactTopic[]> | null, error: ... }
     // PaginatedData = { object: 'list', data: ContactTopic[], has_more: boolean }
     if (!response.data || !Array.isArray(response.data.data)) {
-      throw new Error("Failed to get contact topics from Resend");
+      throw createError({
+        message: "Failed to get contact topics from Resend",
+        status: 502,
+        why: "Resend API returned unexpected shape for topics list",
+      });
     }
 
     // Map topic subscriptions to our format

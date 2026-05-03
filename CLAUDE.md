@@ -20,7 +20,6 @@ apps/
 packages/
   api-schemas/         # Shared Zod schemas and TypeScript types
   jobs/                # BullMQ job definitions (queue names, payloads, factory)
-  logger/              # Shared Pino + OpenTelemetry logger
   ui/                  # Shared shadcn/Radix UI component library (@kubeasy/ui)
   typescript-config/   # Shared tsconfig base files
 ```
