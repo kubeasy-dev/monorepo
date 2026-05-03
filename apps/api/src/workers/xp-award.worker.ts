@@ -2,6 +2,7 @@ import { queryKeys } from "@kubeasy/api-schemas/query-keys";
 import { QUEUE_NAMES, type XpAwardPayload } from "@kubeasy/jobs";
 import { Worker } from "bullmq";
 import { sql } from "drizzle-orm";
+import { createRequestLogger } from "evlog";
 import { db } from "../db/index";
 import { userXp, userXpTransaction } from "../db/schema/index";
 import { cacheDel, cacheKey } from "../lib/cache";
@@ -13,6 +14,8 @@ export function createXpAwardWorker() {
   return new Worker<XpAwardPayload>(
     QUEUE_NAMES.XP_AWARD,
     async (job) => {
+      const log = createRequestLogger();
+      log.set({ jobId: job.id, worker: "xp-award" });
       const { userId, challengeSlug, xpAmount, action, description } = job.data;
 
       // 1. Atomic userXp UPSERT (add xpAmount to totalXp)
@@ -40,10 +43,7 @@ export function createXpAwardWorker() {
       const channel = `invalidate-cache:${userId}`;
       const payload = JSON.stringify({ queryKey: queryKeys.user.xp() });
       await redis.publish(channel, payload).catch((err) => {
-        console.error("[xp-award] SSE publish failed", {
-          channel,
-          error: String(err),
-        });
+        log.error("SSE publish failed", { channel, error: String(err) });
       });
 
       // 4. Invalidate server-side XP and streak caches
@@ -51,8 +51,11 @@ export function createXpAwardWorker() {
         cacheDel(cacheKey(`u:${userId}:user:xp`)),
         cacheDel(cacheKey(`u:${userId}:user:streak`)),
       ]).catch((err) => {
-        console.error("[xp-award] cache invalidation failed", err);
+        log.error("Cache invalidation failed", { error: String(err) });
       });
+
+      log.set({ userId, challengeSlug, xpAmount, action });
+      log.emit();
     },
     { connection, concurrency: 5 },
   );

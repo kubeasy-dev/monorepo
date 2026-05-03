@@ -37,6 +37,14 @@ const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
 
+// Purge expired entries every 5 minutes to prevent unbounded growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitStore) {
+    if (entry.resetAt < now) rateLimitStore.delete(ip);
+  }
+}, 5 * 60_000).unref();
+
 function getClientIp(req: Request): string {
   const headers = req.headers as Headers;
   return (

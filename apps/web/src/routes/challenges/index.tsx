@@ -32,8 +32,7 @@ export const Route = createFileRoute("/challenges/")({
     if (import.meta.env.SSR) {
       // biome-ignore lint/correctness/useHookAtTopLevel: useRequest is a Nitro hook, not a React hook
       const req = useRequest();
-      const log = (req as unknown as { context: { log: RequestLogger } })
-        .context.log;
+      const log = req.context?.log as RequestLogger | undefined;
       log?.set({ page: "challenges.list" });
       log?.info("page.load");
     }

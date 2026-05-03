@@ -8,12 +8,14 @@ import { createFsDrain } from "evlog/fs";
 import { createOTLPDrain } from "evlog/otlp";
 
 const isDev = process.env.NODE_ENV !== "production";
+const fsDrain = isDev ? createFsDrain() : null;
+const otlpDrain = createOTLPDrain();
 
 initLogger({
   env: { service: "api" },
   drain: (ctx) => {
-    if (isDev) createFsDrain()(ctx);
-    createOTLPDrain()(ctx);
+    fsDrain?.(ctx);
+    otlpDrain(ctx);
   },
 });
 

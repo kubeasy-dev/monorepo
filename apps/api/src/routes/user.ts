@@ -115,7 +115,7 @@ userRouter.delete("/progress", requireAuth, async (c) => {
 
   // Invalidate all user caches
   cacheDelPattern(`cache:u:${userId}:*`).catch((err) => {
-    console.error("[user/progress] cache invalidation failed", err);
+    c.get("log").error("Cache invalidation failed", { error: String(err) });
   });
 
   return c.json({

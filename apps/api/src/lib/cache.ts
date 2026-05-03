@@ -1,5 +1,4 @@
 import { metrics, SpanKind, SpanStatusCode, trace } from "@opentelemetry/api";
-import { log } from "evlog";
 import { redis } from "./redis";
 
 const tracer = trace.getTracer("kubeasy-api-cache");
@@ -31,11 +30,6 @@ export function cacheKey(
   base: string,
   params?: Record<string, string | number | boolean | null | undefined>,
 ): string {
-  log.debug({
-    message: "Generating cache key",
-    base,
-    params: JSON.stringify(params),
-  });
   let key = `${PREFIX}${base}`;
   if (params) {
     const sorted = Object.entries(params)
@@ -56,7 +50,6 @@ const REDIS_ATTRS = {
 /** Get a cached value. Returns null on miss or parse error. */
 export async function cacheGet<T>(key: string): Promise<T | null> {
   const base = key.split(":")[1] || "unknown";
-  log.debug({ message: "Fetching from cache", key });
   return tracer.startActiveSpan(
     "redis GET",
     {

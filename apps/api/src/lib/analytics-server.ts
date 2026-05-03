@@ -100,7 +100,11 @@ async function safePostHogOperation(
     await fn(posthogClient);
   } catch (error) {
     // Log but don't throw - analytics failures shouldn't break the application
-    log.error({ message: `PostHog Server: ${operation} failed: ${error}` });
+    log.error({
+      message: "PostHog Server operation failed",
+      operation,
+      error: String(error),
+    });
   }
 }
 

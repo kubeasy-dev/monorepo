@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { CliMetadataSchema } from "@kubeasy/api-schemas/cli";
 import { queryKeys } from "@kubeasy/api-schemas/query-keys";
 import { and, eq } from "drizzle-orm";
-import { log } from "evlog";
+import type { RequestLogger } from "evlog";
 import { Hono } from "hono";
 import type { z } from "zod";
 import { db } from "../../db/index";
@@ -37,6 +37,7 @@ function parseUserName(fullName: string | null) {
 
 // Helper to handle CLI login onboarding logic
 async function handleCliOnboarding(
+  log: RequestLogger,
   userId: string,
   metadata: z.infer<typeof CliMetadataSchema>,
   _source: string,
@@ -75,9 +76,7 @@ async function handleCliOnboarding(
   const channel = `invalidate-cache:${userId}`;
   const payload = JSON.stringify({ queryKey: queryKeys.onboarding() });
   redis.publish(channel, payload).catch((err) => {
-    log.error({
-      message: `SSE publish failed for user ${userId} on channel ${channel}: ${err}`,
-    });
+    log.error("SSE publish failed", { userId, channel, error: String(err) });
   });
 
   return firstLogin;
@@ -97,7 +96,12 @@ cli.post("/user", zValidator("json", CliMetadataSchema), async (c) => {
   if (!user) return c.json({ error: "Unauthorized" }, 401);
   const metadata = c.req.valid("json");
 
-  const firstLogin = await handleCliOnboarding(user.id, metadata, "cli/user");
+  const firstLogin = await handleCliOnboarding(
+    c.get("log"),
+    user.id,
+    metadata,
+    "cli/user",
+  );
 
   const { firstName, lastName } = parseUserName(user.name);
   return c.json({ firstName, lastName, firstLogin });
@@ -110,6 +114,7 @@ cli.post("/track/login", zValidator("json", CliMetadataSchema), async (c) => {
   const metadata = c.req.valid("json");
 
   const firstLogin = await handleCliOnboarding(
+    c.get("log"),
     user.id,
     metadata,
     "cli/track/login",
@@ -149,8 +154,10 @@ cli.post("/track/setup", zValidator("json", CliMetadataSchema), async (c) => {
   const channel = `invalidate-cache:${userId}`;
   const payload = JSON.stringify({ queryKey: queryKeys.onboarding() });
   redis.publish(channel, payload).catch((err) => {
-    log.error({
-      message: `SSE publish failed for user ${userId} on channel ${channel}: ${err}`,
+    c.get("log").error("SSE publish failed", {
+      userId,
+      channel,
+      error: String(err),
     });
   });
 
