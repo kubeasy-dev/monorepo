@@ -15,10 +15,19 @@ COPY --from=docs-prepare /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
 COPY --from=docs-prepare /app/out/full/apps/docs/source.config.ts ./apps/docs/source.config.ts
 
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=s/4971b9dc-4b63-4444-8519-2bcb17fbfbc1-/root/.local/share/pnpm/store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
 COPY --from=docs-prepare /app/out/full/ .
-RUN turbo run build --filter=@kubeasy/docs
+
+ARG NEXT_PUBLIC_UMAMI_URL
+ENV NEXT_PUBLIC_UMAMI_URL=$NEXT_PUBLIC_UMAMI_URL
+ARG NEXT_PUBLIC_UMAMI_ID
+ENV NEXT_PUBLIC_UMAMI_ID=$NEXT_PUBLIC_UMAMI_ID
+
+RUN --mount=type=cache,id=s/4971b9dc-4b63-4444-8519-2bcb17fbfbc1-/app/node_modules/.cache/turbo,target=/app/node_modules/.cache/turbo \
+    --mount=type=cache,id=s/4971b9dc-4b63-4444-8519-2bcb17fbfbc1-/app/apps/docs/.next/cache,target=/app/apps/docs/.next/cache \
+    turbo run build --filter=@kubeasy/docs
 
 FROM base AS runner
 ENV NODE_ENV=production

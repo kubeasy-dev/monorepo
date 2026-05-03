@@ -2,6 +2,7 @@ import "@/app/global.css";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
@@ -31,7 +32,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           {children}
         </RootProvider>
         {umamiUrl && umamiId && (
-          <script defer src={umamiUrl} data-website-id={umamiId} />
+          <Script
+            src={umamiUrl}
+            data-website-id={umamiId}
+            strategy="afterInteractive"
+          />
         )}
       </body>
     </html>

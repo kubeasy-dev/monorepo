@@ -3,7 +3,11 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "apps/docs/Dockerfile",
-    "watchPatterns": ["apps/docs/**"]
+    "watchPatterns": ["apps/docs/**"],
+    "buildArgs": {
+      "NEXT_PUBLIC_UMAMI_URL": "${{NEXT_PUBLIC_UMAMI_URL}}",
+      "NEXT_PUBLIC_UMAMI_ID": "${{NEXT_PUBLIC_UMAMI_ID}}"
+    }
   },
   "deploy": {
     "healthcheckPath": "/docs",

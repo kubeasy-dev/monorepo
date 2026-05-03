@@ -43,6 +43,9 @@ function NotFoundPage() {
   );
 }
 
+const umamiUrl = import.meta.env.VITE_UMAMI_URL;
+const umamiId = import.meta.env.VITE_UMAMI_ID;
+
 export const Route = createRootRouteWithContext<RouterContext>()({
   server: {
     middleware: [createMiddleware().server(evlogErrorHandler)],
@@ -75,6 +78,16 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         href: "/apple-touch-icon.png",
       },
     ],
+    scripts:
+      umamiUrl && umamiId
+        ? [
+            {
+              src: umamiUrl,
+              defer: true,
+              "data-website-id": umamiId,
+            },
+          ]
+        : [],
   }),
   component: RootComponent,
 });
@@ -119,9 +132,6 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: ReactNode }) {
-  const umamiUrl = import.meta.env.VITE_UMAMI_URL;
-  const umamiId = import.meta.env.VITE_UMAMI_ID;
-
   return (
     <html lang="en">
       <head>
@@ -129,9 +139,6 @@ function RootDocument({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
-        {umamiUrl && umamiId && (
-          <script defer src={umamiUrl} data-website-id={umamiId} />
-        )}
         <Scripts />
       </body>
     </html>

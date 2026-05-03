@@ -10,10 +10,12 @@ RUN turbo prune @kubeasy/api --docker
 FROM builder AS api-builder
 
 COPY --from=api-prepare /app/out/json/ .
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=s/9d68142a-20f6-467b-ae9e-d698d9f004d8-/root/.local/share/pnpm/store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
 COPY --from=api-prepare /app/out/full/ .
-RUN turbo run build --filter=@kubeasy/api
+RUN --mount=type=cache,id=s/9d68142a-20f6-467b-ae9e-d698d9f004d8-/app/node_modules/.cache/turbo,target=/app/node_modules/.cache/turbo \
+    turbo run build --filter=@kubeasy/api
 
 FROM api-builder AS api-deploy
 
