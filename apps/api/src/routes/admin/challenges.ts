@@ -129,8 +129,10 @@ adminChallenges.patch(
       cacheDelPattern(`cache:challenges:objectives:*${slug}*`),
       cacheDelPattern("cache:u:*:challenges:list:*"),
     ]).catch((err) => {
-      c.get("log").set({ slug, error: String(err) });
-      c.get("log").error("cache invalidation failed");
+      c.get("log").error("cache invalidation failed", {
+        slug,
+        error: String(err),
+      });
     });
 
     return c.json({ success: true });

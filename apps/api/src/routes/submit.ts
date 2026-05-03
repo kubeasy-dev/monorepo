@@ -206,8 +206,9 @@ submit.post(
           }
         : undefined,
     ).catch((err) => {
-      c.get("log").set({ error: String(err) });
-      c.get("log").error("challenge_submitted tracking failed");
+      c.get("log").error("challenge_submitted tracking failed", {
+        error: String(err),
+      });
     });
 
     // 7. SSE cache-invalidation (fire-and-forget)
@@ -220,13 +221,14 @@ submit.post(
         }),
       )
       .catch((err) => {
-        c.get("log").set({ channel: sseChannel, error: String(err) });
-        c.get("log").error("SSE publish failed");
+        c.get("log").error("SSE publish failed", {
+          channel: sseChannel,
+          error: String(err),
+        });
       });
 
     cacheDelPattern(`cache:u:${userId}:*`).catch((err) => {
-      c.get("log").set({ error: String(err) });
-      c.get("log").error("cache invalidation failed");
+      c.get("log").error("cache invalidation failed", { error: String(err) });
     });
 
     if (txResult.failed) {
@@ -258,8 +260,9 @@ submit.post(
           difficulty: detail.difficulty,
         })
         .catch((err) => {
-          c.get("log").set({ error: String(err) });
-          c.get("log").error("challenge-submission job dispatch failed");
+          c.get("log").error("challenge-submission job dispatch failed", {
+            error: String(err),
+          });
         });
     }
 

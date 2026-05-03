@@ -49,11 +49,13 @@ app.route("/api", routes);
 
 app.onError((err, c) => {
   const log = c.get("log");
-  log.error(err);
 
   if (err instanceof RegistryError) {
+    log.warn("registry unavailable", { error: String(err) });
     return c.json({ error: "Registry unavailable" }, 502);
   }
+
+  log.error(err);
 
   const parsed = parseError(err);
   return c.json(
