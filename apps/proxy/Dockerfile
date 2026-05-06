@@ -17,7 +17,7 @@ ENV VITE_API_URL=$VITE_API_URL
 
 RUN turbo run build --filter=@kubeasy/admin
 
-FROM nginx:otel AS runner
+FROM nginx:otel@sha256:2ab7628dd551c34589a322e84a81da8b8c61fdf199731b549526ff8965cc4799 AS runner
 
 COPY --from=admin-builder /app/apps/admin/dist /admin
 COPY apps/proxy/nginx.conf /etc/nginx/nginx.conf
