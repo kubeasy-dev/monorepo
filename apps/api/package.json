@@ -53,7 +53,7 @@
     "ioredis": "5.10.1",
     "nanoid": "5.1.11",
     "pg": "catalog:",
-    "posthog-node": "5.33.2",
+    "posthog-node": "5.33.3",
     "resend": "6.12.2",
     "zod": "catalog:"
   },
