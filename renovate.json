@@ -3,14 +3,20 @@
   "extends": [
     "config:best-practices",
     ":pinAllExceptPeerDependencies",
-    "schedule:daily",
-    "security:minimumReleaseAgeNpm",
-    "group:allNonMajor",
-    "group:monorepos",
-    "group:recommended",
-    ":assignAndReview(pbrissaud)",
-    ":automergeLinters"
+    "security:minimumReleaseAgeNpm"
   ],
+  "timezone": "Europe/Paris",
+  "schedule": ["before 12pm on saturday"],
+  "automergeSchedule": ["before 12pm on sunday"],
+  "stabilityDays": 3,
+  "prConcurrentLimit": 20,
+  "prHourlyLimit": 0,
+  "dependencyDashboard": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "schedule": ["before 12pm on sunday"]
+  },
   "customManagers": [
     {
       "customType": "regex",
@@ -24,31 +30,44 @@
   ],
   "packageRules": [
     {
+      "matchUpdateTypes": ["patch", "minor", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "branch",
+      "rebaseWhen": "auto"
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "reviewers": ["pbrissaud"]
+    },
+    {
+      "description": "Group non-major npm updates",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "npm non-major dependencies",
+      "groupSlug": "npm-non-major"
+    },
+    {
+      "description": "Group non-major GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "github actions non-major",
+      "groupSlug": "gh-actions-non-major"
+    },
+    {
+      "description": "Group non-major Docker updates",
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "matchUpdateTypes": ["patch", "minor", "digest"],
+      "groupName": "docker non-major",
+      "groupSlug": "docker-non-major"
+    },
+    {
       "matchPackageNames": [
         "ghcr.io/kubeasy-dev/app-docker-base",
         "ghcr.io/kubeasy-dev/app-docker-builder"
       ],
       "enabled": false,
       "description": "These images are built by this repo — tracking their digests creates an infinite loop"
-    },
-    {
-      "matchPackageNames": ["@biomejs/biome"],
-      "groupName": "biome"
-    },
-    {
-      "matchFileNames": ["packages/**"],
-      "groupName": "shared packages deps",
-      "groupSlug": "shared-packages"
-    },
-    {
-      "matchFileNames": ["apps/web/**"],
-      "groupName": "web app deps",
-      "groupSlug": "web-app"
-    },
-    {
-      "matchFileNames": ["apps/api/**"],
-      "groupName": "api app deps",
-      "groupSlug": "api-app"
     }
   ]
 }
