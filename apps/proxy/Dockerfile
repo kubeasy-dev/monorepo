@@ -1,7 +1,11 @@
 FROM traefik:v3.7.0
 
-COPY apps/proxy/traefik.yml /traefik.yml
-COPY apps/proxy/dynamic.yml /dynamic.yml
+# Install envsubst (gettext package in alpine)
+RUN apk add --no-cache gettext
+
+COPY apps/proxy/traefik.yml.template /traefik.yml.template
+COPY apps/proxy/dynamic.yml.template /dynamic.yml.template
+COPY apps/proxy/entrypoint.sh /entrypoint.sh
 
 # Default environment variables
 ENV PORT=8080 \
@@ -12,5 +16,4 @@ ENV PORT=8080 \
     OTEL_COLLECTOR_UPSTREAM=otel-collector:4318 \
     OTEL_COLLECTOR_GRPC_UPSTREAM=otel-collector:4317
 
-ENTRYPOINT ["traefik"]
-CMD ["--configFile=/traefik.yml"]
+ENTRYPOINT ["/entrypoint.sh"]
