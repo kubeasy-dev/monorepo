@@ -1,42 +1,28 @@
 http:
   routers:
-    # API Router
+    # Router API
     api:
       rule: "PathPrefix(`/api`)"
       service: "api"
-      entryPoints:
-        - "web"
-
-    # Docs Router
+    # Router Docs
     docs:
       rule: "PathPrefix(`/docs`)"
       service: "docs"
-      entryPoints:
-        - "web"
-
-    # Admin Router
+    # Router Admin
     admin:
       rule: "PathPrefix(`/admin`)"
       service: "admin"
-      entryPoints:
-        - "web"
-
-    # OTLP Proxy (Instrumentation)
+    # Router Instrumentation
     instrumentation:
       rule: "PathPrefix(`/instrumentation`)"
       service: "otel-collector"
       middlewares:
         - "strip-instrumentation"
-      entryPoints:
-        - "web"
-
-    # Web App (Catch-all)
+    # Router Web (Catch-all)
     web:
       rule: "PathPrefix(`/`)"
       service: "web"
       priority: 1
-      entryPoints:
-        - "web"
 
   middlewares:
     strip-instrumentation:
@@ -48,20 +34,20 @@ http:
     api:
       loadBalancer:
         servers:
-          - url: '{{ env "API_UPSTREAM" }}'
+          - url: "${API_UPSTREAM}"
     docs:
       loadBalancer:
         servers:
-          - url: '{{ env "DOCS_UPSTREAM" }}'
+          - url: "${DOCS_UPSTREAM}"
     admin:
       loadBalancer:
         servers:
-          - url: '{{ env "ADMIN_UPSTREAM" }}'
+          - url: "${ADMIN_UPSTREAM}"
     otel-collector:
       loadBalancer:
         servers:
-          - url: '{{ env "OTEL_COLLECTOR_UPSTREAM" }}'
+          - url: "${OTEL_COLLECTOR_UPSTREAM}"
     web:
       loadBalancer:
         servers:
-          - url: '{{ env "WEB_UPSTREAM" }}'
+          - url: "${WEB_UPSTREAM}"

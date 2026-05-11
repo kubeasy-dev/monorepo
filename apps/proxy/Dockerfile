@@ -1,34 +1,13 @@
 FROM traefik:v3.7.0
 
-# Copie uniquement la config dynamique
-COPY apps/proxy/dynamic.yml /etc/traefik/dynamic.yml
+RUN apk add --no-cache gettext
 
-# CONFIGURATION STATIQUE VIA VARIABLES D'ENVIRONNEMENT (Reconnu par Traefik)
-# -------------------------------------------------------------------------
-# Entrypoints
-ENV TRAEFIK_ENTRYPOINTS_WEB_ADDRESS=:8080
-ENV PORT=8081
-ENV TRAEFIK_ENTRYPOINTS_HEALTH_ADDRESS=:${PORT}
+COPY apps/proxy/dynamic.yml /etc/traefik/dynamic.yml.template
+COPY apps/proxy/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Ping (Healthcheck)
-ENV TRAEFIK_PING=true
-ENV TRAEFIK_PING_ENTRYPOINT=health
-
-# Providers
-ENV TRAEFIK_PROVIDERS_FILE_FILENAME=/etc/traefik/dynamic.yml
-ENV TRAEFIK_PROVIDERS_FILE_WATCH=true
-
-# Logs
-ENV TRAEFIK_LOG_LEVEL=DEBUG
-ENV TRAEFIK_ACCESSLOG=true
-
-# API / Dashboard
-ENV TRAEFIK_API_DASHBOARD=false
-ENV TRAEFIK_API_INSECURE=false
-
-# Tracing
+# Railway injecte PORT. On l'utilise pour tout.
+ENV PORT=8080
 ENV OTEL_COLLECTOR_GRPC_UPSTREAM=otel-collector.railway.internal:4317
-ENV TRAEFIK_TRACING_OTLP_GRPC_ENDPOINT=${OTEL_COLLECTOR_GRPC_UPSTREAM}
-ENV TRAEFIK_TRACING_OTLP_GRPC_INSECURE=true
 
-EXPOSE 8080 8081
+ENTRYPOINT ["/entrypoint.sh"]
