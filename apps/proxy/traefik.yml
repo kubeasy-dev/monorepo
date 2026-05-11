@@ -11,7 +11,7 @@ providers:
     watch: true
 
 log:
-  level: INFO
+  level: DEBUG
 
 accessLog:
   format: json

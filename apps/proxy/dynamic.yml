@@ -1,5 +1,12 @@
 http:
   routers:
+    # Ping Router (Explicitly defined to avoid conflict with catch-all)
+    ping:
+      rule: "PathPrefix(`/ping`)"
+      service: ping@internal
+      entryPoints:
+        - web
+
     # API Router
     api:
       rule: "PathPrefix(`/api`)"
