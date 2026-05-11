@@ -2,6 +2,7 @@ entryPoints:
   web:
     address: ":${PORT}"
 
+# Enable ping internal service
 ping:
   entryPoint: web
 
@@ -15,6 +16,12 @@ log:
 
 accessLog:
   format: json
+
+tracing:
+  otlp:
+    grpc:
+      endpoint: "${OTEL_COLLECTOR_GRPC_UPSTREAM}"
+      insecure: true
 
 # Disable dashboard and API to avoid port conflicts
 api:

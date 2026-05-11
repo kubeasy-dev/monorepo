@@ -1,5 +1,13 @@
 http:
   routers:
+    # Explicit Healthcheck Router with high priority
+    healthcheck:
+      rule: "Path(`/ping`)"
+      service: ping@internal
+      priority: 10000
+      entryPoints:
+        - web
+
     # API Router
     api:
       rule: "PathPrefix(`/api`)"
@@ -60,7 +68,7 @@ http:
     otel-collector:
       loadBalancer:
         servers:
-          - url: "http://${OTEL_COLLECTOR_UPSTREAM}"
+          - url: "${OTEL_COLLECTOR_UPSTREAM}"
     web:
       loadBalancer:
         servers:
