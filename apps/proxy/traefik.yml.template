@@ -2,10 +2,9 @@ entryPoints:
   web:
     address: ":${PORT}"
 
-# Enable ping internal service with manual routing for full control
+# Enable ping internal service with automatic routing
 ping:
   entryPoint: web
-  manualRouting: true
 
 providers:
   file:
@@ -18,6 +17,7 @@ log:
 accessLog:
   format: json
 
+# Enable tracing but ensure syntax is correct for v3
 tracing:
   otlp:
     grpc:

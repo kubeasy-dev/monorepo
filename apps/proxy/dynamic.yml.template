@@ -1,13 +1,5 @@
 http:
   routers:
-    # Explicit Healthcheck Router with high priority
-    healthcheck:
-      rule: "Path(`/ping`)"
-      service: ping@internal
-      priority: 1000
-      entryPoints:
-        - web
-
     # API Router
     api:
       rule: "PathPrefix(`/api`)"
