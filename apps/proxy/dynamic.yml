@@ -1,0 +1,67 @@
+http:
+  routers:
+    # API Router
+    api:
+      rule: "PathPrefix(`/api`)"
+      service: "api"
+      entryPoints:
+        - "web"
+
+    # Docs Router
+    docs:
+      rule: "PathPrefix(`/docs`)"
+      service: "docs"
+      entryPoints:
+        - "web"
+
+    # Admin Router
+    admin:
+      rule: "PathPrefix(`/admin`)"
+      service: "admin"
+      entryPoints:
+        - "web"
+
+    # OTLP Proxy (Instrumentation)
+    instrumentation:
+      rule: "PathPrefix(`/instrumentation`)"
+      service: "otel-collector"
+      middlewares:
+        - "strip-instrumentation"
+      entryPoints:
+        - "web"
+
+    # Web App (Catch-all)
+    web:
+      rule: "PathPrefix(`/`)"
+      service: "web"
+      priority: 1
+      entryPoints:
+        - "web"
+
+  middlewares:
+    strip-instrumentation:
+      stripPrefix:
+        prefixes:
+          - "/instrumentation"
+
+  services:
+    api:
+      loadBalancer:
+        servers:
+          - url: '{{ env "API_UPSTREAM" }}'
+    docs:
+      loadBalancer:
+        servers:
+          - url: '{{ env "DOCS_UPSTREAM" }}'
+    admin:
+      loadBalancer:
+        servers:
+          - url: '{{ env "ADMIN_UPSTREAM" }}'
+    otel-collector:
+      loadBalancer:
+        servers:
+          - url: '{{ env "OTEL_COLLECTOR_UPSTREAM" }}'
+    web:
+      loadBalancer:
+        servers:
+          - url: '{{ env "WEB_UPSTREAM" }}'
