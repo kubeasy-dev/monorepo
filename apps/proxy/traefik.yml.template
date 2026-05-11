@@ -20,7 +20,7 @@ tracing:
   otlp:
     grpc:
       endpoint: "${OTEL_COLLECTOR_GRPC_UPSTREAM}"
-    insecure: true
+      insecure: true
 
 # Enable dashboard (optional, but good for debugging)
 api:
