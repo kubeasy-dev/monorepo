@@ -18,10 +18,6 @@ receivers:
           allowed_headers:
             - "*"
 
-  nginx:
-    endpoint: ${env:NGINX_STATUS_URL}
-    collection_interval: 60s
-
   postgresql:
     endpoint: ${env:OTEL_POSTGRES_ENDPOINT}
     username: ${env:OTEL_POSTGRES_USERNAME}
@@ -107,6 +103,6 @@ service:
       processors: [memory_limiter, resourcedetection, resource/env_override, transform/correlation, batch]
       exporters: [otlphttp]
     metrics:
-      receivers: [nginx, postgresql, redis]
+      receivers: [postgresql, redis]
       processors: [memory_limiter, resourcedetection, resource/env_override, batch]
       exporters: [otlphttp]

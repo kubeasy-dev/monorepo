@@ -1,14 +1,13 @@
-FROM traefik:v3.7.0
+FROM caddy:2-alpine
 
-RUN apk add --no-cache gettext
+COPY apps/proxy/Caddyfile /etc/caddy/Caddyfile
 
-# On copie le template qui sera transformé par envsubst au démarrage
-COPY apps/proxy/dynamic.yml.template /etc/traefik/dynamic.yml.template
-COPY apps/proxy/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Default environment variables
+ENV PORT=8080 \
+    API_UPSTREAM=api.railway.internal:3000 \
+    DOCS_UPSTREAM=docs.railway.internal:3000 \
+    ADMIN_UPSTREAM=admin.railway.internal:80 \
+    WEB_UPSTREAM=web.railway.internal:3000 \
+    OTEL_COLLECTOR_UPSTREAM=otel-collector.railway.internal:4318
 
-# Railway injecte PORT (pour le healthcheck).
-ENV PORT=8081
-ENV OTEL_COLLECTOR_GRPC_UPSTREAM=otel-collector.railway.internal:4317
-
-ENTRYPOINT ["/entrypoint.sh"]
+EXPOSE 8080

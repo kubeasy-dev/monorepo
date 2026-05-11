@@ -1,0 +1,42 @@
+{
+    admin off
+    persist_config off
+}
+
+:{$PORT} {
+    # Logging
+    log {
+        output stdout
+        format json
+    }
+
+    # Healthcheck
+    handle /healthz {
+        respond "OK" 200
+    }
+
+    # OTLP Proxy
+    handle_path /instrumentation/* {
+        reverse_proxy {$OTEL_COLLECTOR_UPSTREAM}
+    }
+
+    # API
+    handle /api* {
+        reverse_proxy {$API_UPSTREAM}
+    }
+
+    # Docs
+    handle /docs* {
+        reverse_proxy {$DOCS_UPSTREAM}
+    }
+
+    # Admin (Standalone service)
+    handle /admin* {
+        reverse_proxy {$ADMIN_UPSTREAM}
+    }
+
+    # Web App (Catch-all)
+    handle {
+        reverse_proxy {$WEB_UPSTREAM}
+    }
+}
