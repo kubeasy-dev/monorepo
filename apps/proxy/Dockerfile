@@ -1,4 +1,4 @@
-FROM caddy:2-alpine
+FROM caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d
 
 COPY apps/proxy/Caddyfile /etc/caddy/Caddyfile
 

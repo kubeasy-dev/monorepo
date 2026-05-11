@@ -14,7 +14,7 @@ ENV VITE_API_URL=$VITE_API_URL
 
 RUN turbo run build --filter=@kubeasy/admin
 
-FROM nginx:alpine AS runner
+FROM nginx:alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de AS runner
 
 COPY --from=admin-builder /app/apps/admin/dist /usr/share/nginx/html/admin
 COPY apps/admin/default.conf.template /etc/nginx/templates/default.conf.template
