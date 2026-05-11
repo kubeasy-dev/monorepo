@@ -1,12 +1,5 @@
 http:
   routers:
-    # Traefik Dashboard
-    dashboard:
-      rule: "PathPrefix(`/dashboard`) || PathPrefix(`/api/rawdata`)"
-      service: api@internal
-      entryPoints:
-        - web
-
     # API Router
     api:
       rule: "PathPrefix(`/api`)"

@@ -22,6 +22,6 @@ tracing:
       endpoint: "${OTEL_COLLECTOR_GRPC_UPSTREAM}"
       insecure: true
 
-# Enable dashboard
+# Disable dashboard
 api:
-  dashboard: true
+  dashboard: false
