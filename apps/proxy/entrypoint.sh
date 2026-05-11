@@ -1,16 +1,30 @@
 #!/bin/sh
 set -e
 
-# Replace environment variables in Traefik static and dynamic config
-# We use a temporary file to avoid envsubst reading and writing to the same file if needed, 
-# but here we are going from .template to .yml so it's fine.
-envsubst < /traefik.yml.template > /traefik.yml
-envsubst < /dynamic.yml.template > /dynamic.yml
+# Define paths (can be overridden for local testing)
+export TRAEFIK_TEMPLATE=${TRAEFIK_TEMPLATE:-/traefik.yml.template}
+export DYNAMIC_TEMPLATE=${DYNAMIC_TEMPLATE:-/dynamic.yml.template}
+export TRAEFIK_CONFIG=${TRAEFIK_CONFIG:-/traefik.yml}
+export DYNAMIC_CONFIG=${DYNAMIC_CONFIG:-/dynamic.yml}
 
-# Print generated config for debugging
+# This variable is used inside traefik.yml.template to point to the generated dynamic config
+export DYNAMIC_CONFIG_PATH=$DYNAMIC_CONFIG
+
+# Perform substitution
+envsubst < "$TRAEFIK_TEMPLATE" > "$TRAEFIK_CONFIG"
+envsubst < "$DYNAMIC_TEMPLATE" > "$DYNAMIC_CONFIG"
+
 echo "--- Generated traefik.yml ---"
-cat /traefik.yml
+cat "$TRAEFIK_CONFIG"
 echo "----------------------------"
 
-# Start Traefik
-exec traefik --configFile=/traefik.yml
+echo "--- Generated dynamic.yml ---"
+cat "$DYNAMIC_CONFIG"
+echo "----------------------------"
+
+# Only start traefik if it exists (allows testing script alone)
+if command -v traefik >/dev/null 2>&1; then
+    exec traefik --configFile="$TRAEFIK_CONFIG"
+else
+    echo "Traefik binary not found, skipping exec."
+fi

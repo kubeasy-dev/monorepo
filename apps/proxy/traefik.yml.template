@@ -7,7 +7,7 @@ ping:
 
 providers:
   file:
-    filename: "/dynamic.yml"
+    filename: "${DYNAMIC_CONFIG_PATH}"
     watch: true
 
 log:
