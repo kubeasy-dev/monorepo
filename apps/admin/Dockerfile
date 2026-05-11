@@ -17,6 +17,8 @@ RUN turbo run build --filter=@kubeasy/admin
 FROM nginx:alpine AS runner
 
 COPY --from=admin-builder /app/apps/admin/dist /usr/share/nginx/html/admin
-COPY apps/admin/nginx.conf /etc/nginx/conf.d/default.conf
+COPY apps/admin/default.conf.template /etc/nginx/templates/default.conf.template
+
+ENV PORT=80
 
 EXPOSE 80
