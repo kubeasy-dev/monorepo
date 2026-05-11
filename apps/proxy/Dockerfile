@@ -1,4 +1,4 @@
-FROM traefik:v3.0
+FROM traefik:v3.7.0
 
 # Install envsubst
 RUN apk add --no-cache gettext
