@@ -3,40 +3,49 @@
     persist_config off
 }
 
-:{$PORT} {
-    # Logging
+# Public Traffic
+:8080 {
     log {
         output stdout
         format json
     }
 
-    # Healthcheck
-    handle /healthz {
-        respond "OK" 200
-    }
-
     # OTLP Proxy
-    handle_path /instrumentation/* {
+    @otlp path /instrumentation/*
+    handle @otlp {
+        uri strip_prefix /instrumentation
         reverse_proxy {$OTEL_COLLECTOR_UPSTREAM}
     }
 
     # API
-    handle /api* {
-        reverse_proxy {$API_UPSTREAM}
+    @api path /api /api/*
+    handle @api {
+        reverse_proxy {$API_UPSTREAM} {
+            flush_interval -1
+        }
     }
 
     # Docs
-    handle /docs* {
+    @docs path /docs /docs/*
+    handle @docs {
         reverse_proxy {$DOCS_UPSTREAM}
     }
 
-    # Admin (Standalone service)
-    handle /admin* {
+    # Admin (Separated service)
+    @admin path /admin /admin/*
+    handle @admin {
         reverse_proxy {$ADMIN_UPSTREAM}
     }
 
     # Web App (Catch-all)
     handle {
         reverse_proxy {$WEB_UPSTREAM}
+    }
+}
+
+# Healthcheck Port (Railway)
+:{$PORT} {
+    handle /healthz {
+        respond "OK" 200
     }
 }
