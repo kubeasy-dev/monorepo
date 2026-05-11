@@ -1,26 +1,34 @@
 FROM traefik:v3.7.0
 
+# Copie uniquement la config dynamique
 COPY apps/proxy/dynamic.yml /etc/traefik/dynamic.yml
 
-# Default environment variables for local testing
-ENV PORT=8080 \
-    API_UPSTREAM=http://api:3000 \
-    DOCS_UPSTREAM=http://docs:3000 \
-    ADMIN_UPSTREAM=http://admin:80 \
-    WEB_UPSTREAM=http://web:3000 \
-    OTEL_COLLECTOR_UPSTREAM=http://otel-collector:4318 \
-    OTEL_COLLECTOR_GRPC_UPSTREAM=otel-collector:4317
+# CONFIGURATION STATIQUE VIA VARIABLES D'ENVIRONNEMENT (Reconnu par Traefik)
+# -------------------------------------------------------------------------
+# Entrypoints
+ENV TRAEFIK_ENTRYPOINTS_WEB_ADDRESS=:8080
+ENV PORT=8081
+ENV TRAEFIK_ENTRYPOINTS_HEALTH_ADDRESS=:${PORT}
 
-# On utilise les arguments CLI pour la config statique (port, etc.)
-# Traefik v3 gère automatiquement le ping sur /ping si on l'active
-CMD traefik \
-    --entryPoints.web.address=":${PORT}" \
-    --providers.file.filename=/etc/traefik/dynamic.yml \
-    --providers.file.watch=true \
-    --ping=true \
-    --ping.entryPoint=web \
-    --log.level=DEBUG \
-    --accesslog=true \
-    --api.dashboard=false \
-    --tracing.otlp.grpc.endpoint="${OTEL_COLLECTOR_GRPC_UPSTREAM}" \
-    --tracing.otlp.grpc.insecure=true
+# Ping (Healthcheck)
+ENV TRAEFIK_PING=true
+ENV TRAEFIK_PING_ENTRYPOINT=health
+
+# Providers
+ENV TRAEFIK_PROVIDERS_FILE_FILENAME=/etc/traefik/dynamic.yml
+ENV TRAEFIK_PROVIDERS_FILE_WATCH=true
+
+# Logs
+ENV TRAEFIK_LOG_LEVEL=DEBUG
+ENV TRAEFIK_ACCESSLOG=true
+
+# API / Dashboard
+ENV TRAEFIK_API_DASHBOARD=false
+ENV TRAEFIK_API_INSECURE=false
+
+# Tracing
+ENV OTEL_COLLECTOR_GRPC_UPSTREAM=otel-collector.railway.internal:4317
+ENV TRAEFIK_TRACING_OTLP_GRPC_ENDPOINT=${OTEL_COLLECTOR_GRPC_UPSTREAM}
+ENV TRAEFIK_TRACING_OTLP_GRPC_INSECURE=true
+
+EXPOSE 8080 8081
