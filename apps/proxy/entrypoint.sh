@@ -7,12 +7,15 @@ VARS='$PORT:$API_UPSTREAM:$DOCS_UPSTREAM:$ADMIN_UPSTREAM:$WEB_UPSTREAM:$OTEL_COL
 # Génération de la config dynamique
 envsubst "$VARS" < /etc/traefik/dynamic.yml.template > /etc/traefik/dynamic.yml
 
-# Lancement de Traefik avec config en ligne de commande (robuste)
+# Lancement de Traefik avec deux entrypoints :
+# - web (8080) pour le trafic public
+# - health (${PORT}) pour le healthcheck Railway
 exec traefik \
-  --entryPoints.web.address=":${PORT}" \
+  --entryPoints.web.address=":8080" \
+  --entryPoints.health.address=":${PORT}" \
   --providers.file.filename=/etc/traefik/dynamic.yml \
   --ping=true \
-  --ping.entryPoint=web \
+  --ping.entryPoint=health \
   --log.level=INFO \
   --accesslog=true \
   --api.dashboard=false \

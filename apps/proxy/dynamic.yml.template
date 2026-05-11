@@ -1,50 +1,38 @@
 http:
   routers:
-    # Explicit Healthcheck Router with maximum priority
-    healthcheck:
-      rule: "Path(`/ping`)"
-      service: "ping@internal"
-      priority: 20000
-      entryPoints:
-        - "web"
-
-    # API Router
+    # Router API
     api:
       rule: "PathPrefix(`/api`)"
       service: "api"
       entryPoints:
-        - "web"
-
-    # Docs Router
+        - web
+    # Router Docs
     docs:
       rule: "PathPrefix(`/docs`)"
       service: "docs"
       entryPoints:
-        - "web"
-
-    # Admin Router
+        - web
+    # Router Admin
     admin:
       rule: "PathPrefix(`/admin`)"
       service: "admin"
       entryPoints:
-        - "web"
-
-    # OTLP Proxy (Instrumentation)
+        - web
+    # Router Instrumentation
     instrumentation:
       rule: "PathPrefix(`/instrumentation`)"
       service: "otel-collector"
       middlewares:
         - "strip-instrumentation"
       entryPoints:
-        - "web"
-
-    # Web App (Catch-all)
+        - web
+    # Router Web (Catch-all)
     web:
       rule: "PathPrefix(`/`)"
       service: "web"
       priority: 1
       entryPoints:
-        - "web"
+        - web
 
   middlewares:
     strip-instrumentation:
