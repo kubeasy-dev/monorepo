@@ -1,0 +1,28 @@
+entryPoints:
+  web:
+    address: ":${PORT}"
+
+ping:
+  entryPoint: web
+
+providers:
+  file:
+    filename: "/etc/traefik/dynamic.yml"
+    watch: true
+
+log:
+  level: INFO
+
+accessLog:
+  format: json
+
+tracing:
+  otlp:
+    grpc:
+      endpoint: "${OTEL_COLLECTOR_GRPC_UPSTREAM}"
+    insecure: true
+
+# Enable dashboard (optional, but good for debugging)
+api:
+  dashboard: true
+  insecure: true
