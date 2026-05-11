@@ -1,7 +1,7 @@
 FROM traefik:v3.7.0
 
-COPY apps/proxy/traefik.yml /etc/traefik/traefik.yml
-COPY apps/proxy/dynamic.yml /etc/traefik/dynamic.yml
+COPY apps/proxy/traefik.yml /traefik.yml
+COPY apps/proxy/dynamic.yml /dynamic.yml
 
 # Default environment variables
 ENV PORT=8080 \
@@ -12,5 +12,5 @@ ENV PORT=8080 \
     OTEL_COLLECTOR_UPSTREAM=otel-collector:4318 \
     OTEL_COLLECTOR_GRPC_UPSTREAM=otel-collector:4317
 
-# Traefik natively supports environment variables in config files using ${VAR}
-CMD ["traefik", "--configFile=/etc/traefik/traefik.yml"]
+ENTRYPOINT ["traefik"]
+CMD ["--configFile=/traefik.yml"]

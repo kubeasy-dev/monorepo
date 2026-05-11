@@ -7,7 +7,7 @@ ping:
 
 providers:
   file:
-    filename: "/etc/traefik/dynamic.yml"
+    filename: "/dynamic.yml"
     watch: true
 
 log:
@@ -16,12 +16,7 @@ log:
 accessLog:
   format: json
 
-tracing:
-  otlp:
-    grpc:
-      endpoint: "${OTEL_COLLECTOR_GRPC_UPSTREAM}"
-      insecure: true
-
-# Disable dashboard
+# Disable dashboard and API to avoid port conflicts
 api:
   dashboard: false
+  insecure: false
