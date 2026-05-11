@@ -2,9 +2,10 @@ entryPoints:
   web:
     address: ":${PORT}"
 
-# Enable ping internal service
+# Enable ping internal service with manual routing for full control
 ping:
   entryPoint: web
+  manualRouting: true
 
 providers:
   file:

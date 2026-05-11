@@ -4,7 +4,7 @@ http:
     healthcheck:
       rule: "Path(`/ping`)"
       service: ping@internal
-      priority: 10000
+      priority: 1000
       entryPoints:
         - web
 
