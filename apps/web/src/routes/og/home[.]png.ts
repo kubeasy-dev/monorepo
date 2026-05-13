@@ -6,6 +6,17 @@ import { getGeistFont } from "@/lib/og-fonts";
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
 
+// Brand Colors (Neo-brutalist palette)
+const COLORS = {
+  background: "#fdfcf6", // Cream / oklch(0.98 0.01 90)
+  primary: "#7c3aed", // Violet / oklch(0.55 0.25 280)
+  secondary: "#f9f5e1", // Light Yellow / oklch(0.95 0.05 85)
+  accent: "#00E5FF", // Cyan
+  black: "#000000",
+  border: "#000000",
+  white: "#ffffff",
+};
+
 export const Route = createFileRoute("/og/home.png")({
   server: {
     handlers: {
@@ -20,12 +31,13 @@ export const Route = createFileRoute("/og/home.png")({
               display: "flex",
               width: "100%",
               height: "100%",
-              background: "#7c3aed", // Kubeasy Violet
-              padding: "40px",
+              background: COLORS.background,
               fontFamily: "Geist",
+              padding: "40px",
+              position: "relative",
             },
             children: [
-              // Grid Background Pattern (simulated with a child)
+              // Grid Pattern
               {
                 type: "div",
                 props: {
@@ -36,12 +48,31 @@ export const Route = createFileRoute("/og/home.png")({
                     right: 0,
                     bottom: 0,
                     display: "flex",
-                    backgroundImage:
-                      "radial-gradient(circle, rgba(0,0,0,0.15) 1.5px, transparent 1.5px)",
+                    backgroundImage: `radial-gradient(circle, ${COLORS.black}1A 1.5px, transparent 1.5px)`,
                     backgroundSize: "32px 32px",
                   },
                 },
               },
+
+              // Large "K" background watermark
+              {
+                type: "div",
+                props: {
+                  style: {
+                    position: "absolute",
+                    right: "-100px",
+                    bottom: "-150px",
+                    display: "flex",
+                    fontSize: "800px",
+                    fontWeight: 900,
+                    color: COLORS.primary,
+                    opacity: 0.05,
+                    lineHeight: 1,
+                  },
+                  children: ["K"],
+                },
+              },
+
               // Main Card
               {
                 type: "div",
@@ -51,9 +82,10 @@ export const Route = createFileRoute("/og/home.png")({
                     flexDirection: "column",
                     width: "100%",
                     height: "100%",
-                    background: "#ffffff",
-                    border: "8px solid #000000",
-                    boxShadow: "20px 20px 0px 0px #000000",
+                    background: COLORS.white,
+                    border: "5px solid #000000",
+                    borderRadius: "12px",
+                    boxShadow: "16px 16px 0px 0px #000000",
                     padding: "60px",
                     justifyContent: "space-between",
                     position: "relative",
@@ -75,15 +107,25 @@ export const Route = createFileRoute("/og/home.png")({
                               style: {
                                 display: "flex",
                                 alignItems: "center",
-                                justifyContent: "center",
-                                background: "#000000",
-                                color: "#ffffff",
-                                fontWeight: 900,
-                                fontSize: 32,
-                                padding: "12px 24px",
-                                transform: "rotate(-2deg)",
+                                gap: "12px",
                               },
-                              children: ["KUBEASY"],
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      background: COLORS.black,
+                                      color: COLORS.white,
+                                      fontWeight: 900,
+                                      fontSize: 32,
+                                      padding: "10px 20px",
+                                      borderRadius: "4px",
+                                    },
+                                    children: ["KUBEASY"],
+                                  },
+                                },
+                              ],
                             },
                           },
                           {
@@ -91,10 +133,12 @@ export const Route = createFileRoute("/og/home.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                fontSize: 24,
-                                fontWeight: 600,
-                                color: "#000000",
-                                opacity: 0.5,
+                                fontSize: 20,
+                                fontWeight: 700,
+                                color: COLORS.black,
+                                opacity: 0.4,
+                                textTransform: "uppercase",
+                                letterSpacing: "2px",
                               },
                               children: ["kubeasy.dev"],
                             },
@@ -103,14 +147,14 @@ export const Route = createFileRoute("/og/home.png")({
                       },
                     },
 
-                    // Content
+                    // Hero Content
                     {
                       type: "div",
                       props: {
                         style: {
                           display: "flex",
                           flexDirection: "column",
-                          gap: "24px",
+                          gap: "32px",
                         },
                         children: [
                           {
@@ -118,13 +162,39 @@ export const Route = createFileRoute("/og/home.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                fontSize: 84,
-                                fontWeight: 900,
-                                color: "#000000",
-                                lineHeight: 1.0,
-                                letterSpacing: "-4px",
+                                flexDirection: "column",
                               },
-                              children: ["Learn Kubernetes\nby Doing."],
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      fontSize: 84,
+                                      fontWeight: 900,
+                                      color: COLORS.black,
+                                      lineHeight: 1,
+                                      letterSpacing: "-4px",
+                                    },
+                                    children: ["Learn Kubernetes"],
+                                  },
+                                },
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      fontSize: 84,
+                                      fontWeight: 900,
+                                      color: COLORS.primary,
+                                      lineHeight: 1,
+                                      letterSpacing: "-4px",
+                                      marginTop: "4px",
+                                    },
+                                    children: ["by Solving Incidents."],
+                                  },
+                                },
+                              ],
                             },
                           },
                           {
@@ -134,12 +204,13 @@ export const Route = createFileRoute("/og/home.png")({
                                 display: "flex",
                                 fontSize: 32,
                                 fontWeight: 500,
-                                color: "#333333",
+                                color: COLORS.black,
+                                opacity: 0.8,
                                 lineHeight: 1.3,
                                 maxWidth: "800px",
                               },
                               children: [
-                                "Solve real production incidents on your own local clusters. Free, open-source, and hands-on.",
+                                "Hands-on challenges on your local cluster. From CrashLoopBackOff to RBAC — free and open source.",
                               ],
                             },
                           },
@@ -147,14 +218,14 @@ export const Route = createFileRoute("/og/home.png")({
                       },
                     },
 
-                    // Footer Tags
+                    // Footer / Stats
                     {
                       type: "div",
                       props: {
                         style: {
                           display: "flex",
                           alignItems: "center",
-                          gap: "16px",
+                          gap: "20px",
                         },
                         children: [
                           {
@@ -162,13 +233,13 @@ export const Route = createFileRoute("/og/home.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                padding: "12px 24px",
-                                background: "#00E5FF", // Cyan
-                                border: "4px solid #000000",
+                                background: COLORS.secondary,
+                                border: "4px solid #000",
+                                padding: "10px 20px",
                                 fontSize: 20,
                                 fontWeight: 800,
-                                color: "#000000",
-                                boxShadow: "6px 6px 0px 0px #000000",
+                                borderRadius: "8px",
+                                boxShadow: "6px 6px 0px 0px #000",
                               },
                               children: ["13 CHALLENGES"],
                             },
@@ -178,15 +249,15 @@ export const Route = createFileRoute("/og/home.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                padding: "12px 24px",
-                                background: "#FF70FF", // Pink
-                                border: "4px solid #000000",
+                                background: COLORS.accent,
+                                border: "4px solid #000",
+                                padding: "10px 20px",
                                 fontSize: 20,
                                 fontWeight: 800,
-                                color: "#000000",
-                                boxShadow: "6px 6px 0px 0px #000000",
+                                borderRadius: "8px",
+                                boxShadow: "6px 6px 0px 0px #000",
                               },
-                              children: ["LOCAL CLUSTERS"],
+                              children: ["LOCAL KIND CLUSTER"],
                             },
                           },
                           {
@@ -194,15 +265,15 @@ export const Route = createFileRoute("/og/home.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                padding: "12px 24px",
-                                background: "#00FF94", // Green
-                                border: "4px solid #000000",
+                                background: COLORS.white,
+                                border: "4px solid #000",
+                                padding: "10px 20px",
                                 fontSize: 20,
                                 fontWeight: 800,
-                                color: "#000000",
-                                boxShadow: "6px 6px 0px 0px #000000",
+                                borderRadius: "8px",
+                                boxShadow: "6px 6px 0px 0px #000",
                               },
-                              children: ["OPEN SOURCE"],
+                              children: ["FREE & OPEN SOURCE"],
                             },
                           },
                         ],

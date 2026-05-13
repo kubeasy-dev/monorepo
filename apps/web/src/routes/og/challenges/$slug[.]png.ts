@@ -9,10 +9,17 @@ import { rpc } from "@/lib/rpc";
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
 
-const DIFFICULTY_COLORS: Record<ChallengeDifficulty, string> = {
-  easy: "#00FF94", // Neon Green
-  medium: "#FFD600", // Yellow (Standard for medium)
-  hard: "#FF3D00", // Neon Red
+// Brand Colors
+const COLORS = {
+  background: "#fdfcf6",
+  primary: "#7c3aed",
+  black: "#000000",
+  white: "#ffffff",
+  difficulty: {
+    easy: "#00FF94",
+    medium: "#FFD600",
+    hard: "#FF3D00",
+  },
 };
 
 const DIFFICULTY_LABELS: Record<ChallengeDifficulty, string> = {
@@ -60,10 +67,8 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
         if (!challenge) return new Response(null, { status: 404 });
 
         const fontData = await getGeistFont();
-        const difficultyColor =
-          DIFFICULTY_COLORS[challenge.difficulty] ?? "#FFD600";
-        const difficultyLabel =
-          DIFFICULTY_LABELS[challenge.difficulty] ?? challenge.difficulty;
+        const difficultyColor = COLORS.difficulty[challenge.difficulty];
+        const difficultyLabel = DIFFICULTY_LABELS[challenge.difficulty];
 
         // biome-ignore lint/suspicious/noExplicitAny: satori accepts VNode plain objects
         const element: any = {
@@ -73,12 +78,13 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
               display: "flex",
               width: "100%",
               height: "100%",
-              background: "#7c3aed", // Kubeasy Violet
-              padding: "40px",
+              background: COLORS.background,
               fontFamily: "Geist",
+              padding: "40px",
+              position: "relative",
             },
             children: [
-              // Grid Background
+              // Grid Pattern
               {
                 type: "div",
                 props: {
@@ -89,13 +95,30 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                     right: 0,
                     bottom: 0,
                     display: "flex",
-                    backgroundImage:
-                      "radial-gradient(circle, rgba(255,255,255,0.2) 1.5px, transparent 1.5px)",
+                    backgroundImage: `radial-gradient(circle, ${COLORS.black}1A 1.5px, transparent 1.5px)`,
                     backgroundSize: "32px 32px",
                   },
                 },
               },
-              // Card
+
+              // Corner difficulty indicator (triangle)
+              {
+                type: "div",
+                props: {
+                  style: {
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    width: "150px",
+                    height: "150px",
+                    background: difficultyColor,
+                    display: "flex",
+                    clipPath: "polygon(100% 0, 0 0, 100% 100%)",
+                  },
+                },
+              },
+
+              // Main Card
               {
                 type: "div",
                 props: {
@@ -104,9 +127,10 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                     flexDirection: "column",
                     width: "100%",
                     height: "100%",
-                    background: "#ffffff",
-                    border: "8px solid #000000",
-                    boxShadow: "20px 20px 0px 0px #000000",
+                    background: COLORS.white,
+                    border: "5px solid #000000",
+                    borderRadius: "12px",
+                    boxShadow: "16px 16px 0px 0px #000000",
                     padding: "60px",
                     justifyContent: "space-between",
                     position: "relative",
@@ -127,14 +151,40 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                background: "#000000",
-                                color: "#ffffff",
-                                padding: "8px 16px",
-                                fontWeight: 800,
-                                fontSize: 24,
-                                transform: "rotate(-1deg)",
+                                alignItems: "center",
+                                gap: "12px",
                               },
-                              children: ["CHALLENGE"],
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      background: COLORS.black,
+                                      color: COLORS.white,
+                                      fontWeight: 900,
+                                      fontSize: 24,
+                                      padding: "8px 16px",
+                                      borderRadius: "4px",
+                                    },
+                                    children: ["CHALLENGE"],
+                                  },
+                                },
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      fontSize: 18,
+                                      fontWeight: 700,
+                                      color: COLORS.black,
+                                      opacity: 0.4,
+                                      letterSpacing: "1px",
+                                    },
+                                    children: ["KUBEASY.DEV"],
+                                  },
+                                },
+                              ],
                             },
                           },
                           {
@@ -142,7 +192,7 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                gap: "12px",
+                                gap: "10px",
                               },
                               children: [
                                 {
@@ -152,10 +202,10 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                       display: "flex",
                                       padding: "6px 12px",
                                       background: difficultyColor,
-                                      border: "3px solid #000000",
-                                      fontWeight: 700,
-                                      fontSize: 18,
-                                      color: "#000000",
+                                      border: "3px solid #000",
+                                      fontWeight: 800,
+                                      fontSize: 16,
+                                      borderRadius: "4px",
                                     },
                                     children: [difficultyLabel.toUpperCase()],
                                   },
@@ -166,10 +216,11 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                     style: {
                                       display: "flex",
                                       padding: "6px 12px",
-                                      background: "#000000",
-                                      color: "#ffffff",
-                                      fontWeight: 700,
-                                      fontSize: 18,
+                                      background: COLORS.black,
+                                      color: COLORS.white,
+                                      fontWeight: 800,
+                                      fontSize: 16,
+                                      borderRadius: "4px",
                                     },
                                     children: [
                                       `${challenge.estimatedTime} MIN`,
@@ -183,14 +234,14 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                       },
                     },
 
-                    // Content
+                    // Main Content
                     {
                       type: "div",
                       props: {
                         style: {
                           display: "flex",
                           flexDirection: "column",
-                          gap: "20px",
+                          gap: "24px",
                         },
                         children: [
                           {
@@ -200,11 +251,11 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                 display: "flex",
                                 fontSize: 72,
                                 fontWeight: 900,
-                                color: "#000000",
+                                color: COLORS.black,
                                 lineHeight: 1.1,
                                 letterSpacing: "-3px",
                               },
-                              children: [truncate(challenge.title, 60)],
+                              children: [truncate(challenge.title, 55)],
                             },
                           },
                           {
@@ -214,24 +265,27 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                 display: "flex",
                                 fontSize: 28,
                                 fontWeight: 500,
-                                color: "#444444",
+                                color: COLORS.black,
+                                opacity: 0.7,
                                 lineHeight: 1.4,
+                                maxWidth: "900px",
                               },
-                              children: [truncate(challenge.description, 150)],
+                              children: [truncate(challenge.description, 160)],
                             },
                           },
                         ],
                       },
                     },
 
-                    // Footer
+                    // Footer Row
                     {
                       type: "div",
                       props: {
                         style: {
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "space-between",
+                          justifyContent: "flex-start",
+                          gap: "16px",
                         },
                         children: [
                           {
@@ -239,12 +293,14 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                padding: "8px 16px",
-                                background: "#00E5FF",
-                                border: "4px solid #000000",
+                                padding: "10px 24px",
+                                background: COLORS.primary,
+                                border: "3px solid #000",
+                                color: COLORS.white,
                                 fontWeight: 800,
                                 fontSize: 20,
-                                boxShadow: "4px 4px 0px 0px #000000",
+                                borderRadius: "6px",
+                                boxShadow: "4px 4px 0px 0px #000",
                                 textTransform: "uppercase",
                               },
                               children: [challenge.theme],
@@ -255,12 +311,15 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
+                                padding: "10px 24px",
+                                background: "#f9f5e1",
+                                border: "3px solid #000",
+                                fontWeight: 800,
                                 fontSize: 20,
-                                fontWeight: 600,
-                                color: "#000000",
-                                opacity: 0.4,
+                                borderRadius: "6px",
+                                boxShadow: "4px 4px 0px 0px #000",
                               },
-                              children: ["kubeasy.dev"],
+                              children: ["PRACTICE HANDS-ON"],
                             },
                           },
                         ],
