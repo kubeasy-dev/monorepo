@@ -34,7 +34,7 @@ function truncate(text: string, max: number): string {
   return `${text.slice(0, max - 1)}…`;
 }
 
-export const Route = createFileRoute("/og/challenges/$slug.png")({
+export const Route = createFileRoute("/og/challenges/$slug/index.png")({
   server: {
     handlers: {
       GET: async () => {

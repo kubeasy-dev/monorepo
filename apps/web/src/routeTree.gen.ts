@@ -18,30 +18,14 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChallengesIndexRouteImport } from './routes/challenges/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as OgHomeDotpngRouteImport } from './routes/og/home[.]png'
 import { Route as ChallengesSlugRouteImport } from './routes/challenges/$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as ProtectedProfileRouteImport } from './routes/_protected/profile'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
-import { Route as SitemapMainDotxmlRouteImport } from './routes/sitemap-main[.]xml'
-import { Route as OgHomeDotpngRouteImport } from './routes/og/home[.]png'
-import { Route as OgChallengesSlugDotpngRouteImport } from './routes/og/challenges/$slug[.]png'
+import { Route as OgChallengesSlugIndexDotpngRouteImport } from './routes/og/challenges/$slug/index[.]png'
 
-const SitemapMainDotxmlRoute = SitemapMainDotxmlRouteImport.update({
-  id: '/sitemap-main.xml',
-  path: '/sitemap-main.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OgHomeDotpngRoute = OgHomeDotpngRouteImport.update({
-  id: '/og/home.png',
-  path: '/og/home.png',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OgChallengesSlugDotpngRoute = OgChallengesSlugDotpngRouteImport.update({
-  id: '/og/challenges/$slug.png',
-  path: '/og/challenges/$slug.png',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -86,6 +70,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OgHomeDotpngRoute = OgHomeDotpngRouteImport.update({
+  id: '/og/home.png',
+  path: '/og/home.png',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChallengesSlugRoute = ChallengesSlugRouteImport.update({
   id: '/challenges/$slug',
   path: '/challenges/$slug',
@@ -111,6 +100,12 @@ const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const OgChallengesSlugIndexDotpngRoute =
+  OgChallengesSlugIndexDotpngRouteImport.update({
+    id: '/og/challenges/$slug/index.png',
+    path: '/og/challenges/$slug/index.png',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -119,16 +114,15 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
-  '/og/home.png': typeof OgHomeDotpngRoute
-  '/og/challenges/$slug.png': typeof OgChallengesSlugDotpngRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/profile': typeof ProtectedProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/og/home.png': typeof OgHomeDotpngRoute
   '/blog/': typeof BlogIndexRoute
   '/challenges/': typeof ChallengesIndexRoute
+  '/og/challenges/$slug/index.png': typeof OgChallengesSlugIndexDotpngRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -137,16 +131,15 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
-  '/og/home.png': typeof OgHomeDotpngRoute
-  '/og/challenges/$slug.png': typeof OgChallengesSlugDotpngRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/profile': typeof ProtectedProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/og/home.png': typeof OgHomeDotpngRoute
   '/blog': typeof BlogIndexRoute
   '/challenges': typeof ChallengesIndexRoute
+  '/og/challenges/$slug/index.png': typeof OgChallengesSlugIndexDotpngRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -157,16 +150,15 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
-  '/og/home.png': typeof OgHomeDotpngRoute
-  '/og/challenges/$slug.png': typeof OgChallengesSlugDotpngRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/profile': typeof ProtectedProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/og/home.png': typeof OgHomeDotpngRoute
   '/blog/': typeof BlogIndexRoute
   '/challenges/': typeof ChallengesIndexRoute
+  '/og/challenges/$slug/index.png': typeof OgChallengesSlugIndexDotpngRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -177,16 +169,15 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sitemap-main.xml'
     | '/sitemap.xml'
-    | '/sitemap-main.xml'
-    | '/og/home.png'
-    | '/og/challenges/$slug.png'
     | '/dashboard'
     | '/profile'
     | '/auth/callback'
     | '/blog/$slug'
     | '/challenges/$slug'
+    | '/og/home.png'
     | '/blog/'
     | '/challenges/'
+    | '/og/challenges/$slug/index.png'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -195,16 +186,15 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sitemap-main.xml'
     | '/sitemap.xml'
-    | '/sitemap-main.xml'
-    | '/og/home.png'
-    | '/og/challenges/$slug.png'
     | '/dashboard'
     | '/profile'
     | '/auth/callback'
     | '/blog/$slug'
     | '/challenges/$slug'
+    | '/og/home.png'
     | '/blog'
     | '/challenges'
+    | '/og/challenges/$slug/index.png'
   id:
     | '__root__'
     | '/'
@@ -214,16 +204,15 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sitemap-main.xml'
     | '/sitemap.xml'
-    | '/sitemap-main.xml'
-    | '/og/home.png'
-    | '/og/challenges/$slug.png'
     | '/_protected/dashboard'
     | '/_protected/profile'
     | '/auth/callback'
     | '/blog/$slug'
     | '/challenges/$slug'
+    | '/og/home.png'
     | '/blog/'
     | '/challenges/'
+    | '/og/challenges/$slug/index.png'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -234,14 +223,13 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   SitemapMainDotxmlRoute: typeof SitemapMainDotxmlRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  SitemapMainDotxmlRoute: typeof SitemapMainDotxmlRoute
-  OgHomeDotpngRoute: typeof OgHomeDotpngRoute
-  OgChallengesSlugDotpngRoute: typeof OgChallengesSlugDotpngRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   BlogSlugRoute: typeof BlogSlugRoute
   ChallengesSlugRoute: typeof ChallengesSlugRoute
+  OgHomeDotpngRoute: typeof OgHomeDotpngRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ChallengesIndexRoute: typeof ChallengesIndexRoute
+  OgChallengesSlugIndexDotpngRoute: typeof OgChallengesSlugIndexDotpngRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -309,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/og/home.png': {
+      id: '/og/home.png'
+      path: '/og/home.png'
+      fullPath: '/og/home.png'
+      preLoaderRoute: typeof OgHomeDotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/challenges/$slug': {
       id: '/challenges/$slug'
       path: '/challenges/$slug'
@@ -330,27 +325,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sitemap-main.xml': {
-      id: '/sitemap-main.xml'
-      path: '/sitemap-main.xml'
-      fullPath: '/sitemap-main.xml'
-      preLoaderRoute: typeof SitemapMainDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/og/home.png': {
-      id: '/og/home.png'
-      path: '/og/home.png'
-      fullPath: '/og/home.png'
-      preLoaderRoute: typeof OgHomeDotpngRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/og/challenges/$slug.png': {
-      id: '/og/challenges/$slug.png'
-      path: '/og/challenges/$slug.png'
-      fullPath: '/og/challenges/$slug.png'
-      preLoaderRoute: typeof OgChallengesSlugDotpngRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_protected/profile': {
       id: '/_protected/profile'
       path: '/profile'
@@ -364,6 +338,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard'
       preLoaderRoute: typeof ProtectedDashboardRouteImport
       parentRoute: typeof ProtectedRoute
+    }
+    '/og/challenges/$slug/index.png': {
+      id: '/og/challenges/$slug/index.png'
+      path: '/og/challenges/$slug/index.png'
+      fullPath: '/og/challenges/$slug/index.png'
+      preLoaderRoute: typeof OgChallengesSlugIndexDotpngRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -390,14 +371,13 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   SitemapMainDotxmlRoute: SitemapMainDotxmlRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  SitemapMainDotxmlRoute: SitemapMainDotxmlRoute,
-  OgHomeDotpngRoute: OgHomeDotpngRoute,
-  OgChallengesSlugDotpngRoute: OgChallengesSlugDotpngRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   BlogSlugRoute: BlogSlugRoute,
   ChallengesSlugRoute: ChallengesSlugRoute,
+  OgHomeDotpngRoute: OgHomeDotpngRoute,
   BlogIndexRoute: BlogIndexRoute,
   ChallengesIndexRoute: ChallengesIndexRoute,
+  OgChallengesSlugIndexDotpngRoute: OgChallengesSlugIndexDotpngRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

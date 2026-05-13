@@ -80,7 +80,7 @@ export const Route = createFileRoute("/challenges/$slug")({
         { property: "og:url", content: pageUrl },
         {
           property: "og:image",
-          content: `${siteConfig.url}/og/challenges/${params.slug}.png`,
+          content: `${siteConfig.url}/og/challenges/${params.slug}/index.png`,
         },
         { property: "og:site_name", content: "Kubeasy" },
         { name: "twitter:card", content: "summary_large_image" },
