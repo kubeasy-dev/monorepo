@@ -123,6 +123,7 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             type: "div",
                             props: {
                               style: {
+                                display: "flex",
                                 fontSize: 18,
                                 fontWeight: 500,
                                 color: "#888888",
@@ -148,6 +149,7 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             type: "div",
                             props: {
                               style: {
+                                display: "flex",
                                 fontSize: 60,
                                 fontWeight: 700,
                                 color: "#000000",
@@ -161,6 +163,7 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             type: "div",
                             props: {
                               style: {
+                                display: "flex",
                                 fontSize: 24,
                                 fontWeight: 400,
                                 color: "#555555",

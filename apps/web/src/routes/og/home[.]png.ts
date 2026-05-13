@@ -99,6 +99,7 @@ export const Route = createFileRoute("/og/home.png")({
                             type: "div",
                             props: {
                               style: {
+                                display: "flex",
                                 fontSize: 72,
                                 fontWeight: 700,
                                 color: "#000000",
@@ -114,6 +115,7 @@ export const Route = createFileRoute("/og/home.png")({
                             type: "div",
                             props: {
                               style: {
+                                display: "flex",
                                 fontSize: 28,
                                 fontWeight: 500,
                                 color: "#444444",
