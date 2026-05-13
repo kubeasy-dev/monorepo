@@ -6,7 +6,7 @@ const isDev = process.env.NODE_ENV !== "production";
 const fsDrain = isDev ? createFsDrain() : null;
 const otlpDrain = createOTLPDrain();
 
-export const { withEvlog, useLogger, log, createError } = createEvlog({
+export const { withEvlog, useLogger } = createEvlog({
   service: "docs",
   drain: (ctx) => {
     fsDrain?.(ctx);

@@ -35,8 +35,6 @@ export const source = loader(
   },
 );
 
-export type Page = InferPageType<typeof source>;
-
 export function getPageImage(page: InferPageType<typeof source>) {
   const segments = [...page.slugs, "image.png"];
 
