@@ -30,7 +30,7 @@ export const Route = createFileRoute("/blog/$slug")({
 
     const pageTitle = `${post.title} | Kubeasy Blog`;
     const description = (post.description ?? "").slice(0, 155);
-    const ogDescription = (post.description ?? description).slice(0, 200);
+    const ogDescription = (post.description ?? "").slice(0, 200);
     const pageUrl = `${siteConfig.url}/blog/${params.slug}`;
 
     const jsonLd = {
