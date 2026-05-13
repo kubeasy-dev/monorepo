@@ -47,8 +47,6 @@ export function Header() {
               <a
                 key={href}
                 href={href}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="inline-flex h-9 w-max items-center justify-center rounded-lg bg-background px-4 py-2 text-base font-bold transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none"
               >
                 {label}
