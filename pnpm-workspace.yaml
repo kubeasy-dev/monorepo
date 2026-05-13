@@ -3,6 +3,7 @@ packages:
   - 'apps/*'
 
 onlyBuiltDependencies:
+  - '@resvg/resvg-js'
   - '@tailwindcss/oxide'
   - esbuild
   - sharp
