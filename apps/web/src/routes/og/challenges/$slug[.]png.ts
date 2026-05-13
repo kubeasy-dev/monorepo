@@ -185,20 +185,6 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                     children: ["CHALLENGE"],
                                   },
                                 },
-                                {
-                                  type: "div",
-                                  props: {
-                                    style: {
-                                      display: "flex",
-                                      fontSize: 18,
-                                      fontWeight: 700,
-                                      color: COLORS.black,
-                                      opacity: 0.4,
-                                      letterSpacing: "1px",
-                                    },
-                                    children: ["KUBEASY.DEV"],
-                                  },
-                                },
                               ],
                             },
                           },
@@ -288,6 +274,21 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                               children: [truncate(challenge.description, 160)],
                             },
                           },
+                          // Challenge URL
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                fontSize: 20,
+                                fontWeight: 600,
+                                color: COLORS.primary,
+                                marginTop: "8px",
+                                opacity: 0.9,
+                              },
+                              children: [`kubeasy.dev/challenges/${slug}`],
+                            },
+                          },
                         ],
                       },
                     },
@@ -299,8 +300,8 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                         style: {
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "flex-start",
-                          gap: "16px",
+                          justifyContent: "space-between",
+                          width: "100%",
                         },
                         children: [
                           {
@@ -308,17 +309,44 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                padding: "10px 24px",
-                                background: COLORS.primary,
-                                border: "3px solid #000",
-                                color: COLORS.white,
-                                fontWeight: 800,
-                                fontSize: 20,
-                                borderRadius: "6px",
-                                boxShadow: "4px 4px 0px 0px #000",
-                                textTransform: "uppercase",
+                                gap: "16px",
                               },
-                              children: [challenge.theme],
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      padding: "10px 24px",
+                                      background: COLORS.primary,
+                                      border: "3px solid #000",
+                                      color: COLORS.white,
+                                      fontWeight: 800,
+                                      fontSize: 20,
+                                      borderRadius: "6px",
+                                      boxShadow: "4px 4px 0px 0px #000",
+                                      textTransform: "uppercase",
+                                    },
+                                    children: [challenge.theme],
+                                  },
+                                },
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      padding: "10px 24px",
+                                      background: "#f9f5e1",
+                                      border: "3px solid #000",
+                                      fontWeight: 800,
+                                      fontSize: 20,
+                                      borderRadius: "6px",
+                                      boxShadow: "4px 4px 0px 0px #000",
+                                    },
+                                    children: ["PRACTICE HANDS-ON"],
+                                  },
+                                },
+                              ],
                             },
                           },
                           {
@@ -326,15 +354,12 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                padding: "10px 24px",
-                                background: "#f9f5e1",
-                                border: "3px solid #000",
+                                fontSize: 22,
                                 fontWeight: 800,
-                                fontSize: 20,
-                                borderRadius: "6px",
-                                boxShadow: "4px 4px 0px 0px #000",
+                                color: COLORS.black,
+                                opacity: 0.2,
                               },
-                              children: ["PRACTICE HANDS-ON"],
+                              children: ["KUBEASY"],
                             },
                           },
                         ],
