@@ -11,10 +11,10 @@ export default defineConfig(async () => {
   return {
     server: { port: 3000 },
     optimizeDeps: {
-      exclude: ["@resvg/resvg-js"],
+      exclude: ["@resvg/resvg-js", "satori"],
     },
     ssr: {
-      external: ["@resvg/resvg-js"],
+      external: ["@resvg/resvg-js", "satori"],
     },
     resolve: {
       alias: {
@@ -42,7 +42,7 @@ export default defineConfig(async () => {
       nitro({
         preset: "node-server",
         rollupConfig: {
-          external: ["@resvg/resvg-js"],
+          external: ["@resvg/resvg-js", "satori"],
         },
       }),
       viteReact(),

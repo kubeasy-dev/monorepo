@@ -33,11 +33,13 @@ ARG NOTION_PEOPLE_DATASOURCE_ID
 ENV NOTION_PEOPLE_DATASOURCE_ID=$NOTION_PEOPLE_DATASOURCE_ID
 
 RUN --mount=type=cache,id=s/de9c1182-9bc5-434a-9692-73c4d557c102-/app/node_modules/.cache/turbo,target=/app/node_modules/.cache/turbo \
+    --mount=type=cache,id=s/de9c1182-9bc5-434a-9692-73c4d557c102-/app/apps/web/node_modules/.vite,target=/app/apps/web/node_modules/.vite \
     turbo run build --filter=@kubeasy/web
 
 FROM web-builder AS web-deploy
 
-RUN pnpm --filter @kubeasy/web deploy --prod --legacy /app/deployed
+RUN --mount=type=cache,id=s/de9c1182-9bc5-434a-9692-73c4d557c102-/root/.local/share/pnpm/store,target=/root/.local/share/pnpm/store \
+    pnpm --filter @kubeasy/web deploy --prod --legacy /app/deployed
 
 FROM base AS runner
 ENV NODE_ENV=production
