@@ -20,10 +20,29 @@ export const Route = createFileRoute("/og/home.png")({
               display: "flex",
               width: "100%",
               height: "100%",
-              background: "#000000",
-              padding: "6px",
+              background: "#FFD600", // Kubeasy Yellow / Primary
+              padding: "40px",
+              fontFamily: "Geist",
             },
             children: [
+              // Grid Background Pattern (simulated with a child)
+              {
+                type: "div",
+                props: {
+                  style: {
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: "flex",
+                    backgroundImage:
+                      "radial-gradient(circle, rgba(0,0,0,0.15) 1.5px, transparent 1.5px)",
+                    backgroundSize: "32px 32px",
+                  },
+                },
+              },
+              // Main Card
               {
                 type: "div",
                 props: {
@@ -33,12 +52,102 @@ export const Route = createFileRoute("/og/home.png")({
                     width: "100%",
                     height: "100%",
                     background: "#ffffff",
+                    border: "8px solid #000000",
+                    boxShadow: "20px 20px 0px 0px #000000",
                     padding: "60px",
-                    fontFamily: "Geist",
                     justifyContent: "space-between",
+                    position: "relative",
                   },
                   children: [
-                    // Logo badge
+                    // Header
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: "#000000",
+                                color: "#ffffff",
+                                fontWeight: 900,
+                                fontSize: 32,
+                                padding: "12px 24px",
+                                transform: "rotate(-2deg)",
+                              },
+                              children: ["KUBEASY"],
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                fontSize: 24,
+                                fontWeight: 600,
+                                color: "#000000",
+                                opacity: 0.5,
+                              },
+                              children: ["kubeasy.dev"],
+                            },
+                          },
+                        ],
+                      },
+                    },
+
+                    // Content
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "24px",
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                fontSize: 84,
+                                fontWeight: 900,
+                                color: "#000000",
+                                lineHeight: 1.0,
+                                letterSpacing: "-4px",
+                              },
+                              children: ["Learn Kubernetes\nby Doing."],
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                fontSize: 32,
+                                fontWeight: 500,
+                                color: "#333333",
+                                lineHeight: 1.3,
+                                maxWidth: "800px",
+                              },
+                              children: [
+                                "Solve real production incidents on your own local clusters. Free, open-source, and hands-on.",
+                              ],
+                            },
+                          },
+                        ],
+                      },
+                    },
+
+                    // Footer Tags
                     {
                       type: "div",
                       props: {
@@ -53,62 +162,15 @@ export const Route = createFileRoute("/og/home.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                background: "#000000",
-                                color: "#ffffff",
-                                fontWeight: 700,
-                                fontSize: 28,
-                                padding: "10px 20px",
-                                letterSpacing: "-0.5px",
-                              },
-                              children: ["KUBEASY"],
-                            },
-                          },
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                display: "flex",
-                                alignItems: "center",
-                                background: "#f5f5f5",
-                                border: "2px solid #000",
-                                padding: "8px 16px",
-                                fontSize: 18,
-                                fontWeight: 600,
-                                color: "#555",
-                              },
-                              children: ["kubeasy.dev"],
-                            },
-                          },
-                        ],
-                      },
-                    },
-
-                    // Main content
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "20px",
-                        },
-                        children: [
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                display: "flex",
-                                fontSize: 72,
-                                fontWeight: 700,
+                                padding: "12px 24px",
+                                background: "#00E5FF", // Cyan
+                                border: "4px solid #000000",
+                                fontSize: 20,
+                                fontWeight: 800,
                                 color: "#000000",
-                                lineHeight: 1.1,
-                                letterSpacing: "-2px",
+                                boxShadow: "6px 6px 0px 0px #000000",
                               },
-                              children: [
-                                "Learn Kubernetes by solving real broken clusters.",
-                              ],
+                              children: ["13 CHALLENGES"],
                             },
                           },
                           {
@@ -116,43 +178,15 @@ export const Route = createFileRoute("/og/home.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                fontSize: 28,
-                                fontWeight: 500,
-                                color: "#444444",
-                                lineHeight: 1.4,
+                                padding: "12px 24px",
+                                background: "#FF70FF", // Pink
+                                border: "4px solid #000000",
+                                fontSize: 20,
+                                fontWeight: 800,
+                                color: "#000000",
+                                boxShadow: "6px 6px 0px 0px #000000",
                               },
-                              children: [
-                                "Hands-on challenges. Your own local cluster. Free and open source.",
-                              ],
-                            },
-                          },
-                        ],
-                      },
-                    },
-
-                    // Bottom row: tags
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                        },
-                        children: [
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                display: "flex",
-                                padding: "10px 20px",
-                                background: "#f0f0f0",
-                                border: "2px solid #000",
-                                fontSize: 18,
-                                fontWeight: 600,
-                                color: "#000",
-                              },
-                              children: ["Kubernetes Challenges"],
+                              children: ["LOCAL CLUSTERS"],
                             },
                           },
                           {
@@ -160,29 +194,15 @@ export const Route = createFileRoute("/og/home.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                padding: "10px 20px",
-                                background: "#f0f0f0",
-                                border: "2px solid #000",
-                                fontSize: 18,
-                                fontWeight: 600,
-                                color: "#000",
+                                padding: "12px 24px",
+                                background: "#00FF94", // Green
+                                border: "4px solid #000000",
+                                fontSize: 20,
+                                fontWeight: 800,
+                                color: "#000000",
+                                boxShadow: "6px 6px 0px 0px #000000",
                               },
-                              children: ["Kind Cluster"],
-                            },
-                          },
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                display: "flex",
-                                padding: "10px 20px",
-                                background: "#f0f0f0",
-                                border: "2px solid #000",
-                                fontSize: 18,
-                                fontWeight: 600,
-                                color: "#000",
-                              },
-                              children: ["Free & Open Source"],
+                              children: ["OPEN SOURCE"],
                             },
                           },
                         ],
@@ -201,14 +221,16 @@ export const Route = createFileRoute("/og/home.png")({
           fonts: [
             { name: "Geist", data: fontData, weight: 400, style: "normal" },
             { name: "Geist", data: fontData, weight: 500, style: "normal" },
+            { name: "Geist", data: fontData, weight: 600, style: "normal" },
             { name: "Geist", data: fontData, weight: 700, style: "normal" },
+            { name: "Geist", data: fontData, weight: 800, style: "normal" },
+            { name: "Geist", data: fontData, weight: 900, style: "normal" },
           ],
         });
 
         const resvg = new Resvg(svg, {
           fitTo: { mode: "width", value: OG_WIDTH },
         });
-        // Copy to a fresh Uint8Array<ArrayBuffer> to satisfy BodyInit type constraints
         const png = new Uint8Array(resvg.render().asPng());
 
         return new Response(png, {

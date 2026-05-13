@@ -10,9 +10,9 @@ const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
 
 const DIFFICULTY_COLORS: Record<ChallengeDifficulty, string> = {
-  easy: "#16a34a",
-  medium: "#ea580c",
-  hard: "#dc2626",
+  easy: "#00FF94", // Neon Green
+  medium: "#FFD600", // Neon Yellow
+  hard: "#FF3D00", // Neon Red/Orange
 };
 
 const DIFFICULTY_LABELS: Record<ChallengeDifficulty, string> = {
@@ -31,7 +31,6 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
     handlers: {
       GET: async () => {
         const req = useRequest();
-        // ServerRequest extends Web API Request; use .url to get the full URL
         const pathname = new URL(req.url).pathname;
         const pathSegment = pathname.split("/").pop() ?? "";
         const slug = pathSegment.endsWith(".png")
@@ -62,12 +61,11 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
 
         const fontData = await getGeistFont();
         const difficultyColor =
-          DIFFICULTY_COLORS[challenge.difficulty] ?? "#000000";
+          DIFFICULTY_COLORS[challenge.difficulty] ?? "#FFD600";
         const difficultyLabel =
           DIFFICULTY_LABELS[challenge.difficulty] ?? challenge.difficulty;
-        const description = truncate(challenge.description, 120);
 
-        // biome-ignore lint/suspicious/noExplicitAny: satori expects ReactNode but also accepts VNode plain objects
+        // biome-ignore lint/suspicious/noExplicitAny: satori accepts VNode plain objects
         const element: any = {
           type: "div",
           props: {
@@ -75,10 +73,29 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
               display: "flex",
               width: "100%",
               height: "100%",
-              background: "#000000",
-              padding: "6px",
+              background: difficultyColor,
+              padding: "40px",
+              fontFamily: "Geist",
             },
             children: [
+              // Grid Background
+              {
+                type: "div",
+                props: {
+                  style: {
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: "flex",
+                    backgroundImage:
+                      "radial-gradient(circle, rgba(0,0,0,0.15) 1.5px, transparent 1.5px)",
+                    backgroundSize: "32px 32px",
+                  },
+                },
+              },
+              // Card
               {
                 type: "div",
                 props: {
@@ -88,12 +105,14 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                     width: "100%",
                     height: "100%",
                     background: "#ffffff",
-                    padding: "50px 60px",
-                    fontFamily: "Geist",
+                    border: "8px solid #000000",
+                    boxShadow: "20px 20px 0px 0px #000000",
+                    padding: "60px",
                     justifyContent: "space-between",
+                    position: "relative",
                   },
                   children: [
-                    // Top row: logo + site name
+                    // Top Bar
                     {
                       type: "div",
                       props: {
@@ -108,15 +127,14 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                alignItems: "center",
                                 background: "#000000",
                                 color: "#ffffff",
-                                fontWeight: 700,
-                                fontSize: 22,
                                 padding: "8px 16px",
-                                letterSpacing: "-0.5px",
+                                fontWeight: 800,
+                                fontSize: 24,
+                                transform: "rotate(-1deg)",
                               },
-                              children: ["KUBEASY"],
+                              children: ["CHALLENGE"],
                             },
                           },
                           {
@@ -124,25 +142,53 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                fontSize: 18,
-                                fontWeight: 500,
-                                color: "#888888",
+                                gap: "12px",
                               },
-                              children: ["kubeasy.dev"],
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      padding: "6px 12px",
+                                      border: "3px solid #000000",
+                                      fontWeight: 700,
+                                      fontSize: 18,
+                                    },
+                                    children: [difficultyLabel.toUpperCase()],
+                                  },
+                                },
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      padding: "6px 12px",
+                                      background: "#000000",
+                                      color: "#ffffff",
+                                      fontWeight: 700,
+                                      fontSize: 18,
+                                    },
+                                    children: [
+                                      `${challenge.estimatedTime} MIN`,
+                                    ],
+                                  },
+                                },
+                              ],
                             },
                           },
                         ],
                       },
                     },
 
-                    // Main content: title + description
+                    // Content
                     {
                       type: "div",
                       props: {
                         style: {
                           display: "flex",
                           flexDirection: "column",
-                          gap: "16px",
+                          gap: "20px",
                         },
                         children: [
                           {
@@ -150,11 +196,11 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                fontSize: 60,
-                                fontWeight: 700,
+                                fontSize: 72,
+                                fontWeight: 900,
                                 color: "#000000",
-                                lineHeight: 1.15,
-                                letterSpacing: "-1.5px",
+                                lineHeight: 1.1,
+                                letterSpacing: "-3px",
                               },
                               children: [truncate(challenge.title, 60)],
                             },
@@ -164,26 +210,26 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                fontSize: 24,
-                                fontWeight: 400,
-                                color: "#555555",
+                                fontSize: 28,
+                                fontWeight: 500,
+                                color: "#444444",
                                 lineHeight: 1.4,
                               },
-                              children: [description],
+                              children: [truncate(challenge.description, 150)],
                             },
                           },
                         ],
                       },
                     },
 
-                    // Bottom row: difficulty, theme, time
+                    // Footer
                     {
                       type: "div",
                       props: {
                         style: {
                           display: "flex",
                           alignItems: "center",
-                          gap: "12px",
+                          justifyContent: "space-between",
                         },
                         children: [
                           {
@@ -191,27 +237,13 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                alignItems: "center",
-                                padding: "10px 20px",
-                                background: difficultyColor,
-                                fontSize: 18,
-                                fontWeight: 700,
-                                color: "#ffffff",
-                              },
-                              children: [difficultyLabel],
-                            },
-                          },
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                display: "flex",
-                                padding: "10px 20px",
-                                border: "2px solid #000000",
-                                fontSize: 18,
-                                fontWeight: 600,
-                                color: "#000000",
-                                textTransform: "capitalize",
+                                padding: "8px 16px",
+                                background: "#00E5FF",
+                                border: "4px solid #000000",
+                                fontWeight: 800,
+                                fontSize: 20,
+                                boxShadow: "4px 4px 0px 0px #000000",
+                                textTransform: "uppercase",
                               },
                               children: [challenge.theme],
                             },
@@ -221,13 +253,12 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                padding: "10px 20px",
-                                border: "2px solid #000000",
-                                fontSize: 18,
+                                fontSize: 20,
                                 fontWeight: 600,
                                 color: "#000000",
+                                opacity: 0.4,
                               },
-                              children: [`⏱ ${challenge.estimatedTime} min`],
+                              children: ["kubeasy.dev"],
                             },
                           },
                         ],
@@ -245,15 +276,17 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
           height: OG_HEIGHT,
           fonts: [
             { name: "Geist", data: fontData, weight: 400, style: "normal" },
+            { name: "Geist", data: fontData, weight: 500, style: "normal" },
             { name: "Geist", data: fontData, weight: 600, style: "normal" },
             { name: "Geist", data: fontData, weight: 700, style: "normal" },
+            { name: "Geist", data: fontData, weight: 800, style: "normal" },
+            { name: "Geist", data: fontData, weight: 900, style: "normal" },
           ],
         });
 
         const resvg = new Resvg(svg, {
           fitTo: { mode: "width", value: OG_WIDTH },
         });
-        // Copy to a fresh Uint8Array<ArrayBuffer> to satisfy BodyInit type constraints
         const png = new Uint8Array(resvg.render().asPng());
 
         return new Response(png, {
