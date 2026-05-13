@@ -231,25 +231,27 @@ export const progress = new Hono<AppEnv>()
       const userId = user.id;
       const { slug } = c.req.valid("param");
 
-      const detail = await getChallenge(slug);
+      const [detail, [existingProgress]] = await Promise.all([
+        getChallenge(slug),
+        db
+          .select({
+            id: userProgress.id,
+            status: userProgress.status,
+            startedAt: userProgress.startedAt,
+          })
+          .from(userProgress)
+          .where(
+            and(
+              eq(userProgress.userId, userId),
+              eq(userProgress.challengeSlug, slug),
+            ),
+          )
+          .limit(1),
+      ]);
+
       if (!detail) {
         return c.json({ error: "Challenge not found" }, 404);
       }
-
-      const [existingProgress] = await db
-        .select({
-          id: userProgress.id,
-          status: userProgress.status,
-          startedAt: userProgress.startedAt,
-        })
-        .from(userProgress)
-        .where(
-          and(
-            eq(userProgress.userId, userId),
-            eq(userProgress.challengeSlug, slug),
-          ),
-        )
-        .limit(1);
 
       const now = new Date();
 
@@ -331,21 +333,23 @@ export const progress = new Hono<AppEnv>()
       const userId = user.id;
       const { slug } = c.req.valid("param");
 
-      const detail = await getChallenge(slug);
+      const [detail, [progress]] = await Promise.all([
+        getChallenge(slug),
+        db
+          .select({ status: userProgress.status })
+          .from(userProgress)
+          .where(
+            and(
+              eq(userProgress.userId, userId),
+              eq(userProgress.challengeSlug, slug),
+            ),
+          )
+          .limit(1),
+      ]);
+
       if (!detail) {
         return c.json({ error: "Challenge not found" }, 404);
       }
-
-      const [progress] = await db
-        .select({ status: userProgress.status })
-        .from(userProgress)
-        .where(
-          and(
-            eq(userProgress.userId, userId),
-            eq(userProgress.challengeSlug, slug),
-          ),
-        )
-        .limit(1);
 
       if (!progress) {
         return c.json({

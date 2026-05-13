@@ -76,25 +76,27 @@ export const submit = new Hono<AppEnv>().post(
     const { slug: challengeSlug } = c.req.valid("param");
     const { results, auditEvents } = c.req.valid("json");
 
-    const detail = await getChallenge(challengeSlug);
+    const [detail, [existingProgress]] = await Promise.all([
+      getChallenge(challengeSlug),
+      db
+        .select({
+          id: userProgress.id,
+          status: userProgress.status,
+          completedAt: userProgress.completedAt,
+        })
+        .from(userProgress)
+        .where(
+          and(
+            eq(userProgress.userId, userId),
+            eq(userProgress.challengeSlug, challengeSlug),
+          ),
+        )
+        .limit(1),
+    ]);
+
     if (!detail) {
       return c.json({ error: "Challenge not found" }, 404);
     }
-
-    const [existingProgress] = await db
-      .select({
-        id: userProgress.id,
-        status: userProgress.status,
-        completedAt: userProgress.completedAt,
-      })
-      .from(userProgress)
-      .where(
-        and(
-          eq(userProgress.userId, userId),
-          eq(userProgress.challengeSlug, challengeSlug),
-        ),
-      )
-      .limit(1);
 
     if (existingProgress?.status === "completed") {
       return c.json({ error: "Challenge already completed" }, 409);

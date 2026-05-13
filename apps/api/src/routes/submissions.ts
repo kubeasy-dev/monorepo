@@ -41,21 +41,23 @@ export const submissions = new Hono<AppEnv>()
       const user = c.get("user");
       const { slug } = c.req.valid("param");
 
-      const detail = await getChallenge(slug);
+      const [detail, submissionsList] = await Promise.all([
+        getChallenge(slug),
+        db
+          .select()
+          .from(userSubmission)
+          .where(
+            and(
+              eq(userSubmission.userId, user.id),
+              eq(userSubmission.challengeSlug, slug),
+            ),
+          )
+          .orderBy(desc(userSubmission.timestamp)),
+      ]);
+
       if (!detail) {
         return c.json({ error: "Challenge not found" }, 404);
       }
-
-      const submissionsList = await db
-        .select()
-        .from(userSubmission)
-        .where(
-          and(
-            eq(userSubmission.userId, user.id),
-            eq(userSubmission.challengeSlug, slug),
-          ),
-        )
-        .orderBy(desc(userSubmission.timestamp));
 
       return c.json({ submissions: submissionsList });
     },
@@ -84,27 +86,29 @@ export const submissions = new Hono<AppEnv>()
       const user = c.get("user");
       const { slug } = c.req.valid("param");
 
-      const detail = await getChallenge(slug);
+      const [detail, [latestSubmission]] = await Promise.all([
+        getChallenge(slug),
+        db
+          .select({
+            id: userSubmission.id,
+            timestamp: userSubmission.timestamp,
+            validated: userSubmission.validated,
+            objectives: userSubmission.objectives,
+          })
+          .from(userSubmission)
+          .where(
+            and(
+              eq(userSubmission.userId, user.id),
+              eq(userSubmission.challengeSlug, slug),
+            ),
+          )
+          .orderBy(desc(userSubmission.timestamp))
+          .limit(1),
+      ]);
+
       if (!detail) {
         return c.json({ error: "Challenge not found" }, 404);
       }
-
-      const [latestSubmission] = await db
-        .select({
-          id: userSubmission.id,
-          timestamp: userSubmission.timestamp,
-          validated: userSubmission.validated,
-          objectives: userSubmission.objectives,
-        })
-        .from(userSubmission)
-        .where(
-          and(
-            eq(userSubmission.userId, user.id),
-            eq(userSubmission.challengeSlug, slug),
-          ),
-        )
-        .orderBy(desc(userSubmission.timestamp))
-        .limit(1);
 
       if (!latestSubmission) {
         return c.json({
