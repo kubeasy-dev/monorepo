@@ -9,6 +9,7 @@ import { ArrowLeft, Clock } from "lucide-react";
 import { useRequest } from "nitro/context";
 import { ChallengeMission } from "@/components/challenge-mission";
 import { DifficultyBadge } from "@/components/difficulty-badge";
+import { siteConfig } from "@/lib/constants";
 import {
   challengeDetailOptions,
   challengeObjectivesOptions,
@@ -29,12 +30,67 @@ export const Route = createFileRoute("/challenges/$slug")({
       log?.info("page.load");
     }
     // SSR prefetch: base challenge data (WEB-03)
-    await Promise.all([
+    const [detail] = await Promise.all([
       queryClient.ensureQueryData(challengeDetailOptions(params.slug)),
       queryClient.ensureQueryData(challengeObjectivesOptions(params.slug)),
     ]);
     // NOTE: Do NOT prefetch latestValidation or challengeStatus here
     // Those are client-only (WEB-05 hybrid rendering)
+    return { detail };
+  },
+  head: ({ loaderData, params }) => {
+    const challenge = loaderData?.detail?.challenge;
+    if (!challenge) return {};
+
+    const pageTitle = `${challenge.title} — Kubernetes Hands-On Challenge | Kubeasy`;
+    const description = challenge.description.slice(0, 155);
+    const ogDescription = challenge.description.slice(0, 200);
+    const pageUrl = `${siteConfig.url}/challenges/${params.slug}`;
+
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      name: challenge.title,
+      description: challenge.description,
+      url: pageUrl,
+      learningResourceType: "Exercise",
+      educationalLevel: challenge.difficulty,
+      about: "Kubernetes",
+      teaches: challenge.theme,
+      timeRequired: `PT${challenge.estimatedTime}M`,
+      isAccessibleForFree: true,
+      inLanguage: "en",
+      provider: {
+        "@type": "Organization",
+        name: "Kubeasy",
+        url: siteConfig.url,
+      },
+    };
+
+    return {
+      meta: [
+        { title: pageTitle },
+        { name: "description", content: description },
+        { property: "og:type", content: "article" },
+        {
+          property: "og:title",
+          content: `${challenge.title} — Kubernetes Hands-On Challenge`,
+        },
+        { property: "og:description", content: ogDescription },
+        { property: "og:url", content: pageUrl },
+        {
+          property: "og:image",
+          content: `${siteConfig.url}/og/challenges/${params.slug}.png`,
+        },
+        { property: "og:site_name", content: "Kubeasy" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:site", content: "@kubeasy_dev" },
+      ],
+      links: [{ rel: "canonical", href: pageUrl }],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(jsonLd) },
+      ],
+    };
   },
   component: ChallengeDetailPage,
 });

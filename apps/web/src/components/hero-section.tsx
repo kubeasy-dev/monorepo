@@ -1,6 +1,5 @@
 import { ArrowRight, Terminal } from "lucide-react";
 import { lazy, Suspense } from "react";
-import { TypewriterText } from "./typewriter-text";
 
 const InteractiveTerminal = lazy(() => import("./interactive-terminal"));
 
@@ -16,13 +15,7 @@ export function HeroSection() {
             </div>
 
             <h1 className="text-7xl font-black leading-[1.1] text-balance">
-              <TypewriterText
-                texts={["Build it.", "Fix it.", "Migrate it."]}
-                typingSpeed={100}
-                deletingSpeed={80}
-              />
-              <br />
-              <span className="text-primary">Learn Kubernetes.</span>
+              Learn Kubernetes by solving real broken clusters.
             </h1>
 
             <p className="text-xl md:text-2xl font-black">

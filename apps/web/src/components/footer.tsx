@@ -35,9 +35,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href={siteConfig.links.docs}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/docs"
                   className="hover:text-primary transition-colors"
                 >
                   Documentation
@@ -71,17 +69,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href={siteConfig.links.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-primary transition-colors"
-                >
-                  Discord
-                </a>
-              </li>
-              <li>
-                <a
-                  href={siteConfig.links.github}
+                  href="https://github.com/kubeasy-dev/challenges/blob/main/CONTRIBUTING.md"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors"

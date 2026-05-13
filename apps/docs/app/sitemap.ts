@@ -5,7 +5,10 @@ import { source } from "@/lib/source";
 export const revalidate = false;
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const url = (path: string): string => new URL(path, baseUrl).toString();
+  // Use string concatenation so absolute paths like "/user/cli-reference" don't
+  // override the "/docs" segment of baseUrl (new URL(absPath, base) strips base path).
+  const base = baseUrl.href.replace(/\/$/, "");
+  const url = (path: string): string => `${base}${path}`;
   const items = source
     .getPages()
     .filter((page) => page.data.type !== "openapi")
@@ -23,11 +26,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: url("/showcase"),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: url("/docs"),
       changeFrequency: "monthly",
       priority: 0.8,
     },

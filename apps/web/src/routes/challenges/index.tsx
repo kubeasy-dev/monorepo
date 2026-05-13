@@ -28,6 +28,29 @@ export const Route = createFileRoute("/challenges/")({
       "public, max-age=600, s-maxage=600, stale-while-revalidate=3600",
     Link: `<${siteConfig.url}/challenges>; rel="alternate"; type="text/markdown"`,
   }),
+  head: () => ({
+    meta: [
+      { title: "Kubernetes Challenges — Learn by Doing | Kubeasy" },
+      {
+        name: "description",
+        content:
+          "Master Kubernetes through hands-on challenges. Practice with real broken clusters — from pod failures to config errors and deprecated APIs. Free and open source.",
+      },
+      { property: "og:type", content: "website" },
+      {
+        property: "og:title",
+        content: "Kubernetes Challenges — Learn by Doing | Kubeasy",
+      },
+      {
+        property: "og:description",
+        content:
+          "Master Kubernetes through hands-on challenges. Practice with real broken clusters — from pod failures to config errors and deprecated APIs.",
+      },
+      { property: "og:url", content: `${siteConfig.url}/challenges` },
+      { property: "og:site_name", content: "Kubeasy" },
+    ],
+    links: [{ rel: "canonical", href: `${siteConfig.url}/challenges` }],
+  }),
   loader: async ({ context: { queryClient } }) => {
     if (import.meta.env.SSR) {
       // biome-ignore lint/correctness/useHookAtTopLevel: useRequest is a Nitro hook, not a React hook
