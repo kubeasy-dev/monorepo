@@ -13,6 +13,29 @@ export const Route = createFileRoute("/blog/")({
       "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
     Link: `<${siteConfig.url}/blog>; rel="alternate"; type="text/markdown"`,
   }),
+  head: () => ({
+    meta: [
+      { title: "Kubeasy Blog — Kubernetes Guides & Tutorials" },
+      {
+        name: "description",
+        content:
+          "Deep dives into Kubernetes, DevOps practices, and cloud-native development. Learn from real-world experiences and best practices.",
+      },
+      { property: "og:type", content: "website" },
+      {
+        property: "og:title",
+        content: "Kubeasy Blog — Kubernetes Guides & Tutorials",
+      },
+      {
+        property: "og:description",
+        content:
+          "Deep dives into Kubernetes, DevOps practices, and cloud-native development. Learn from real-world experiences and best practices.",
+      },
+      { property: "og:url", content: `${siteConfig.url}/blog` },
+      { property: "og:site_name", content: "Kubeasy" },
+    ],
+    links: [{ rel: "canonical", href: `${siteConfig.url}/blog` }],
+  }),
   loader: async ({ context: { queryClient } }) => {
     await queryClient.ensureQueryData(blogListOptions());
   },

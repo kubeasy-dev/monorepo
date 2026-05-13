@@ -4,6 +4,7 @@ import { Calendar, ChevronLeft, Clock } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { AuthorCard } from "@/components/author-card";
 import { RelatedPosts } from "@/components/related-posts";
+import { siteConfig } from "@/lib/constants";
 import type { NotionBlock, RichTextItem } from "@/lib/notion";
 import { blogPostDetailOptions } from "@/lib/query-options";
 
@@ -21,6 +22,55 @@ export const Route = createFileRoute("/blog/$slug")({
       blogPostDetailOptions(params.slug),
     );
     if (!data) throw notFound();
+    return data;
+  },
+  head: ({ loaderData, params }) => {
+    if (!loaderData) return {};
+    const { post } = loaderData;
+
+    const pageTitle = `${post.title} | Kubeasy Blog`;
+    const description = (post.description ?? "").slice(0, 155);
+    const ogDescription = (post.description ?? "").slice(0, 200);
+    const pageUrl = `${siteConfig.url}/blog/${params.slug}`;
+
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: post.title,
+      description: post.description ?? undefined,
+      url: pageUrl,
+      datePublished: post.publishedAt,
+      author: {
+        "@type": "Person",
+        name: post.author.name,
+      },
+      publisher: {
+        "@type": "Organization",
+        name: "Kubeasy",
+        url: siteConfig.url,
+      },
+      inLanguage: "en",
+    };
+
+    return {
+      meta: [
+        { title: pageTitle },
+        ...(description ? [{ name: "description", content: description }] : []),
+        { property: "og:type", content: "article" },
+        { property: "og:title", content: post.title },
+        ...(ogDescription
+          ? [{ property: "og:description", content: ogDescription }]
+          : []),
+        { property: "og:url", content: pageUrl },
+        { property: "og:site_name", content: "Kubeasy" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:site", content: "@kubeasy_dev" },
+      ],
+      links: [{ rel: "canonical", href: pageUrl }],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(jsonLd) },
+      ],
+    };
   },
   component: BlogArticlePage,
 });
