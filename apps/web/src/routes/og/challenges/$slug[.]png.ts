@@ -318,8 +318,9 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                         style: {
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "space-between",
+                          justifyContent: "flex-start",
                           width: "100%",
+                          gap: "12px",
                         },
                         children: [
                           {
@@ -327,97 +328,17 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                gap: "12px",
+                                padding: "8px 16px",
+                                background: COLORS.primary,
+                                border: "3px solid #000",
+                                color: COLORS.white,
+                                fontWeight: 800,
+                                fontSize: 18,
+                                borderRadius: "6px",
+                                boxShadow: "4px 4px 0px 0px #000",
+                                textTransform: "uppercase",
                               },
-                              children: [
-                                {
-                                  type: "div",
-                                  props: {
-                                    style: {
-                                      display: "flex",
-                                      padding: "8px 16px",
-                                      background: COLORS.primary,
-                                      border: "3px solid #000",
-                                      color: COLORS.white,
-                                      fontWeight: 800,
-                                      fontSize: 18,
-                                      borderRadius: "6px",
-                                      boxShadow: "4px 4px 0px 0px #000",
-                                      textTransform: "uppercase",
-                                    },
-                                    children: [challenge.theme],
-                                  },
-                                },
-                                {
-                                  type: "div",
-                                  props: {
-                                    style: {
-                                      display: "flex",
-                                      padding: "8px 16px",
-                                      background: difficultyColor,
-                                      border: "3px solid #000",
-                                      fontWeight: 800,
-                                      fontSize: 18,
-                                      borderRadius: "6px",
-                                      boxShadow: "4px 4px 0px 0px #000",
-                                    },
-                                    children: [difficultyLabel.toUpperCase()],
-                                  },
-                                },
-                                {
-                                  type: "div",
-                                  props: {
-                                    style: {
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: "8px",
-                                      padding: "8px 16px",
-                                      background: "#f9f5e1",
-                                      border: "3px solid #000",
-                                      fontWeight: 800,
-                                      fontSize: 18,
-                                      borderRadius: "6px",
-                                      boxShadow: "4px 4px 0px 0px #000",
-                                    },
-                                    children: [
-                                      {
-                                        type: "svg",
-                                        props: {
-                                          width: 20,
-                                          height: 20,
-                                          viewBox: "0 0 24 24",
-                                          fill: "none",
-                                          stroke: "currentColor",
-                                          strokeWidth: 3,
-                                          strokeLinecap: "round",
-                                          strokeLinejoin: "round",
-                                          style: { display: "flex" },
-                                          children: [
-                                            {
-                                              type: "circle",
-                                              props: { cx: 12, cy: 12, r: 10 },
-                                            },
-                                            {
-                                              type: "polyline",
-                                              props: {
-                                                points: "12 6 12 12 16 14",
-                                              },
-                                            },
-                                          ],
-                                        },
-                                      },
-                                      {
-                                        type: "span",
-                                        props: {
-                                          children: [
-                                            `${challenge.estimatedTime} MIN`,
-                                          ],
-                                        },
-                                      },
-                                    ],
-                                  },
-                                },
-                              ],
+                              children: [challenge.theme],
                             },
                           },
                           {
@@ -425,12 +346,68 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
-                                fontSize: 24,
-                                fontWeight: 900,
-                                color: COLORS.black,
-                                opacity: 0.15,
+                                padding: "8px 16px",
+                                background: difficultyColor,
+                                border: "3px solid #000",
+                                fontWeight: 800,
+                                fontSize: 18,
+                                borderRadius: "6px",
+                                boxShadow: "4px 4px 0px 0px #000",
                               },
-                              children: ["KUBEASY"],
+                              children: [difficultyLabel.toUpperCase()],
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                padding: "8px 16px",
+                                background: "#f9f5e1",
+                                border: "3px solid #000",
+                                fontWeight: 800,
+                                fontSize: 18,
+                                borderRadius: "6px",
+                                boxShadow: "4px 4px 0px 0px #000",
+                              },
+                              children: [
+                                {
+                                  type: "svg",
+                                  props: {
+                                    width: 20,
+                                    height: 20,
+                                    viewBox: "0 0 24 24",
+                                    fill: "none",
+                                    stroke: "currentColor",
+                                    strokeWidth: 3,
+                                    strokeLinecap: "round",
+                                    strokeLinejoin: "round",
+                                    style: { display: "flex" },
+                                    children: [
+                                      {
+                                        type: "circle",
+                                        props: { cx: 12, cy: 12, r: 10 },
+                                      },
+                                      {
+                                        type: "polyline",
+                                        props: {
+                                          points: "12 6 12 12 16 14",
+                                        },
+                                      },
+                                    ],
+                                  },
+                                },
+                                {
+                                  type: "span",
+                                  props: {
+                                    children: [
+                                      `${challenge.estimatedTime} MIN`,
+                                    ],
+                                  },
+                                },
+                              ],
                             },
                           },
                         ],
