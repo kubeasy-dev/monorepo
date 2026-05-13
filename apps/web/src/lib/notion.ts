@@ -566,6 +566,13 @@ function extractHeadings(blocks: NotionBlock[]): TableOfContentsItem[] {
   return headings;
 }
 
+// ---- In-memory Cache for build performance ----
+let _postsPromise: Promise<BlogPost[]> | null = null;
+const _postDetailPromises = new Map<
+  string,
+  Promise<BlogPostWithContent | null>
+>();
+
 // ---- Public API ----
 
 /**
@@ -573,6 +580,15 @@ function extractHeadings(blocks: NotionBlock[]): TableOfContentsItem[] {
  * Throws on Notion API failure — causes build failure for SSG (locked decision).
  */
 export async function getBlogPosts(includeDrafts = false): Promise<BlogPost[]> {
+  if (includeDrafts) return _fetchBlogPosts(true);
+
+  if (!_postsPromise) {
+    _postsPromise = _fetchBlogPosts(false);
+  }
+  return _postsPromise;
+}
+
+async function _fetchBlogPosts(includeDrafts: boolean): Promise<BlogPost[]> {
   if (!isNotionConfigured || !BLOG_DATABASE_ID) return [];
 
   const showDrafts = includeDrafts && process.env.NODE_ENV === "development";
@@ -607,6 +623,13 @@ export async function getBlogPosts(includeDrafts = false): Promise<BlogPost[]> {
 export async function getBlogPostBySlug(
   slug: string,
 ): Promise<BlogPost | null> {
+  // Check full list promise cache first if it exists
+  if (_postsPromise) {
+    const posts = await _postsPromise;
+    const cached = posts.find((p) => p.slug === slug);
+    if (cached) return cached;
+  }
+
   if (!isNotionConfigured || !BLOG_DATABASE_ID) return null;
 
   const response = await getNotionClient().dataSources.query({
@@ -632,13 +655,22 @@ export async function getBlogPostBySlug(
 export async function getBlogPostWithContent(
   slug: string,
 ): Promise<BlogPostWithContent | null> {
-  const post = await getBlogPostBySlug(slug);
-  if (!post) return null;
+  let promise = _postDetailPromises.get(slug);
 
-  const blocks = await fetchBlocks(post.id);
-  const headings = extractHeadings(blocks);
+  if (!promise) {
+    promise = (async () => {
+      const post = await getBlogPostBySlug(slug);
+      if (!post) return null;
 
-  return { ...post, blocks, headings };
+      const blocks = await fetchBlocks(post.id);
+      const headings = extractHeadings(blocks);
+
+      return { ...post, blocks, headings };
+    })();
+    _postDetailPromises.set(slug, promise);
+  }
+
+  return promise;
 }
 
 /**
