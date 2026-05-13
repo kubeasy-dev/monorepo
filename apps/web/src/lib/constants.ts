@@ -29,6 +29,6 @@ export const siteConfig = {
   },
   github: {
     owner: githubOwner,
-    repo: "website",
+    repo: "monorepo",
   },
 };
