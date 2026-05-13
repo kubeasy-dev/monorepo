@@ -20,6 +20,7 @@ const COLORS = {
     medium: "#FFD600",
     hard: "#FF3D00",
   },
+  accent: "#00E5FF", // Cyan for prompt
 };
 
 const DIFFICULTY_LABELS: Record<ChallengeDifficulty, string> = {
@@ -185,6 +186,20 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                     children: ["CHALLENGE"],
                                   },
                                 },
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      fontSize: 18,
+                                      fontWeight: 700,
+                                      color: COLORS.black,
+                                      opacity: 0.4,
+                                      letterSpacing: "1px",
+                                    },
+                                    children: ["KUBEASY.DEV"],
+                                  },
+                                },
                               ],
                             },
                           },
@@ -309,6 +324,7 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                             props: {
                               style: {
                                 display: "flex",
+                                alignItems: "center",
                                 gap: "16px",
                               },
                               children: [
@@ -330,20 +346,39 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                     children: [challenge.theme],
                                   },
                                 },
+                                // Terminal Command CTA
                                 {
                                   type: "div",
                                   props: {
                                     style: {
                                       display: "flex",
+                                      alignItems: "center",
                                       padding: "10px 24px",
-                                      background: "#f9f5e1",
+                                      background: COLORS.black,
                                       border: "3px solid #000",
-                                      fontWeight: 800,
+                                      color: COLORS.white,
+                                      fontWeight: 700,
                                       fontSize: 20,
                                       borderRadius: "6px",
-                                      boxShadow: "4px 4px 0px 0px #000",
                                     },
-                                    children: ["PRACTICE HANDS-ON"],
+                                    children: [
+                                      {
+                                        type: "span",
+                                        props: {
+                                          style: { color: COLORS.accent },
+                                          children: ["$"],
+                                        },
+                                      },
+                                      {
+                                        type: "span",
+                                        props: {
+                                          style: { marginLeft: "10px" },
+                                          children: [
+                                            `kubeasy challenge start ${slug}`,
+                                          ],
+                                        },
+                                      },
+                                    ],
                                   },
                                 },
                               ],
