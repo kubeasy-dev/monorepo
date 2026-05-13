@@ -369,6 +369,8 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                   props: {
                                     style: {
                                       display: "flex",
+                                      alignItems: "center",
+                                      gap: "8px",
                                       padding: "8px 16px",
                                       background: "#f9f5e1",
                                       border: "3px solid #000",
@@ -378,7 +380,40 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                       boxShadow: "4px 4px 0px 0px #000",
                                     },
                                     children: [
-                                      `⏱ ${challenge.estimatedTime} MIN`,
+                                      {
+                                        type: "svg",
+                                        props: {
+                                          width: 20,
+                                          height: 20,
+                                          viewBox: "0 0 24 24",
+                                          fill: "none",
+                                          stroke: "currentColor",
+                                          strokeWidth: 3,
+                                          strokeLinecap: "round",
+                                          strokeLinejoin: "round",
+                                          style: { display: "flex" },
+                                          children: [
+                                            {
+                                              type: "circle",
+                                              props: { cx: 12, cy: 12, r: 10 },
+                                            },
+                                            {
+                                              type: "polyline",
+                                              props: {
+                                                points: "12 6 12 12 16 14",
+                                              },
+                                            },
+                                          ],
+                                        },
+                                      },
+                                      {
+                                        type: "span",
+                                        props: {
+                                          children: [
+                                            `${challenge.estimatedTime} MIN`,
+                                          ],
+                                        },
+                                      },
                                     ],
                                   },
                                 },
