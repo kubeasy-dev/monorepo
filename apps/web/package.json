@@ -38,7 +38,7 @@
     "lucide-react": "catalog:",
     "nitro": "3.0.260311-beta",
     "p-limit": "7.3.0",
-    "pg": "catalog:",
+    "postcss": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "recharts": "3.8.1",
