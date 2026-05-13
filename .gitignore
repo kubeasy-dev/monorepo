@@ -58,3 +58,9 @@ coverage/
 # Docker
 # ========================
 docker/secrets/
+
+# ========================
+# Claude Code
+# ========================
+.claude/worktrees/
+apps/web/.tanstack/
