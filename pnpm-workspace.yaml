@@ -27,7 +27,7 @@ catalog:
 
   # TanStack
   "@tanstack/react-query": "5.100.8"
-  "@tanstack/react-router": "1.169.1"
+  "@tanstack/react-router": "1.169.2"
 
   # Logging
   evlog: "2.15.0"

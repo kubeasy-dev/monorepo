@@ -14,18 +14,18 @@ export function HeroSection() {
               <span>CLI-Driven • Local Cluster • Free</span>
             </div>
 
-            <h1 className="text-7xl font-black leading-[1.1] text-balance">
-              Learn Kubernetes by solving real broken clusters.
+            <h1 className="text-6xl font-black leading-[1.1] text-balance">
+              Learn Kubernetes by solving{" "}
+              <span className="text-primary">real broken clusters.</span>
             </h1>
 
             <p className="text-xl md:text-2xl font-black">
-              Real Kubernetes challenges, on your own cluster.
+              13 hands-on challenges. From CrashLoopBackOff to RBAC.
             </p>
 
             <p className="text-lg md:text-xl font-medium leading-relaxed max-w-xl">
-              Practice Kubernetes through real scenarios on your own machine —
-              from building clean workloads to fixing broken configs and
-              migrating deprecated APIs.
+              Debug, fix, and migrate Kubernetes workloads on your own machine —
+              the problems you’ll actually face in production.
             </p>
 
             <div className="flex flex-wrap gap-4">

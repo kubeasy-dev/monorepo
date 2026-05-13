@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SitemapMainDotxmlRouteImport } from './routes/sitemap-main[.]xml'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GetStartedRouteImport } from './routes/get-started'
@@ -26,6 +27,11 @@ import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dash
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapMainDotxmlRoute = SitemapMainDotxmlRouteImport.update({
+  id: '/sitemap-main.xml',
+  path: '/sitemap-main.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/get-started': typeof GetStartedRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/profile': typeof ProtectedProfileRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/get-started': typeof GetStartedRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/profile': typeof ProtectedProfileRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/get-started': typeof GetStartedRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/profile': typeof ProtectedProfileRoute
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/get-started'
     | '/login'
     | '/onboarding'
+    | '/sitemap-main.xml'
     | '/sitemap.xml'
     | '/dashboard'
     | '/profile'
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/get-started'
     | '/login'
     | '/onboarding'
+    | '/sitemap-main.xml'
     | '/sitemap.xml'
     | '/dashboard'
     | '/profile'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/get-started'
     | '/login'
     | '/onboarding'
+    | '/sitemap-main.xml'
     | '/sitemap.xml'
     | '/_protected/dashboard'
     | '/_protected/profile'
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   GetStartedRoute: typeof GetStartedRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  SitemapMainDotxmlRoute: typeof SitemapMainDotxmlRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   BlogSlugRoute: typeof BlogSlugRoute
@@ -199,6 +212,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-main.xml': {
+      id: '/sitemap-main.xml'
+      path: '/sitemap-main.xml'
+      fullPath: '/sitemap-main.xml'
+      preLoaderRoute: typeof SitemapMainDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -308,6 +328,7 @@ const rootRouteChildren: RootRouteChildren = {
   GetStartedRoute: GetStartedRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  SitemapMainDotxmlRoute: SitemapMainDotxmlRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   BlogSlugRoute: BlogSlugRoute,
