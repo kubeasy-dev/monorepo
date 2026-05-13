@@ -20,7 +20,7 @@ export const Route = createFileRoute("/og/home.png")({
               display: "flex",
               width: "100%",
               height: "100%",
-              background: "#FFD600", // Kubeasy Yellow / Primary
+              background: "#7c3aed", // Kubeasy Violet
               padding: "40px",
               fontFamily: "Geist",
             },

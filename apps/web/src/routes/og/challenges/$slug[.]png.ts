@@ -11,8 +11,8 @@ const OG_HEIGHT = 630;
 
 const DIFFICULTY_COLORS: Record<ChallengeDifficulty, string> = {
   easy: "#00FF94", // Neon Green
-  medium: "#FFD600", // Neon Yellow
-  hard: "#FF3D00", // Neon Red/Orange
+  medium: "#FFD600", // Yellow (Standard for medium)
+  hard: "#FF3D00", // Neon Red
 };
 
 const DIFFICULTY_LABELS: Record<ChallengeDifficulty, string> = {
@@ -73,7 +73,7 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
               display: "flex",
               width: "100%",
               height: "100%",
-              background: difficultyColor,
+              background: "#7c3aed", // Kubeasy Violet
               padding: "40px",
               fontFamily: "Geist",
             },
@@ -90,7 +90,7 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                     bottom: 0,
                     display: "flex",
                     backgroundImage:
-                      "radial-gradient(circle, rgba(0,0,0,0.15) 1.5px, transparent 1.5px)",
+                      "radial-gradient(circle, rgba(255,255,255,0.2) 1.5px, transparent 1.5px)",
                     backgroundSize: "32px 32px",
                   },
                 },
@@ -151,9 +151,11 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                     style: {
                                       display: "flex",
                                       padding: "6px 12px",
+                                      background: difficultyColor,
                                       border: "3px solid #000000",
                                       fontWeight: 700,
                                       fontSize: 18,
+                                      color: "#000000",
                                     },
                                     children: [difficultyLabel.toUpperCase()],
                                   },
