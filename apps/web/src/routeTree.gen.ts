@@ -23,7 +23,25 @@ import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as ProtectedProfileRouteImport } from './routes/_protected/profile'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as SitemapMainDotxmlRouteImport } from './routes/sitemap-main[.]xml'
+import { Route as OgHomeDotpngRouteImport } from './routes/og/home[.]png'
+import { Route as OgChallengesSlugDotpngRouteImport } from './routes/og/challenges/$slug[.]png'
 
+const SitemapMainDotxmlRoute = SitemapMainDotxmlRouteImport.update({
+  id: '/sitemap-main.xml',
+  path: '/sitemap-main.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgHomeDotpngRoute = OgHomeDotpngRouteImport.update({
+  id: '/og/home.png',
+  path: '/og/home.png',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgChallengesSlugDotpngRoute = OgChallengesSlugDotpngRouteImport.update({
+  id: '/og/challenges/$slug.png',
+  path: '/og/challenges/$slug.png',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -101,6 +119,9 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
+  '/og/home.png': typeof OgHomeDotpngRoute
+  '/og/challenges/$slug.png': typeof OgChallengesSlugDotpngRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/profile': typeof ProtectedProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -116,6 +137,9 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
+  '/og/home.png': typeof OgHomeDotpngRoute
+  '/og/challenges/$slug.png': typeof OgChallengesSlugDotpngRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/profile': typeof ProtectedProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -133,6 +157,9 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sitemap-main.xml': typeof SitemapMainDotxmlRoute
+  '/og/home.png': typeof OgHomeDotpngRoute
+  '/og/challenges/$slug.png': typeof OgChallengesSlugDotpngRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/profile': typeof ProtectedProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -150,6 +177,9 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sitemap-main.xml'
     | '/sitemap.xml'
+    | '/sitemap-main.xml'
+    | '/og/home.png'
+    | '/og/challenges/$slug.png'
     | '/dashboard'
     | '/profile'
     | '/auth/callback'
@@ -165,6 +195,9 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sitemap-main.xml'
     | '/sitemap.xml'
+    | '/sitemap-main.xml'
+    | '/og/home.png'
+    | '/og/challenges/$slug.png'
     | '/dashboard'
     | '/profile'
     | '/auth/callback'
@@ -181,6 +214,9 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sitemap-main.xml'
     | '/sitemap.xml'
+    | '/sitemap-main.xml'
+    | '/og/home.png'
+    | '/og/challenges/$slug.png'
     | '/_protected/dashboard'
     | '/_protected/profile'
     | '/auth/callback'
@@ -198,6 +234,9 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   SitemapMainDotxmlRoute: typeof SitemapMainDotxmlRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SitemapMainDotxmlRoute: typeof SitemapMainDotxmlRoute
+  OgHomeDotpngRoute: typeof OgHomeDotpngRoute
+  OgChallengesSlugDotpngRoute: typeof OgChallengesSlugDotpngRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   BlogSlugRoute: typeof BlogSlugRoute
   ChallengesSlugRoute: typeof ChallengesSlugRoute
@@ -291,6 +330,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sitemap-main.xml': {
+      id: '/sitemap-main.xml'
+      path: '/sitemap-main.xml'
+      fullPath: '/sitemap-main.xml'
+      preLoaderRoute: typeof SitemapMainDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og/home.png': {
+      id: '/og/home.png'
+      path: '/og/home.png'
+      fullPath: '/og/home.png'
+      preLoaderRoute: typeof OgHomeDotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og/challenges/$slug.png': {
+      id: '/og/challenges/$slug.png'
+      path: '/og/challenges/$slug.png'
+      fullPath: '/og/challenges/$slug.png'
+      preLoaderRoute: typeof OgChallengesSlugDotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_protected/profile': {
       id: '/_protected/profile'
       path: '/profile'
@@ -330,6 +390,9 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   SitemapMainDotxmlRoute: SitemapMainDotxmlRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SitemapMainDotxmlRoute: SitemapMainDotxmlRoute,
+  OgHomeDotpngRoute: OgHomeDotpngRoute,
+  OgChallengesSlugDotpngRoute: OgChallengesSlugDotpngRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   BlogSlugRoute: BlogSlugRoute,
   ChallengesSlugRoute: ChallengesSlugRoute,

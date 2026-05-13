@@ -10,6 +10,12 @@ const require = createRequire(import.meta.url);
 export default defineConfig(async () => {
   return {
     server: { port: 3000 },
+    optimizeDeps: {
+      exclude: ["@resvg/resvg-js"],
+    },
+    ssr: {
+      external: ["@resvg/resvg-js"],
+    },
     resolve: {
       alias: {
         "@": new URL("./src", import.meta.url).pathname,
