@@ -14,7 +14,7 @@ function findFontPath(filename: string): string {
 
 export async function getGeistFont(): Promise<ArrayBuffer> {
   if (fontCache) return fontCache;
-  const fontPath = findFontPath("geist.woff2");
+  const fontPath = findFontPath("geist.ttf");
   const data = await readFile(fontPath);
   fontCache = data.buffer.slice(
     data.byteOffset,
