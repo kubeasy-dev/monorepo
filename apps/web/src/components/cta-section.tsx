@@ -1,6 +1,5 @@
 import { Button } from "@kubeasy/ui/button";
 import { ArrowRight } from "lucide-react";
-import { siteConfig } from "@/lib/constants";
 
 export function CTASection() {
   return (
@@ -32,13 +31,7 @@ export function CTASection() {
                 className="text-base font-bold bg-secondary text-foreground hover:bg-secondary/90 neo-border-thick neo-shadow-lg border-foreground"
                 asChild
               >
-                <a
-                  href={siteConfig.links.docs}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Documentation
-                </a>
+                <a href="/docs">View Documentation</a>
               </Button>
             </div>
           </div>
