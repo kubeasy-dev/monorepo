@@ -39,7 +39,12 @@ export default defineConfig(async () => {
           { path: "/challenges", prerender: { enabled: true } },
         ],
       }),
-      nitro({ preset: "node-server" }),
+      nitro({
+        preset: "node-server",
+        rollupConfig: {
+          external: ["@resvg/resvg-js"],
+        },
+      }),
       viteReact(),
       tailwindcss(),
     ],
