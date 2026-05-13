@@ -3,7 +3,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { createFileRoute } from "@tanstack/react-router";
 import { useRequest } from "nitro/context";
 import satori from "satori";
-import { getGeistFont } from "@/lib/og-fonts";
+import { getGeistFont, getLogoData } from "@/lib/og-assets";
 import { rpc } from "@/lib/rpc";
 
 const OG_WIDTH = 1200;
@@ -66,7 +66,10 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
 
         if (!challenge) return new Response(null, { status: 404 });
 
-        const fontData = await getGeistFont();
+        const [fontData, logoData] = await Promise.all([
+          getGeistFont(),
+          getLogoData(),
+        ]);
         const difficultyColor = COLORS.difficulty[challenge.difficulty];
         const difficultyLabel = DIFFICULTY_LABELS[challenge.difficulty];
 
@@ -155,6 +158,18 @@ export const Route = createFileRoute("/og/challenges/$slug.png")({
                                 gap: "12px",
                               },
                               children: [
+                                // Logo
+                                {
+                                  type: "img",
+                                  props: {
+                                    src: logoData,
+                                    width: 32,
+                                    height: 32,
+                                    style: {
+                                      display: "flex",
+                                    },
+                                  },
+                                },
                                 {
                                   type: "div",
                                   props: {

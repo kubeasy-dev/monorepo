@@ -1,7 +1,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { createFileRoute } from "@tanstack/react-router";
 import satori from "satori";
-import { getGeistFont } from "@/lib/og-fonts";
+import { getGeistFont, getLogoData } from "@/lib/og-assets";
 
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
@@ -21,7 +21,10 @@ export const Route = createFileRoute("/og/home.png")({
   server: {
     handlers: {
       GET: async () => {
-        const fontData = await getGeistFont();
+        const [fontData, logoData] = await Promise.all([
+          getGeistFont(),
+          getLogoData(),
+        ]);
 
         // biome-ignore lint/suspicious/noExplicitAny: satori accepts VNode plain objects at runtime
         const element: any = {
@@ -107,9 +110,21 @@ export const Route = createFileRoute("/og/home.png")({
                               style: {
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "12px",
+                                gap: "16px",
                               },
                               children: [
+                                // Logo Image
+                                {
+                                  type: "img",
+                                  props: {
+                                    src: logoData,
+                                    width: 48,
+                                    height: 48,
+                                    style: {
+                                      display: "flex",
+                                    },
+                                  },
+                                },
                                 {
                                   type: "div",
                                   props: {
@@ -121,6 +136,7 @@ export const Route = createFileRoute("/og/home.png")({
                                       fontSize: 32,
                                       padding: "10px 20px",
                                       borderRadius: "4px",
+                                      transform: "rotate(-1deg)",
                                     },
                                     children: ["KUBEASY"],
                                   },
