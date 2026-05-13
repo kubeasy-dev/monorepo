@@ -21,7 +21,8 @@
         "tw-animate-css",
         "nitro",
         "shadcn",
-        "@fontsource-variable/geist"
+        "@fontsource-variable/geist",
+        "@tanstack/router-plugin"
       ]
     },
     "apps/api": {
@@ -37,7 +38,7 @@
         "source.config.ts"
       ],
       "project": ["**/*.{ts,tsx}", "*.{ts,js,mjs,cjs}"],
-      "ignoreDependencies": ["tailwindcss"]
+      "ignoreDependencies": ["tailwindcss", "@kubeasy/api-schemas"]
     },
     "packages/*": {
       "entry": ["src/index.{ts,tsx}", "index.{ts,tsx}"],
