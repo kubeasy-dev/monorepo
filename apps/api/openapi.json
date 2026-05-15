@@ -2243,6 +2243,42 @@
         }
       }
     },
+    "/api/sse/challenge/{slug}": {
+      "get": {
+        "operationId": "getApiSseChallengeBySlug",
+        "tags": [
+          "SSE"
+        ],
+        "summary": "Per-challenge SSE channel (challenge-completed events)",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          }
+        ]
+      }
+    },
     "/api/sse/invalidate-cache": {
       "get": {
         "operationId": "getApiSseInvalidateCache",
