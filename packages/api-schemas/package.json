@@ -14,7 +14,8 @@
     "./query-keys": "./src/query-keys.ts",
     "./onboarding": "./src/onboarding.ts",
     "./registry": "./src/registry.ts",
-    "./cli": "./src/cli.ts"
+    "./cli": "./src/cli.ts",
+    "./sse-events": "./src/sse-events.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

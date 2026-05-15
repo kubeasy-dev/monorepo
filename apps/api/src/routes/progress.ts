@@ -20,6 +20,7 @@ import {
 import { trackChallengeStarted } from "../lib/analytics-server";
 import { cacheDel, cacheDelPattern, cached, cacheKey, TTL } from "../lib/cache";
 import { sessionOrBearerSecurity } from "../lib/openapi-shared";
+import { redis } from "../lib/redis";
 import { getChallenge, listChallenges } from "../lib/registry";
 import { type AppEnv, requireAuth } from "../middleware/session";
 
@@ -268,6 +269,12 @@ export const progress = new Hono<AppEnv>()
             .update(userProgress)
             .set({ status: "in_progress", startedAt: now })
             .where(eq(userProgress.id, existingProgress.id));
+          redis
+            .publish(
+              `invalidate-cache:${userId}`,
+              JSON.stringify({ queryKey: ["progress", "status", slug] }),
+            )
+            .catch(() => {});
         }
         return c.json({
           status: "in_progress" as const,
@@ -290,6 +297,13 @@ export const progress = new Hono<AppEnv>()
           error: String(err),
         });
       });
+
+      redis
+        .publish(
+          `invalidate-cache:${userId}`,
+          JSON.stringify({ queryKey: ["progress", "status", slug] }),
+        )
+        .catch(() => {});
 
       Promise.all([
         cacheDel(cacheKey(`u:${userId}:progress:status`, { slug })),

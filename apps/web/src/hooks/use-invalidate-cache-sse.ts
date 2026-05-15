@@ -1,13 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-/**
- * Subscribe to the generic cache-invalidation SSE channel.
- * On each "invalidate-cache" event, calls queryClient.invalidateQueries
- * with the received queryKey.
- *
- * @param enabled - Whether to connect (e.g., only when challenge is in_progress)
- */
 export function useInvalidateCacheSSE(enabled: boolean) {
   const queryClient = useQueryClient();
 

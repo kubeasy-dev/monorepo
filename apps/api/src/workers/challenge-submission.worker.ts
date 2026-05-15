@@ -1,3 +1,4 @@
+import type { ChallengeCompletedEventData } from "@kubeasy/api-schemas/sse-events";
 import type { XpAwardPayload } from "@kubeasy/jobs";
 import {
   type ChallengeSubmissionPayload,
@@ -7,12 +8,16 @@ import {
 import { metrics } from "@opentelemetry/api";
 import { all } from "better-all";
 import { Worker } from "bullmq";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "../db/index";
-import { userXpTransaction } from "../db/schema/index";
+import { userSubmission, userXpTransaction } from "../db/schema/index";
 import { trackChallengeCompleted } from "../lib/analytics-server";
-import { redisConfig } from "../lib/redis";
-import { calculateStreak, calculateXPGain } from "../services/xp/index";
+import { redis, redisConfig } from "../lib/redis";
+import {
+  calculateStreak,
+  calculateXPGain,
+  getRankFromXp,
+} from "../services/xp/index";
 import type { ChallengeDifficulty } from "../services/xp/types";
 
 const meter = metrics.getMeter("kubeasy-api-workers");
@@ -64,14 +69,57 @@ export function createChallengeSubmissionWorker() {
           currentStreak,
         });
 
-        // 4. Fire analytics (fire-and-forget style, errors logged internally)
-        await trackChallengeCompleted(
-          userId,
-          challengeSlug,
-          difficulty,
-          xpGain.total,
-          isFirstChallenge,
-        );
+        // 4. Gather stats for the celebration SSE event (parallel with analytics)
+        const { prevTotalXp, attemptsCount, commandsCount } = await all({
+          async prevTotalXp() {
+            const [row] = await db
+              .select({
+                total: sql<number>`COALESCE(SUM(${userXpTransaction.xpAmount}), 0)`,
+              })
+              .from(userXpTransaction)
+              .where(eq(userXpTransaction.userId, userId));
+            return row?.total ?? 0;
+          },
+          async attemptsCount() {
+            const [row] = await db
+              .select({ count: count() })
+              .from(userSubmission)
+              .where(
+                and(
+                  eq(userSubmission.userId, userId),
+                  eq(userSubmission.challengeSlug, challengeSlug),
+                ),
+              );
+            return row?.count ?? 0;
+          },
+          async commandsCount() {
+            const [row] = await db
+              .select({
+                total: sql<number>`COALESCE(SUM(jsonb_array_length(COALESCE(${userSubmission.auditEvents}, '[]'::jsonb))), 0)`,
+              })
+              .from(userSubmission)
+              .where(
+                and(
+                  eq(userSubmission.userId, userId),
+                  eq(userSubmission.challengeSlug, challengeSlug),
+                ),
+              );
+            return row?.total ?? 0;
+          },
+          // Fire-and-forget analytics in parallel
+          async _analytics() {
+            await trackChallengeCompleted(
+              userId,
+              challengeSlug,
+              difficulty,
+              xpGain.total,
+              isFirstChallenge,
+            );
+          },
+        });
+
+        const prevRank = getRankFromXp(prevTotalXp);
+        const newRank = getRankFromXp(prevTotalXp + xpGain.total);
 
         // 5. Dispatch XP_AWARD jobs in parallel
         await all({
@@ -110,6 +158,33 @@ export function createChallengeSubmissionWorker() {
             }
           },
         });
+
+        // 6. Emit celebration SSE event
+        const eventData: ChallengeCompletedEventData = {
+          challengeSlug,
+          difficulty: difficulty as ChallengeDifficulty,
+          xpGain: {
+            base: xpGain.baseXP,
+            firstChallenge: xpGain.firstChallengeBonus,
+            streak: xpGain.streakBonus,
+            total: xpGain.total,
+          },
+          isFirstChallenge,
+          currentStreak,
+          attemptsCount,
+          commandsCount,
+          leveledUp: prevRank.name !== newRank.name,
+          prevRank,
+          newRank,
+        };
+        await redis
+          .publish(
+            `challenge:${userId}:${challengeSlug}`,
+            JSON.stringify({ event: "challenge-completed", data: eventData }),
+          )
+          .catch(() => {
+            // Non-critical — don't fail the job if SSE publish fails
+          });
 
         jobCounter.add(1, {
           queue: QUEUE_NAMES.CHALLENGE_SUBMISSION,

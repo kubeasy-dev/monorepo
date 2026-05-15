@@ -14,6 +14,7 @@ import { evlogErrorHandler } from "evlog/nitro/v3";
 import { type ReactNode, useEffect } from "react";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { useInvalidateCacheSSE } from "@/hooks/use-invalidate-cache-sse";
 import { identifyUser } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import globalsCss from "@/styles/globals.css?url";
@@ -92,6 +93,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 
+function CacheInvalidationSSE() {
+  const { data: session } = authClient.useSession();
+  useInvalidateCacheSSE(!!session);
+  return null;
+}
+
 function AnalyticsIdentity() {
   const { data: session } = authClient.useSession();
 
@@ -120,6 +127,7 @@ function RootComponent() {
   return (
     <RootDocument>
       <QueryClientProvider client={queryClient}>
+        <CacheInvalidationSSE />
         <AnalyticsIdentity />
         {!isLogin && <Header />}
         <main className={isLogin ? undefined : "pt-32 pb-20"}>

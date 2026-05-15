@@ -9,7 +9,7 @@
  * All functions are tested with comprehensive test coverage
  */
 
-export { calculateLevel } from "./calculateLevel";
+export { calculateLevel, getRankFromXp } from "./calculateLevel";
 // Core functions
 export { calculateStreak } from "./calculateStreak";
 export { calculateXPGain } from "./calculateXPGain";
