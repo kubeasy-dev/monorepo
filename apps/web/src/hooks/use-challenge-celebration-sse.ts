@@ -1,11 +1,20 @@
-import type { ChallengeCompletedEventData } from "@kubeasy/api-schemas/sse-events";
-import { useEffect } from "react";
+import {
+  type ChallengeCompletedEventData,
+  ChallengeCompletedEventDataSchema,
+} from "@kubeasy/api-schemas/sse-events";
+import { useEffect, useRef } from "react";
 
 export function useChallengeCelebrationSSE(
   slug: string,
   enabled: boolean,
   onCompleted: (data: ChallengeCompletedEventData) => void,
 ) {
+  // Stable ref so the effect doesn't reconnect when the callback identity changes
+  const onCompletedRef = useRef(onCompleted);
+  useEffect(() => {
+    onCompletedRef.current = onCompleted;
+  });
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -14,11 +23,11 @@ export function useChallengeCelebrationSSE(
     const es = new EventSource(url, { withCredentials: true });
 
     es.addEventListener("challenge-completed", (event) => {
-      try {
-        const data = JSON.parse(event.data) as ChallengeCompletedEventData;
-        onCompleted(data);
-      } catch {
-        // Ignore malformed events
+      const result = ChallengeCompletedEventDataSchema.safeParse(
+        JSON.parse(event.data),
+      );
+      if (result.success) {
+        onCompletedRef.current(result.data);
       }
     });
 
@@ -29,5 +38,5 @@ export function useChallengeCelebrationSSE(
     return () => {
       es.close();
     };
-  }, [slug, enabled, onCompleted]);
+  }, [slug, enabled]);
 }

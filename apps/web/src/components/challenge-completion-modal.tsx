@@ -115,13 +115,14 @@ export function ChallengeCompletionModal({
   payload,
   onClose,
 }: ChallengeCompletionModalProps) {
-  const challengeUrl = payload
-    ? `${window.location.origin}/challenges/${payload.challengeSlug}`
-    : "";
+  const challengeUrl =
+    typeof window !== "undefined" && payload
+      ? `${window.location.origin}/challenges/${payload.challengeSlug}`
+      : "";
 
   const shareText = payload
     ? encodeURIComponent(
-        `Just completed the "${payload.challengeSlug}" Kubernetes challenge on @kubeasy_dev! 🚀 (+${payload.xpGain.total} XP)`,
+        `Just completed the "${payload.challengeSlug.replace(/-/g, " ")}" Kubernetes challenge on @kubeasy_dev! 🚀 (+${payload.xpGain.total} XP)`,
       )
     : "";
   const shareUrl = encodeURIComponent(challengeUrl);
@@ -133,9 +134,14 @@ export function ChallengeCompletionModal({
   };
 
   function copyLink() {
-    navigator.clipboard.writeText(challengeUrl).then(() => {
-      toast.success("Link copied!");
-    });
+    navigator.clipboard.writeText(challengeUrl).then(
+      () => {
+        toast.success("Link copied!");
+      },
+      () => {
+        toast.error("Failed to copy link");
+      },
+    );
   }
 
   return (

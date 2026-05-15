@@ -106,7 +106,7 @@ export function createChallengeSubmissionWorker() {
               );
             return row?.total ?? 0;
           },
-          // Fire-and-forget analytics in parallel
+          // Fire-and-forget — must not propagate errors or the job retries and re-awards XP
           async _analytics() {
             await trackChallengeCompleted(
               userId,
@@ -114,7 +114,7 @@ export function createChallengeSubmissionWorker() {
               difficulty,
               xpGain.total,
               isFirstChallenge,
-            );
+            ).catch(() => {});
           },
         });
 
