@@ -2567,10 +2567,13 @@
                             "type": "number"
                           },
                           "completionRate": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "avgAttempts": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0
                           },
                           "topFailingObjectives": {
                             "type": "array",

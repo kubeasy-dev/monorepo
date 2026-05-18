@@ -1,4 +1,4 @@
-import { countDistinct, ne, sql } from "drizzle-orm";
+import { countDistinct, eq, ne, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
 import { z } from "zod";
@@ -25,8 +25,8 @@ const ChallengeStatsItemSchema = z.object({
   totalAttempts: z.number(),
   uniqueUsers: z.number(),
   validatedSubmissions: z.number(),
-  completionRate: z.number(),
-  avgAttempts: z.number(),
+  completionRate: z.number().min(0).max(1),
+  avgAttempts: z.number().min(0),
   topFailingObjectives: z.array(FailingObjectiveSchema),
 });
 
@@ -47,7 +47,8 @@ const failingObjectiveRowSchema = z.object({
 const analyticsRateLimit = slidingWindowRateLimit(redis, {
   windowMs: 60_000,
   max: 30,
-  keyFn: (c) => `admin-analytics:${c.get("user")?.id ?? "unknown"}`,
+  keyFn: (c) =>
+    `admin-analytics:${c.get("user")?.id ?? c.req.header("x-forwarded-for") ?? "unknown"}`,
 });
 
 export const adminAnalytics = new Hono<AppEnv>()
@@ -84,7 +85,7 @@ export const adminAnalytics = new Hono<AppEnv>()
           usersCompleted: countDistinct(userProgress.userId),
         })
         .from(userProgress)
-        .where(sql`${userProgress.status} = 'completed'`);
+        .where(eq(userProgress.status, "completed"));
 
       return c.json({
         totalUsers: Number(totalRow?.totalUsers ?? 0),
@@ -144,10 +145,16 @@ export const adminAnalytics = new Hono<AppEnv>()
         string,
         Array<{ key: string; failCount: number }>
       >();
-      for (const row of failingObjectivesRows.rows
-        .map((r) => failingObjectiveRowSchema.safeParse(r))
-        .filter((r) => r.success)
-        .map((r) => r.data)) {
+      for (const parsed of failingObjectivesRows.rows.map((r) =>
+        failingObjectiveRowSchema.safeParse(r),
+      )) {
+        if (!parsed.success) {
+          c.get("log").warn("analytics: dropping malformed objective row", {
+            error: String(parsed.error),
+          });
+          continue;
+        }
+        const row = parsed.data;
         const existing = failingBySlug.get(row.challenge_slug) ?? [];
         if (existing.length < 5) {
           existing.push({ key: row.key, failCount: Number(row.fail_count) });
