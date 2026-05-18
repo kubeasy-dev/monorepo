@@ -23,6 +23,7 @@ interface TopNavProps {
 const navLinks = [
   { to: "/challenges", label: "Challenges" },
   { to: "/users", label: "Users" },
+  { to: "/analytics", label: "Analytics" },
 ] as const;
 
 export function TopNav({ user }: TopNavProps) {

@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
 import { z } from "zod";
 import { db } from "../../db";
-import { user, userProgress, userSubmission } from "../../db/schema";
+import { cliEvent, user, userProgress, userSubmission } from "../../db/schema";
 import { sessionSecurity } from "../../lib/openapi-shared";
 import { redis } from "../../lib/redis";
 import { slidingWindowRateLimit } from "../../middleware/rate-limit";
@@ -183,5 +183,89 @@ export const adminAnalytics = new Hono<AppEnv>()
       });
 
       return c.json({ challenges });
+    },
+  )
+  .get(
+    "/cli",
+    describeRoute({
+      tags: ["Admin"],
+      summary: "CLI events analytics (versions, OS, event type spread)",
+      security: sessionSecurity,
+      responses: {
+        200: {
+          description: "CLI analytics",
+          content: {
+            "application/json": {
+              schema: resolver(
+                z.object({
+                  totalEvents: z.number(),
+                  uniqueUsers: z.number(),
+                  byVersion: z.array(
+                    z.object({ cliVersion: z.string(), count: z.number() }),
+                  ),
+                  byOs: z.array(
+                    z.object({ os: z.string(), count: z.number() }),
+                  ),
+                  byEventType: z.array(
+                    z.object({ eventType: z.string(), count: z.number() }),
+                  ),
+                }),
+              ),
+            },
+          },
+        },
+      },
+    }),
+    analyticsRateLimit,
+    async (c) => {
+      const [totals, byVersion, byOs, byEventType] = await Promise.all([
+        db
+          .select({
+            totalEvents: sql<number>`COUNT(*)`,
+            uniqueUsers: countDistinct(cliEvent.userId),
+          })
+          .from(cliEvent)
+          .then((rows) => rows[0]),
+        db
+          .select({
+            cliVersion: cliEvent.cliVersion,
+            count: sql<number>`COUNT(*)`,
+          })
+          .from(cliEvent)
+          .groupBy(cliEvent.cliVersion)
+          .orderBy(sql`COUNT(*) DESC`)
+          .limit(100),
+        db
+          .select({
+            os: cliEvent.os,
+            count: sql<number>`COUNT(*)`,
+          })
+          .from(cliEvent)
+          .groupBy(cliEvent.os)
+          .orderBy(sql`COUNT(*) DESC`)
+          .limit(100),
+        db
+          .select({
+            eventType: cliEvent.eventType,
+            count: sql<number>`COUNT(*)`,
+          })
+          .from(cliEvent)
+          .groupBy(cliEvent.eventType)
+          .orderBy(sql`COUNT(*) DESC`),
+      ]);
+
+      return c.json({
+        totalEvents: Number(totals?.totalEvents ?? 0),
+        uniqueUsers: Number(totals?.uniqueUsers ?? 0),
+        byVersion: byVersion.map((r) => ({
+          cliVersion: r.cliVersion,
+          count: Number(r.count),
+        })),
+        byOs: byOs.map((r) => ({ os: r.os, count: Number(r.count) })),
+        byEventType: byEventType.map((r) => ({
+          eventType: r.eventType,
+          count: Number(r.count),
+        })),
+      });
     },
   );
