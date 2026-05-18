@@ -2616,6 +2616,104 @@
         }
       }
     },
+    "/api/admin/analytics/cli": {
+      "get": {
+        "operationId": "getApiAdminAnalyticsCli",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Aggregated stats for CLI events",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CLI analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalEvents": {
+                      "type": "number"
+                    },
+                    "uniqueUsers": {
+                      "type": "number"
+                    },
+                    "byVersion": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "cliVersion": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "cliVersion",
+                          "count"
+                        ]
+                      }
+                    },
+                    "byOs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "os": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "os",
+                          "count"
+                        ]
+                      }
+                    },
+                    "byEventType": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "eventType": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "eventType",
+                          "count"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "totalEvents",
+                    "uniqueUsers",
+                    "byVersion",
+                    "byOs",
+                    "byEventType"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/api/admin/challenges": {
       "get": {
         "operationId": "getApiAdminChallenges",

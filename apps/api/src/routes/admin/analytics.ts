@@ -229,10 +229,35 @@ export const adminAnalytics = new Hono<AppEnv>()
     analyticsRateLimit,
     async (c) => {
       const [[totalsRow], byVersion, byOs, byEventType] = await Promise.all([
-        db.select({ totalEvents: sql<number>`COUNT(*)`, uniqueUsers: countDistinct(cliEvent.userId) }).from(cliEvent),
-        db.select({ cliVersion: cliEvent.cliVersion, count: sql<number>`COUNT(*)` }).from(cliEvent).groupBy(cliEvent.cliVersion).orderBy(desc(sql`COUNT(*)`)),
-        db.select({ os: cliEvent.os, count: sql<number>`COUNT(*)` }).from(cliEvent).groupBy(cliEvent.os).orderBy(desc(sql`COUNT(*)`)),
-        db.select({ eventType: cliEvent.eventType, count: sql<number>`COUNT(*)` }).from(cliEvent).groupBy(cliEvent.eventType).orderBy(desc(sql`COUNT(*)`)),
+        db
+          .select({
+            totalEvents: sql<number>`COUNT(*)`,
+            uniqueUsers: countDistinct(cliEvent.userId),
+          })
+          .from(cliEvent),
+        db
+          .select({
+            cliVersion: cliEvent.cliVersion,
+            count: sql<number>`COUNT(*)`,
+          })
+          .from(cliEvent)
+          .groupBy(cliEvent.cliVersion)
+          .orderBy(desc(sql`COUNT(*)`))
+          .limit(100),
+        db
+          .select({ os: cliEvent.os, count: sql<number>`COUNT(*)` })
+          .from(cliEvent)
+          .groupBy(cliEvent.os)
+          .orderBy(desc(sql`COUNT(*)`))
+          .limit(100),
+        db
+          .select({
+            eventType: cliEvent.eventType,
+            count: sql<number>`COUNT(*)`,
+          })
+          .from(cliEvent)
+          .groupBy(cliEvent.eventType)
+          .orderBy(desc(sql`COUNT(*)`)),
       ]);
 
       return c.json({
