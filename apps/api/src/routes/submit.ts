@@ -18,7 +18,6 @@ import {
   userXp,
   userXpTransaction,
 } from "../db/schema/index";
-import { trackChallengeSubmitted } from "../lib/analytics-server";
 import { cacheDelPattern } from "../lib/cache";
 import { sessionOrBearerSecurity } from "../lib/openapi-shared";
 import { redis } from "../lib/redis";
@@ -219,21 +218,6 @@ export const submit = new Hono<AppEnv>().post(
     }
 
     const failedObjectives = objectives.filter((obj) => !obj.passed);
-    trackChallengeSubmitted(
-      userId,
-      challengeSlug,
-      validated,
-      failedObjectives.length > 0
-        ? {
-            count: failedObjectives.length,
-            ids: failedObjectives.map((o) => o.key),
-          }
-        : undefined,
-    ).catch((err) => {
-      c.get("log").error("challenge_submitted tracking failed", {
-        error: String(err),
-      });
-    });
 
     const sseChannel = `invalidate-cache:${userId}`;
     redis

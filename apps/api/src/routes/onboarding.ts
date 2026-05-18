@@ -8,10 +8,6 @@ import { db } from "../db/index";
 import { apikey } from "../db/schema/auth";
 import { userProgress } from "../db/schema/challenge";
 import { userOnboarding } from "../db/schema/onboarding";
-import {
-  trackOnboardingCompleted,
-  trackOnboardingSkipped,
-} from "../lib/analytics-server";
 import { sessionSecurity } from "../lib/openapi-shared";
 import { redis } from "../lib/redis";
 import { type AppEnv, requireAuth } from "../middleware/session";
@@ -169,8 +165,6 @@ export const onboarding = new Hono<AppEnv>()
           set: { completedAt: new Date(), updatedAt: new Date() },
         });
 
-      await trackOnboardingCompleted(userId);
-
       const channel = `invalidate-cache:${userId}`;
       const payload = JSON.stringify({ queryKey: queryKeys.onboarding() });
       redis.publish(channel, payload).catch((err) => {
@@ -208,8 +202,6 @@ export const onboarding = new Hono<AppEnv>()
           target: userOnboarding.userId,
           set: { skippedAt: new Date(), updatedAt: new Date() },
         });
-
-      await trackOnboardingSkipped(userId);
 
       const channel = `invalidate-cache:${userId}`;
       const payload = JSON.stringify({ queryKey: queryKeys.onboarding() });

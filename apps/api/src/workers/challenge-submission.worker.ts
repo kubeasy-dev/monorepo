@@ -15,7 +15,6 @@ import {
   userSubmission,
   userXpTransaction,
 } from "../db/schema/index";
-import { trackChallengeCompleted } from "../lib/analytics-server";
 import { redis, redisConfig } from "../lib/redis";
 import {
   calculateStreak,
@@ -89,7 +88,7 @@ export function createChallengeSubmissionWorker() {
           currentStreak,
         });
 
-        // 4. Gather stats for the celebration SSE event (parallel with analytics)
+        // 4. Gather stats for the celebration SSE event
         // prevTotalXp is captured at job-dispatch time (before any XP is awarded),
         // so it's correct even on retries where XP_AWARD jobs may have already run.
         const { attemptsCount, commandsCount } = await all({
@@ -118,16 +117,6 @@ export function createChallengeSubmissionWorker() {
                 ),
               );
             return Number(row?.total ?? 0);
-          },
-          // Fire-and-forget — must not propagate errors or the job retries and re-awards XP
-          async _analytics() {
-            await trackChallengeCompleted(
-              userId,
-              challengeSlug,
-              difficulty,
-              xpGain.total,
-              isFirstChallenge,
-            ).catch(() => {});
           },
         });
 

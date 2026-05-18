@@ -1,6 +1,5 @@
-import { createError } from "evlog";
+import { createError, log } from "evlog";
 import { Resend } from "resend";
-import { captureServerException } from "./analytics-server";
 import { env } from "./env";
 
 // Initialize Resend client
@@ -33,8 +32,10 @@ export async function createResendContact(params: {
 
     return { contactId: contact.data.id };
   } catch (error) {
-    await captureServerException(error, params.userId, {
-      operation: "resend.createContact",
+    log.error({
+      message: "resend.createContact failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      errorStatus: (error as { statusCode?: number })?.statusCode,
     });
     throw error;
   }
@@ -56,9 +57,10 @@ export async function updateContactTopics(params: {
 
     await resend.contacts.topics.update(updateParams);
   } catch (error) {
-    await captureServerException(error, undefined, {
-      operation: "resend.updateContactTopics",
-      isEmail: params.contactIdOrEmail.includes("@"),
+    log.error({
+      message: "resend.updateContactTopics failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      errorStatus: (error as { statusCode?: number })?.statusCode,
     });
     throw error;
   }
@@ -94,9 +96,10 @@ export async function getContactSubscriptions(
 
     return subscriptions;
   } catch (error) {
-    await captureServerException(error, undefined, {
-      operation: "resend.getContactSubscriptions",
-      contactId,
+    log.error({
+      message: "resend.getContactSubscriptions failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      errorStatus: (error as { statusCode?: number })?.statusCode,
     });
     throw error;
   }
