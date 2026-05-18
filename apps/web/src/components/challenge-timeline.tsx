@@ -115,14 +115,13 @@ function TimelineRow({
   isLast: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
-  const isAudit = item.type === "audit";
 
   return (
     // relative mb-2: each row is its own block, spine is absolute behind
     <div
       className={cn(
         "relative flex items-center gap-3",
-        isLast ? "" : isAudit ? "mb-1" : "mb-2",
+        isLast ? "" : item.type === "audit" ? "mb-1" : "mb-2",
       )}
     >
       {/* Marker: z-10 sits on top of the absolute spine */}
@@ -282,7 +281,9 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
         timestamp: new Date(sub.timestamp),
         validated: sub.validated,
         objectives: sub.objectives,
-        // Fall back to sequential index for old submissions without attemptNumber
+        // Fall back to sequential index for old submissions without attemptNumber.
+        // This counts from 1 within the current session window, so after a reset
+        // an old submission shows "Submit #1" rather than the true global attempt number.
         attemptNumber: sub.attemptNumber ?? submissionIndex,
       });
     }
