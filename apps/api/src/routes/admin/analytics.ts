@@ -179,34 +179,28 @@ export const adminAnalytics = new Hono<AppEnv>()
       const { period, compare } = c.req.valid("query");
       const i = PERIOD_INTERVALS[period];
 
+      // Cohort funnel: all three metrics are scoped to users who signed up
+      // in the period. usersStarted/usersCompleted use all-time progress so
+      // a signup from day 1 of the window who completes on day 30 is counted.
       async function fetchFunnelStats(prev: boolean) {
+        const cohort = db
+          .select({ id: user.id })
+          .from(user)
+          .where(periodWhere(user.createdAt, i, prev))
+          .as("cohort");
+
         const [[totalRow], [startedRow], [completedRow]] = await Promise.all([
+          db.select({ totalUsers: sql<number>`COUNT(*)` }).from(cohort),
           db
-            .select({ totalUsers: sql<number>`COUNT(*)` })
-            .from(user)
-            .where(periodWhere(user.createdAt, i, prev)),
+            .select({ usersStarted: countDistinct(userProgress.userId) })
+            .from(userProgress)
+            .innerJoin(cohort, sql`${userProgress.userId} = cohort.id`)
+            .where(sql`${userProgress.status} != 'not_started'`),
           db
-            .select({ usersStarted: sql<number>`COUNT(DISTINCT user_id)` })
-            .from(
-              db
-                .select({ userId: userProgress.userId })
-                .from(userProgress)
-                .where(
-                  sql`${userProgress.status} != 'not_started' AND ${periodWhere(userProgress.startedAt, i, prev)}`,
-                )
-                .as("s"),
-            ),
-          db
-            .select({ usersCompleted: sql<number>`COUNT(DISTINCT user_id)` })
-            .from(
-              db
-                .select({ userId: userProgress.userId })
-                .from(userProgress)
-                .where(
-                  sql`${userProgress.status} = 'completed' AND ${periodWhere(userProgress.completedAt, i, prev)}`,
-                )
-                .as("c"),
-            ),
+            .select({ usersCompleted: countDistinct(userProgress.userId) })
+            .from(userProgress)
+            .innerJoin(cohort, sql`${userProgress.userId} = cohort.id`)
+            .where(sql`${userProgress.status} = 'completed'`),
         ]);
         return {
           totalUsers: Number(totalRow?.totalUsers ?? 0),
