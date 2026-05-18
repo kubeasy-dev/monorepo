@@ -1,6 +1,5 @@
 import type { GetStatusOutput } from "@kubeasy/api-schemas/progress";
 import type {
-  AuditEvent,
   Objective,
   SubmissionRecord,
 } from "@kubeasy/api-schemas/submissions";
@@ -243,14 +242,15 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
 
   const status = statusData?.status ?? "not_started";
 
-  const timelineItems = useMemo((): TimelineItem[] => {
+  const { items: timelineItems, auditCount } = useMemo(() => {
     const s = statusData as GetStatusOutput | undefined;
-    if (!s?.startedAt) return [];
+    if (!s?.startedAt) return { items: [], auditCount: 0 };
 
     const items: TimelineItem[] = [];
 
     items.push({ type: "start", timestamp: new Date(s.startedAt) });
 
+    // SubmissionsOutput uses JSONValue for JSONB columns; cast to SubmissionRecord[] for proper typing
     const submissions =
       ((submissionsData as SubmissionsOutput | undefined)
         ?.submissions as SubmissionRecord[]) ?? [];
@@ -258,20 +258,21 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
     const startedAtMs = new Date(s.startedAt).getTime();
 
     // Filter out submissions from before the current startedAt (e.g. after a reset)
-    const chronological = [...submissions]
-      .reverse()
-      .filter((sub) => new Date(sub.timestamp).getTime() >= startedAtMs);
+    const current = submissions.filter(
+      (sub) => new Date(sub.timestamp).getTime() >= startedAtMs,
+    );
 
-    for (const sub of chronological) {
+    let submissionIndex = 0;
+    for (const sub of current) {
+      submissionIndex++;
       for (const event of sub.auditEvents ?? []) {
-        const eventTime = new Date((event as AuditEvent).timestamp).getTime();
-        if (eventTime < startedAtMs) continue;
+        if (new Date(event.timestamp).getTime() < startedAtMs) continue;
         items.push({
           type: "audit",
-          timestamp: new Date((event as AuditEvent).timestamp),
-          verb: (event as AuditEvent).verb,
-          resource: (event as AuditEvent).resource,
-          name: (event as AuditEvent).name,
+          timestamp: new Date(event.timestamp),
+          verb: event.verb,
+          resource: event.resource,
+          name: event.name,
         });
       }
 
@@ -281,7 +282,8 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
         timestamp: new Date(sub.timestamp),
         validated: sub.validated,
         objectives: sub.objectives,
-        attemptNumber: sub.attemptNumber,
+        // Fall back to sequential index for old submissions without attemptNumber
+        attemptNumber: sub.attemptNumber ?? submissionIndex,
       });
     }
 
@@ -298,7 +300,10 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
       return TYPE_ORDER[a.type] - TYPE_ORDER[b.type];
     });
 
-    return items;
+    return {
+      items,
+      auditCount: items.filter((i) => i.type === "audit").length,
+    };
   }, [statusData, submissionsData, status]);
 
   if (
@@ -308,8 +313,6 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
   ) {
     return null;
   }
-
-  const auditCount = timelineItems.filter((i) => i.type === "audit").length;
 
   return (
     <Card className="neo-border-thick neo-shadow-xl bg-secondary mt-6">

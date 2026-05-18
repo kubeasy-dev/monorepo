@@ -97,7 +97,7 @@ export const SubmissionRecordSchema = z.object({
   validated: z.boolean(),
   objectives: z.array(ObjectiveSchema).nullable(),
   timestamp: z.string().describe("ISO 8601 date string"),
-  attemptNumber: z.number().int(),
+  attemptNumber: z.number().int().optional(),
   auditEvents: z.array(AuditEventSchema).nullable().optional(),
 });
 export type SubmissionRecord = z.infer<typeof SubmissionRecordSchema>;
