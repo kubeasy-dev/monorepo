@@ -167,12 +167,18 @@ function TimelineRow({
             onMouseLeave={() => setHovered(false)}
           >
             <div
+              role="button"
+              tabIndex={0}
               className={cn(
                 "flex items-center justify-between px-4 py-2.5 neo-border-thick cursor-default transition-transform",
                 item.validated
                   ? "bg-green-50 neo-border-green hover:translate-x-[2px] hover:translate-y-[2px]"
                   : "bg-red-50 neo-border-destructive hover:translate-x-[2px] hover:translate-y-[2px]",
               )}
+              onClick={() => setHovered((v) => !v)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") setHovered((v) => !v);
+              }}
             >
               <div className="flex items-center gap-2.5">
                 {item.validated ? (
@@ -261,6 +267,8 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
       (sub) => new Date(sub.timestamp).getTime() >= startedAtMs,
     );
 
+    // Each submission's auditEvents covers only that attempt window (non-cumulative).
+    // If the API ever returns cumulative events, this loop would produce duplicates.
     let submissionIndex = 0;
     for (const sub of current) {
       submissionIndex++;
@@ -307,6 +315,8 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
     };
   }, [statusData, submissionsData, status]);
 
+  // Returns null while loading (WEB-05: status/submissions are client-only queries).
+  // The card appears after both queries resolve, which causes a one-time layout shift.
   if (
     !isAuthenticated ||
     status === "not_started" ||
