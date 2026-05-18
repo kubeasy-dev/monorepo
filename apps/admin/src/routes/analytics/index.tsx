@@ -186,6 +186,8 @@ function FunnelLineChart({
       viewBox={`0 0 ${VW} ${VH}`}
       className="w-full"
       style={{ height: "220px" }}
+      role="img"
+      aria-label="Funnel evolution over the last 12 weeks"
       onMouseMove={onMouseMove}
       onMouseLeave={() => setHoveredIdx(null)}
     >
@@ -249,7 +251,7 @@ function FunnelLineChart({
             />
             {weeks.map((w, i) => (
               <circle
-                key={i}
+                key={w.week}
                 cx={xOf(i)}
                 cy={yOf(w[key])}
                 r={hoveredIdx === i ? 5 : 3.5}
