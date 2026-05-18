@@ -515,17 +515,19 @@ function ChallengesSection({
           <TableRow>
             <TableHead className="w-6" />
             <TableHead>Challenge</TableHead>
-            <TableHead className="text-right">Users</TableHead>
-            <TableHead className="text-right">Attempts</TableHead>
-            <TableHead className="text-right">Avg</TableHead>
-            <TableHead className="w-64">Completion rate</TableHead>
-            <TableHead>Top failing objectives</TableHead>
+            <TableHead className="text-right">Tried</TableHead>
+            <TableHead className="text-right">Submissions</TableHead>
+            <TableHead className="text-right">Results</TableHead>
+            <TableHead className="w-56">Completion</TableHead>
+            <TableHead>Top blockers</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {sorted.map((item, i) => {
             const isExpanded = expandedSlug === item.challengeSlug;
             const prev = prevMap.get(item.challengeSlug);
+            const failedSubmissions =
+              item.totalAttempts - item.validatedSubmissions;
             return (
               <React.Fragment key={item.challengeSlug}>
                 <TableRow
@@ -544,7 +546,7 @@ function ChallengesSection({
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     <div className="flex items-center justify-end gap-1.5">
-                      {item.uniqueUsers}
+                      <span>{item.uniqueUsers}</span>
                       {prev && (
                         <DeltaBadge
                           current={item.uniqueUsers}
@@ -553,11 +555,23 @@ function ChallengesSection({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {item.totalAttempts}
+                  <TableCell className="text-right">
+                    <div className="tabular-nums font-bold">
+                      {item.totalAttempts}
+                    </div>
+                    <div className="text-xs text-muted-foreground tabular-nums">
+                      {item.avgAttempts.toFixed(1)}× per user
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {item.avgAttempts.toFixed(1)}×
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2 text-sm font-bold tabular-nums">
+                      <span style={{ color: OK_COLOR }}>
+                        {item.validatedSubmissions} ✓
+                      </span>
+                      <span style={{ color: KO_COLOR }}>
+                        {failedSubmissions} ✗
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -576,13 +590,26 @@ function ChallengesSection({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {item.topFailingObjectives.length > 0
-                      ? item.topFailingObjectives
-                          .slice(0, 3)
-                          .map((o) => `${o.key} (${o.failCount})`)
-                          .join(", ")
-                      : "—"}
+                  <TableCell>
+                    {item.topFailingObjectives.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {item.topFailingObjectives.slice(0, 3).map((o) => (
+                          <span
+                            key={o.key}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold neo-border"
+                            style={{
+                              background: "oklch(0.97 0.02 25)",
+                              color: KO_COLOR,
+                            }}
+                          >
+                            {o.key}
+                            <span className="opacity-70">×{o.failCount}</span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
                 {isExpanded && (
