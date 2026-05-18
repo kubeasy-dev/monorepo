@@ -141,44 +141,79 @@ function StatCard({
 // ─── Funnel ───────────────────────────────────────────────────────────────────
 
 function FunnelSection({ data }: { data: AnalyticsFunnelOutput }) {
-  const startedPct =
-    data.totalUsers > 0
-      ? ((data.usersStarted / data.totalUsers) * 100).toFixed(1)
-      : "0.0";
-  const completedPct =
-    data.totalUsers > 0
-      ? ((data.usersCompleted / data.totalUsers) * 100).toFixed(1)
-      : "0.0";
+  const animated = useBarAnimation();
   const prev = data.previous;
+
+  const steps = [
+    {
+      icon: Users,
+      label: "Signed Up",
+      value: data.totalUsers,
+      pct: 1,
+      prevValue: prev?.totalUsers,
+    },
+    {
+      icon: Activity,
+      label: "Started a Challenge",
+      value: data.usersStarted,
+      pct: data.totalUsers > 0 ? data.usersStarted / data.totalUsers : 0,
+      prevValue: prev?.usersStarted,
+    },
+    {
+      icon: CheckCircle,
+      label: "Completed a Challenge",
+      value: data.usersCompleted,
+      pct: data.totalUsers > 0 ? data.usersCompleted / data.totalUsers : 0,
+      prevValue: prev?.usersCompleted,
+    },
+  ];
 
   return (
     <section className="mb-12">
       <h2 className="text-xl font-black mb-4">User Funnel</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          icon={Users}
-          label="Signed Up"
-          value={data.totalUsers.toLocaleString()}
-          sub="100% — baseline"
-          rawCurrent={data.totalUsers}
-          rawPrevious={prev?.totalUsers}
-        />
-        <StatCard
-          icon={Activity}
-          label="Started a Challenge"
-          value={data.usersStarted.toLocaleString()}
-          sub={`${startedPct}% of signups`}
-          rawCurrent={data.usersStarted}
-          rawPrevious={prev?.usersStarted}
-        />
-        <StatCard
-          icon={CheckCircle}
-          label="Completed a Challenge"
-          value={data.usersCompleted.toLocaleString()}
-          sub={`${completedPct}% of signups`}
-          rawCurrent={data.usersCompleted}
-          rawPrevious={prev?.usersCompleted}
-        />
+      <div className="bg-secondary neo-border-thick neo-shadow p-6 space-y-5">
+        {steps.map((step, i) => {
+          const Icon = step.icon;
+          return (
+            <div key={step.label}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Icon className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-bold">{step.label}</span>
+                  {step.prevValue !== undefined && (
+                    <DeltaBadge
+                      current={step.value}
+                      previous={step.prevValue}
+                    />
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-muted-foreground tabular-nums">
+                    {(step.pct * 100).toFixed(1)}%
+                  </span>
+                  <span className="text-lg font-black tabular-nums">
+                    {step.value.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              <div className="h-3 bg-muted neo-border overflow-hidden">
+                <div
+                  className="h-full transition-[width] duration-700 ease-out"
+                  style={{
+                    width: animated ? `${step.pct * 100}%` : "0%",
+                    transitionDelay: `${i * 120}ms`,
+                    background:
+                      i === 0
+                        ? CHART_COLORS.signups
+                        : i === 1
+                          ? CHART_COLORS.starters
+                          : CHART_COLORS.completers,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
