@@ -1,9 +1,9 @@
-import { countDistinct, eq, ne, sql } from "drizzle-orm";
+import { countDistinct, desc, eq, ne, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
 import { z } from "zod";
 import { db } from "../../db";
-import { user, userProgress, userSubmission } from "../../db/schema";
+import { cliEvent, user, userProgress, userSubmission } from "../../db/schema";
 import { sessionSecurity } from "../../lib/openapi-shared";
 import { redis } from "../../lib/redis";
 import { slidingWindowRateLimit } from "../../middleware/rate-limit";
@@ -42,6 +42,29 @@ const failingObjectiveRowSchema = z.object({
     .max(256)
     .regex(/^[\w.-]+$/),
   fail_count: z.coerce.number(),
+});
+
+const CliVersionCountSchema = z.object({
+  cliVersion: z.string(),
+  count: z.number(),
+});
+
+const CliOsCountSchema = z.object({
+  os: z.string(),
+  count: z.number(),
+});
+
+const CliEventTypeCountSchema = z.object({
+  eventType: z.string(),
+  count: z.number(),
+});
+
+const CliAnalyticsOutputSchema = z.object({
+  totalEvents: z.number(),
+  uniqueUsers: z.number(),
+  byVersion: z.array(CliVersionCountSchema),
+  byOs: z.array(CliOsCountSchema),
+  byEventType: z.array(CliEventTypeCountSchema),
 });
 
 const analyticsRateLimit = slidingWindowRateLimit(redis, {
@@ -183,5 +206,77 @@ export const adminAnalytics = new Hono<AppEnv>()
       });
 
       return c.json({ challenges });
+    },
+  )
+  .get(
+    "/cli",
+    describeRoute({
+      tags: ["Admin"],
+      summary: "Aggregated stats for CLI events",
+      security: sessionSecurity,
+      responses: {
+        200: {
+          description: "CLI analytics",
+          content: {
+            "application/json": {
+              schema: resolver(CliAnalyticsOutputSchema),
+            },
+          },
+        },
+        429: { description: "Too Many Requests" },
+      },
+    }),
+    analyticsRateLimit,
+    async (c) => {
+      const [totalsRow] = await db
+        .select({
+          totalEvents: sql<number>`COUNT(*)`,
+          uniqueUsers: countDistinct(cliEvent.userId),
+        })
+        .from(cliEvent);
+
+      const byVersion = await db
+        .select({
+          cliVersion: cliEvent.cliVersion,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(cliEvent)
+        .groupBy(cliEvent.cliVersion)
+        .orderBy(desc(sql`COUNT(*)`));
+
+      const byOs = await db
+        .select({
+          os: cliEvent.os,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(cliEvent)
+        .groupBy(cliEvent.os)
+        .orderBy(desc(sql`COUNT(*)`));
+
+      const byEventType = await db
+        .select({
+          eventType: cliEvent.eventType,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(cliEvent)
+        .groupBy(cliEvent.eventType)
+        .orderBy(desc(sql`COUNT(*)`));
+
+      return c.json({
+        totalEvents: Number(totalsRow?.totalEvents ?? 0),
+        uniqueUsers: Number(totalsRow?.uniqueUsers ?? 0),
+        byVersion: byVersion.map((r) => ({
+          cliVersion: r.cliVersion,
+          count: Number(r.count),
+        })),
+        byOs: byOs.map((r) => ({
+          os: r.os,
+          count: Number(r.count),
+        })),
+        byEventType: byEventType.map((r) => ({
+          eventType: r.eventType,
+          count: Number(r.count),
+        })),
+      });
     },
   );
