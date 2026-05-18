@@ -85,6 +85,14 @@ _Avoid_: daily count, combo.
 
 ### Infrastructure
 
+**Audit Event**:
+A K8s API mutating operation (create, update, patch, delete) recorded during a challenge attempt. Stored as JSONB on the Submission. Used for user-facing reasoning path display, LLM feedback, and admin fraud/blocker detection. Read operations (get, logs, describe) are excluded.
+_Avoid_: kubectl event, audit log, command history.
+
+**CLI Event**:
+A CLI lifecycle event (`cli_login`, `cli_setup`) captured server-side with CLI metadata (version, OS, arch). Stored append-only for admin analytics on CLI adoption and version spread.
+_Avoid_: CLI analytics, CLI tracking.
+
 **Registry**:
 The remote service (`registry.kubeasy.dev`) that hosts all Challenge YAML definitions and Manifests. The API proxies registry requests; clients never call the Registry directly.
 _Avoid_: store, repository (ambiguous with git), content server.
