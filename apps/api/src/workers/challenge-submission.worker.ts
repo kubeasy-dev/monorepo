@@ -5,7 +5,7 @@ import {
   createQueue,
   QUEUE_NAMES,
 } from "@kubeasy/jobs";
-import { metrics } from "@opentelemetry/api";
+import { metrics, SpanStatusCode, trace } from "@opentelemetry/api";
 import { all } from "better-all";
 import { Worker } from "bullmq";
 import { and, count, eq, sql } from "drizzle-orm";
@@ -134,40 +134,50 @@ export function createChallengeSubmissionWorker() {
         const prevRank = getRankFromXp(prevTotalXp);
         const newRank = getRankFromXp(prevTotalXp + xpGain.total);
 
-        // 5. Dispatch XP_AWARD jobs in parallel
+        // 5. Dispatch XP_AWARD jobs in parallel with deterministic jobIds so
+        //    re-enqueues on retry are deduplicated at the BullMQ level.
         await all({
-          // Base XP always awarded
           async base() {
-            return xpAwardQueue.add("xp-base", {
-              userId,
-              challengeSlug,
-              xpAmount: xpGain.baseXP,
-              action: "challenge_completed",
-              description: `Completed ${difficulty} challenge`,
-            } satisfies XpAwardPayload);
+            return xpAwardQueue.add(
+              "xp-base",
+              {
+                userId,
+                challengeSlug,
+                xpAmount: xpGain.baseXP,
+                action: "challenge_completed",
+                description: `Completed ${difficulty} challenge`,
+              } satisfies XpAwardPayload,
+              { jobId: `xp-base:${userId}:${challengeSlug}` },
+            );
           },
-          // First challenge bonus
           async firstChallenge() {
             if (isFirstChallenge && xpGain.firstChallengeBonus > 0) {
-              return xpAwardQueue.add("xp-first-challenge", {
-                userId,
-                challengeSlug,
-                xpAmount: xpGain.firstChallengeBonus,
-                action: "first_challenge",
-                description: "First challenge bonus",
-              } satisfies XpAwardPayload);
+              return xpAwardQueue.add(
+                "xp-first-challenge",
+                {
+                  userId,
+                  challengeSlug,
+                  xpAmount: xpGain.firstChallengeBonus,
+                  action: "first_challenge",
+                  description: "First challenge bonus",
+                } satisfies XpAwardPayload,
+                { jobId: `xp-first-challenge:${userId}:${challengeSlug}` },
+              );
             }
           },
-          // Streak bonus
           async streak() {
             if (xpGain.streakBonus > 0) {
-              return xpAwardQueue.add("xp-streak", {
-                userId,
-                challengeSlug,
-                xpAmount: xpGain.streakBonus,
-                action: "daily_streak",
-                description: `${currentStreak} day streak bonus`,
-              } satisfies XpAwardPayload);
+              return xpAwardQueue.add(
+                "xp-streak",
+                {
+                  userId,
+                  challengeSlug,
+                  xpAmount: xpGain.streakBonus,
+                  action: "daily_streak",
+                  description: `${currentStreak} day streak bonus`,
+                } satisfies XpAwardPayload,
+                { jobId: `xp-streak:${userId}:${challengeSlug}` },
+              );
             }
           },
         });
@@ -204,6 +214,9 @@ export function createChallengeSubmissionWorker() {
           status: "success",
         });
       } catch (error) {
+        const span = trace.getActiveSpan();
+        span?.recordException(error as Error);
+        span?.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
         jobCounter.add(1, {
           queue: QUEUE_NAMES.CHALLENGE_SUBMISSION,
           status: "error",

@@ -24,7 +24,12 @@ import { redis } from "../lib/redis";
 import { getChallenge, listChallenges } from "../lib/registry";
 import { type AppEnv, requireAuth } from "../middleware/session";
 
-const slugParam = z.object({ slug: z.string() });
+const slugParam = z.object({
+  slug: z
+    .string()
+    .max(200)
+    .regex(/^[a-z0-9-]+$/, "Invalid slug format"),
+});
 
 const getStatusOpenApi = {
   tags: ["CLI", "Progress"] as string[],

@@ -53,9 +53,10 @@ function createRedisSSEHandler(
       aborted = true;
       try {
         await subscriber.unsubscribe(channel);
-        subscriber.disconnect();
       } catch (err) {
         log.error("SSE cleanup error", { channel, error: String(err) });
+      } finally {
+        subscriber.disconnect();
       }
     });
 
@@ -143,6 +144,7 @@ export const sse = new Hono<AppEnv>()
         const dynamic = parseDynamicEvent(message);
         if (dynamic) return dynamic;
         // Legacy format: raw JSON published by older xp-award.worker
+        if (message.length > 4096) return null;
         return { event: "invalidate-cache", data: message };
       });
       return streamSSE(c, (stream) => handler(stream, c.get("log")));

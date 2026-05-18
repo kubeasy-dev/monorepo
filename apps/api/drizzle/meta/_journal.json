@@ -36,6 +36,13 @@
       "when": 1777053052855,
       "tag": "0004_previous_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779093668782,
+      "tag": "0005_mature_goblin_queen",
+      "breakpoints": true
     }
   ]
 }

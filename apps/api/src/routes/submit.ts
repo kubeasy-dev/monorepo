@@ -280,12 +280,16 @@ export const submit = new Hono<AppEnv>().post(
         .where(eq(userXp.userId, userId))
         .limit(1);
       challengeSubmissionQueue
-        .add("challenge-completed", {
-          userId,
-          challengeSlug,
-          difficulty: detail.difficulty,
-          prevTotalXp: xpRow?.totalXp ?? 0,
-        })
+        .add(
+          "challenge-completed",
+          {
+            userId,
+            challengeSlug,
+            difficulty: detail.difficulty,
+            prevTotalXp: xpRow?.totalXp ?? 0,
+          },
+          { jobId: `challenge-completed:${userId}:${challengeSlug}` },
+        )
         .catch((err) => {
           c.get("log").error("challenge-submission job dispatch failed", {
             error: String(err),
