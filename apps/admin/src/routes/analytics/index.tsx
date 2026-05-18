@@ -27,6 +27,8 @@ import {
   type AnalyticsCliOutput,
   type AnalyticsFunnelHistoryOutput,
   type AnalyticsFunnelOutput,
+  type AnalyticsGranularity,
+  type AnalyticsPeriod,
   type AnalyticsSubmissionsHistogramOutput,
   adminAnalyticsChallengeHistogramOptions,
   adminAnalyticsChallengesOptions,
@@ -34,6 +36,10 @@ import {
   adminAnalyticsFunnelHistoryOptions,
   adminAnalyticsFunnelOptions,
   adminChallengesStatsOptions,
+  GRANULARITY_LABELS,
+  PERIOD_DEFAULT_GRANULARITY,
+  PERIOD_GRANULARITIES,
+  PERIOD_LABELS,
 } from "@/lib/query-options";
 
 export const Route = createFileRoute("/analytics/")({
@@ -143,15 +149,43 @@ const SERIES = [
   },
 ];
 
-function formatWeekLabel(week: string) {
-  const d = new Date(`${week}T12:00:00Z`);
-  return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+function formatBucketLabel(
+  bucket: string,
+  granularity: AnalyticsGranularity,
+): string {
+  // Hourly buckets come as "YYYY-MM-DDTHH:MM", others as "YYYY-MM-DD"
+  const isHourly = bucket.includes("T");
+  if (isHourly) {
+    const [datePart, timePart] = bucket.split("T");
+    const d = new Date(`${datePart}T${timePart}:00Z`);
+    return d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "UTC",
+    });
+  }
+  const d = new Date(`${bucket}T12:00:00Z`);
+  if (granularity === "month") {
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      year: "2-digit",
+      timeZone: "UTC",
+    });
+  }
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 function FunnelLineChart({
   weeks,
+  granularity,
 }: {
   weeks: AnalyticsFunnelHistoryOutput["weeks"];
+  granularity: AnalyticsGranularity;
 }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -236,7 +270,7 @@ function FunnelLineChart({
             fontWeight="700"
             fill="oklch(0.35 0 0)"
           >
-            {formatWeekLabel(w.week)}
+            {formatBucketLabel(w.week, granularity)}
           </text>
         );
       })}
@@ -303,7 +337,7 @@ function FunnelLineChart({
             fontFamily="Geist Variable, sans-serif"
             fontWeight="700"
           >
-            {formatWeekLabel(hovered.week)}
+            {formatBucketLabel(hovered.week, granularity)}
           </text>
           {SERIES.map(({ key, label, color }, i) => (
             <text
@@ -326,14 +360,15 @@ function FunnelLineChart({
 
 function FunnelHistorySection({
   data,
+  granularity,
 }: {
   data: AnalyticsFunnelHistoryOutput;
+  granularity: AnalyticsGranularity;
 }) {
   return (
     <section className="mb-12">
-      <h2 className="text-xl font-black mb-4">Funnel Over Time (12 months)</h2>
+      <h2 className="text-xl font-black mb-4">Funnel Over Time</h2>
       <div className="bg-secondary neo-border-thick neo-shadow p-6">
-        {/* Legend */}
         <div className="flex gap-6 mb-5">
           {SERIES.map(({ label, color }) => (
             <div key={label} className="flex items-center gap-2">
@@ -345,7 +380,7 @@ function FunnelHistorySection({
             </div>
           ))}
         </div>
-        <FunnelLineChart weeks={data.weeks} />
+        <FunnelLineChart weeks={data.weeks} granularity={granularity} />
       </div>
     </section>
   );
@@ -421,8 +456,10 @@ const KO_COLOR = "oklch(0.55 0.22 25)";
 
 function SubmissionsHistogram({
   data,
+  granularity,
 }: {
   data: AnalyticsSubmissionsHistogramOutput;
+  granularity: AnalyticsGranularity;
 }) {
   const { buckets } = data;
   const VW = 860;
@@ -467,11 +504,7 @@ function SubmissionsHistogram({
         const okH = CH * (b.ok / niceMax);
         const koH = CH * (b.ko / niceMax);
         const showLabel = i % labelStep === 0;
-        const d = new Date(`${b.date}T12:00:00Z`);
-        const label = d.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        });
+        const label = formatBucketLabel(b.date, granularity);
 
         return (
           <g key={b.date}>
@@ -511,9 +544,17 @@ function SubmissionsHistogram({
   );
 }
 
-function ChallengeHistogramRow({ slug }: { slug: string }) {
+function ChallengeHistogramRow({
+  slug,
+  period,
+  granularity,
+}: {
+  slug: string;
+  period: AnalyticsPeriod;
+  granularity: AnalyticsGranularity;
+}) {
   const { data } = useSuspenseQuery(
-    adminAnalyticsChallengeHistogramOptions(slug),
+    adminAnalyticsChallengeHistogramOptions(slug, period, granularity),
   );
   const total = data.buckets.reduce((s, b) => s + b.ok + b.ko, 0);
   const totalOk = data.buckets.reduce((s, b) => s + b.ok, 0);
@@ -555,7 +596,7 @@ function ChallengeHistogramRow({ slug }: { slug: string }) {
             <div className="text-xs text-muted-foreground">Loading…</div>
           }
         >
-          <SubmissionsHistogram data={data} />
+          <SubmissionsHistogram data={data} granularity={granularity} />
         </Suspense>
       </TableCell>
     </TableRow>
@@ -565,9 +606,13 @@ function ChallengeHistogramRow({ slug }: { slug: string }) {
 function ChallengesSection({
   challenges,
   stats,
+  period,
+  granularity,
 }: {
   challenges: AnalyticsChallengeItem[];
   stats: AdminStatsOutput;
+  period: AnalyticsPeriod;
+  granularity: AnalyticsGranularity;
 }) {
   const animated = useBarAnimation();
   const sorted = [...challenges].sort((a, b) => b.uniqueUsers - a.uniqueUsers);
@@ -644,7 +689,11 @@ function ChallengesSection({
                 </TableRow>
                 {isExpanded && (
                   <Suspense>
-                    <ChallengeHistogramRow slug={item.challengeSlug} />
+                    <ChallengeHistogramRow
+                      slug={item.challengeSlug}
+                      period={period}
+                      granularity={granularity}
+                    />
                   </Suspense>
                 )}
               </React.Fragment>
@@ -765,28 +814,108 @@ function CliSection({ data }: { data: AnalyticsCliOutput }) {
   );
 }
 
+// ─── Period / granularity selector ───────────────────────────────────────────
+
+function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex neo-border-thick overflow-hidden">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={[
+            "px-3 py-1.5 text-xs font-black transition-colors",
+            "[&:not(:first-child)]:[border-left:4px_solid_oklch(0.15_0_0)]",
+            opt.value === value
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary text-foreground hover:bg-muted",
+          ].join(" ")}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PeriodGranularitySelector({
+  period,
+  granularity,
+  onPeriodChange,
+  onGranularityChange,
+}: {
+  period: AnalyticsPeriod;
+  granularity: AnalyticsGranularity;
+  onPeriodChange: (p: AnalyticsPeriod) => void;
+  onGranularityChange: (g: AnalyticsGranularity) => void;
+}) {
+  const periodOptions = (Object.keys(PERIOD_LABELS) as AnalyticsPeriod[]).map(
+    (p) => ({ value: p, label: PERIOD_LABELS[p] }),
+  );
+
+  const granOptions = PERIOD_GRANULARITIES[period].map((g) => ({
+    value: g,
+    label: GRANULARITY_LABELS[g],
+  }));
+
+  return (
+    <div className="flex items-center gap-3">
+      <SegmentedControl
+        options={periodOptions}
+        value={period}
+        onChange={onPeriodChange}
+      />
+      <span className="text-xs font-bold text-muted-foreground">by</span>
+      <SegmentedControl
+        options={granOptions}
+        value={granularity}
+        onChange={onGranularityChange}
+      />
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-function AnalyticsContent() {
-  const { data: funnel } = useSuspenseQuery(adminAnalyticsFunnelOptions());
+function AnalyticsContent({
+  period,
+  granularity,
+}: {
+  period: AnalyticsPeriod;
+  granularity: AnalyticsGranularity;
+}) {
+  const { data: funnel } = useSuspenseQuery(
+    adminAnalyticsFunnelOptions(period),
+  );
   const { data: funnelHistory } = useSuspenseQuery(
-    adminAnalyticsFunnelHistoryOptions(),
+    adminAnalyticsFunnelHistoryOptions(period, granularity),
   );
   const { data: challenges } = useSuspenseQuery(
-    adminAnalyticsChallengesOptions(),
+    adminAnalyticsChallengesOptions(period),
   );
   const { data: challengeStats } = useSuspenseQuery(
     adminChallengesStatsOptions(),
   );
-  const { data: cli } = useSuspenseQuery(adminAnalyticsCliOptions());
+  const { data: cli } = useSuspenseQuery(adminAnalyticsCliOptions(period));
 
   return (
     <>
       <FunnelSection data={funnel} />
-      <FunnelHistorySection data={funnelHistory} />
+      <FunnelHistorySection data={funnelHistory} granularity={granularity} />
       <ChallengesSection
         challenges={challenges.challenges}
         stats={challengeStats}
+        period={period}
+        granularity={granularity}
       />
       <CliSection data={cli} />
     </>
@@ -794,18 +923,38 @@ function AnalyticsContent() {
 }
 
 function AnalyticsPage() {
+  const [period, setPeriod] = useState<AnalyticsPeriod>("30d");
+  const [granularity, setGranularity] = useState<AnalyticsGranularity>(
+    PERIOD_DEFAULT_GRANULARITY["30d"],
+  );
+
+  function handlePeriodChange(p: AnalyticsPeriod) {
+    const defaultGran = PERIOD_DEFAULT_GRANULARITY[p];
+    const available = PERIOD_GRANULARITIES[p];
+    setPeriod(p);
+    setGranularity(available.includes(granularity) ? granularity : defaultGran);
+  }
+
   return (
     <div className="py-8">
-      <div className="flex items-center gap-3 mb-8">
-        <TrendingUp className="w-7 h-7" />
-        <h1 className="text-2xl font-black">Analytics</h1>
+      <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+        <div className="flex items-center gap-3">
+          <TrendingUp className="w-7 h-7" />
+          <h1 className="text-2xl font-black">Analytics</h1>
+        </div>
+        <PeriodGranularitySelector
+          period={period}
+          granularity={granularity}
+          onPeriodChange={handlePeriodChange}
+          onGranularityChange={setGranularity}
+        />
       </div>
       <Suspense
         fallback={
           <div className="text-muted-foreground text-sm">Loading...</div>
         }
       >
-        <AnalyticsContent />
+        <AnalyticsContent period={period} granularity={granularity} />
       </Suspense>
     </div>
   );

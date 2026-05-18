@@ -1,6 +1,6 @@
-import { countDistinct, eq, ne, sql } from "drizzle-orm";
+import { countDistinct, gte, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { describeRoute, resolver } from "hono-openapi";
+import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
 import { db } from "../../db";
 import { cliEvent, user, userProgress, userSubmission } from "../../db/schema";
@@ -8,6 +8,53 @@ import { sessionSecurity } from "../../lib/openapi-shared";
 import { redis } from "../../lib/redis";
 import { slidingWindowRateLimit } from "../../middleware/rate-limit";
 import type { AppEnv } from "../../middleware/session";
+
+// ── Period / granularity helpers ──────────────────────────────────────────────
+
+const periodSchema = z
+  .enum(["24h", "7d", "30d", "3m", "6m", "1y"])
+  .default("30d");
+const granularitySchema = z
+  .enum(["hour", "day", "week", "month"])
+  .default("day");
+
+const periodQuerySchema = z.object({ period: periodSchema });
+const periodGranQuerySchema = z.object({
+  period: periodSchema,
+  granularity: granularitySchema,
+});
+
+const PERIOD_INTERVALS: Record<string, string> = {
+  "24h": "24 hours",
+  "7d": "7 days",
+  "30d": "30 days",
+  "3m": "3 months",
+  "6m": "6 months",
+  "1y": "1 year",
+};
+
+// PostgreSQL date_trunc truncation level and generate_series step per granularity
+const GRAN_TRUNC: Record<string, string> = {
+  hour: "hour",
+  day: "day",
+  week: "week",
+  month: "month",
+};
+const GRAN_STEP: Record<string, string> = {
+  hour: "1 hour",
+  day: "1 day",
+  week: "1 week",
+  month: "1 month",
+};
+// to_char format string per granularity — always produces a sortable ISO-ish string
+const GRAN_FORMAT: Record<string, string> = {
+  hour: 'YYYY-MM-DD"T"HH24:MI',
+  day: "YYYY-MM-DD",
+  week: "YYYY-MM-DD",
+  month: "YYYY-MM-DD",
+};
+
+// ── Output schemas ─────────────────────────────────────────────────────────────
 
 const FunnelOutputSchema = z.object({
   totalUsers: z.number(),
@@ -65,6 +112,8 @@ const SubmissionsHistogramOutputSchema = z.object({
   buckets: z.array(SubmissionsHistogramBucketSchema),
 });
 
+// ── Rate limit ─────────────────────────────────────────────────────────────────
+
 const analyticsRateLimit = slidingWindowRateLimit(redis, {
   windowMs: 60_000,
   max: 30,
@@ -72,12 +121,14 @@ const analyticsRateLimit = slidingWindowRateLimit(redis, {
     `admin-analytics:${c.get("user")?.id ?? c.req.header("x-forwarded-for") ?? "unknown"}`,
 });
 
+// ── Routes ─────────────────────────────────────────────────────────────────────
+
 export const adminAnalytics = new Hono<AppEnv>()
   .get(
     "/funnel",
     describeRoute({
       tags: ["Admin"],
-      summary: "Signup → started → completed funnel",
+      summary: "Signup → started → completed funnel for a given period",
       security: sessionSecurity,
       responses: {
         200: {
@@ -88,25 +139,40 @@ export const adminAnalytics = new Hono<AppEnv>()
         },
       },
     }),
+    validator("query", periodQuerySchema),
     analyticsRateLimit,
     async (c) => {
-      const [totalRow] = await db
-        .select({ totalUsers: sql<number>`COUNT(*)` })
-        .from(user);
+      const { period } = c.req.valid("query");
+      const interval = sql.raw(`INTERVAL '${PERIOD_INTERVALS[period]}'`);
 
-      const [startedRow] = await db
-        .select({
-          usersStarted: countDistinct(userProgress.userId),
-        })
-        .from(userProgress)
-        .where(ne(userProgress.status, "not_started"));
-
-      const [completedRow] = await db
-        .select({
-          usersCompleted: countDistinct(userProgress.userId),
-        })
-        .from(userProgress)
-        .where(eq(userProgress.status, "completed"));
+      const [[totalRow], [startedRow], [completedRow]] = await Promise.all([
+        db
+          .select({ totalUsers: sql<number>`COUNT(*)` })
+          .from(user)
+          .where(gte(user.createdAt, sql`now() - ${interval}`)),
+        db
+          .select({ usersStarted: sql<number>`COUNT(DISTINCT user_id)` })
+          .from(
+            db
+              .select({ userId: userProgress.userId })
+              .from(userProgress)
+              .where(
+                sql`${userProgress.status} != 'not_started' AND ${userProgress.startedAt} >= now() - ${interval}`,
+              )
+              .as("s"),
+          ),
+        db
+          .select({ usersCompleted: sql<number>`COUNT(DISTINCT user_id)` })
+          .from(
+            db
+              .select({ userId: userProgress.userId })
+              .from(userProgress)
+              .where(
+                sql`${userProgress.status} = 'completed' AND ${userProgress.completedAt} >= now() - ${interval}`,
+              )
+              .as("c"),
+          ),
+      ]);
 
       return c.json({
         totalUsers: Number(totalRow?.totalUsers ?? 0),
@@ -119,7 +185,8 @@ export const adminAnalytics = new Hono<AppEnv>()
     "/funnel/history",
     describeRoute({
       tags: ["Admin"],
-      summary: "Monthly funnel evolution over the last 12 months",
+      summary:
+        "Funnel evolution over the selected period, bucketed by granularity",
       security: sessionSecurity,
       responses: {
         200: {
@@ -132,16 +199,23 @@ export const adminAnalytics = new Hono<AppEnv>()
         },
       },
     }),
+    validator("query", periodGranQuerySchema),
     analyticsRateLimit,
     async (c) => {
+      const { period, granularity } = c.req.valid("query");
+      const trunc = GRAN_TRUNC[granularity];
+      const step = GRAN_STEP[granularity];
+      const format = GRAN_FORMAT[granularity];
+      const interval = PERIOD_INTERVALS[period];
+
       const rows = await db.execute(sql`
         WITH
-        months AS (
+        buckets AS (
           SELECT generate_series(
-            date_trunc('month', now() - INTERVAL '11 months'),
-            date_trunc('month', now()),
-            '1 month'::interval
-          )::date AS week
+            date_trunc(${trunc}, now() - ${sql.raw(`INTERVAL '${interval}'`)}) ,
+            date_trunc(${trunc}, now()),
+            ${sql.raw(`'${step}'::interval`)}
+          ) AS bucket
         ),
         first_starts AS (
           SELECT user_id, MIN(started_at) AS first_at
@@ -154,38 +228,38 @@ export const adminAnalytics = new Hono<AppEnv>()
           WHERE completed_at IS NOT NULL
           GROUP BY user_id
         ),
-        weekly_signups AS (
-          SELECT date_trunc('month', created_at)::date AS week, COUNT(*)::int AS count
+        period_signups AS (
+          SELECT date_trunc(${trunc}, created_at) AS bucket, COUNT(*)::int AS count
           FROM "user"
-          WHERE created_at >= now() - INTERVAL '12 months'
+          WHERE created_at >= now() - ${sql.raw(`INTERVAL '${interval}'`)}
           GROUP BY 1
         ),
-        weekly_starters AS (
-          SELECT date_trunc('month', first_at)::date AS week, COUNT(*)::int AS count
+        period_starters AS (
+          SELECT date_trunc(${trunc}, first_at) AS bucket, COUNT(*)::int AS count
           FROM first_starts
-          WHERE first_at >= now() - INTERVAL '12 months'
+          WHERE first_at >= now() - ${sql.raw(`INTERVAL '${interval}'`)}
           GROUP BY 1
         ),
-        weekly_completers AS (
-          SELECT date_trunc('month', first_at)::date AS week, COUNT(*)::int AS count
+        period_completers AS (
+          SELECT date_trunc(${trunc}, first_at) AS bucket, COUNT(*)::int AS count
           FROM first_completions
-          WHERE first_at >= now() - INTERVAL '12 months'
+          WHERE first_at >= now() - ${sql.raw(`INTERVAL '${interval}'`)}
           GROUP BY 1
         )
         SELECT
-          m.week::text,
-          COALESCE(s.count, 0) AS new_signups,
+          to_char(b.bucket, ${format}) AS week,
+          COALESCE(s.count, 0)  AS new_signups,
           COALESCE(st.count, 0) AS new_starters,
-          COALESCE(c.count, 0) AS new_completers
-        FROM months m
-        LEFT JOIN weekly_signups s ON s.week = m.week
-        LEFT JOIN weekly_starters st ON st.week = m.week
-        LEFT JOIN weekly_completers c ON c.week = m.week
-        ORDER BY m.week
+          COALESCE(c.count, 0)  AS new_completers
+        FROM buckets b
+        LEFT JOIN period_signups   s  ON s.bucket  = b.bucket
+        LEFT JOIN period_starters  st ON st.bucket = b.bucket
+        LEFT JOIN period_completers c ON c.bucket  = b.bucket
+        ORDER BY b.bucket
       `);
 
       const weeks = rows.rows.map((r) => ({
-        week: String(r.week).substring(0, 10),
+        week: String(r.week),
         newSignups: Number(r.new_signups),
         newStarters: Number(r.new_starters),
         newCompleters: Number(r.new_completers),
@@ -198,7 +272,7 @@ export const adminAnalytics = new Hono<AppEnv>()
     "/challenges",
     describeRoute({
       tags: ["Admin"],
-      summary: "Aggregated stats per challenge",
+      summary: "Aggregated stats per challenge for a given period",
       security: sessionSecurity,
       responses: {
         200: {
@@ -211,9 +285,12 @@ export const adminAnalytics = new Hono<AppEnv>()
         },
       },
     }),
+    validator("query", periodQuerySchema),
     analyticsRateLimit,
     async (c) => {
-      // Aggregate base stats per challenge
+      const { period } = c.req.valid("query");
+      const interval = sql.raw(`INTERVAL '${PERIOD_INTERVALS[period]}'`);
+
       const baseStats = await db
         .select({
           challengeSlug: userSubmission.challengeSlug,
@@ -222,10 +299,10 @@ export const adminAnalytics = new Hono<AppEnv>()
           validatedSubmissions: sql<number>`COUNT(DISTINCT ${userSubmission.userId}) FILTER (WHERE ${userSubmission.validated} = true)`,
         })
         .from(userSubmission)
+        .where(gte(userSubmission.timestamp, sql`now() - ${interval}`))
         .groupBy(userSubmission.challengeSlug)
         .orderBy(userSubmission.challengeSlug);
 
-      // Get top failing objectives per challenge using jsonb_array_elements
       const failingObjectivesRows = await db.execute(sql`
         SELECT
           s.challenge_slug,
@@ -235,12 +312,11 @@ export const adminAnalytics = new Hono<AppEnv>()
              jsonb_array_elements(s.objectives) AS obj
         WHERE (obj->>'passed')::boolean = false
           AND s.objectives IS NOT NULL
+          AND s.timestamp >= now() - ${interval}
         GROUP BY s.challenge_slug, obj->>'objectiveKey'
         ORDER BY s.challenge_slug, COUNT(*) DESC
       `);
 
-      // Group failing objectives by challenge slug, keep top 5
-      // Validate each row with Zod before processing
       const failingBySlug = new Map<
         string,
         Array<{ key: string; failCount: number }>
@@ -289,7 +365,8 @@ export const adminAnalytics = new Hono<AppEnv>()
     "/cli",
     describeRoute({
       tags: ["Admin"],
-      summary: "CLI events analytics (versions, OS, event type spread)",
+      summary:
+        "CLI events analytics (versions, OS, event type spread) for a given period",
       security: sessionSecurity,
       responses: {
         200: {
@@ -316,8 +393,13 @@ export const adminAnalytics = new Hono<AppEnv>()
         },
       },
     }),
+    validator("query", periodQuerySchema),
     analyticsRateLimit,
     async (c) => {
+      const { period } = c.req.valid("query");
+      const interval = sql.raw(`INTERVAL '${PERIOD_INTERVALS[period]}'`);
+      const since = sql`now() - ${interval}`;
+
       const [totals, byVersion, byOs, byEventType] = await Promise.all([
         db
           .select({
@@ -325,6 +407,7 @@ export const adminAnalytics = new Hono<AppEnv>()
             uniqueUsers: countDistinct(cliEvent.userId),
           })
           .from(cliEvent)
+          .where(gte(cliEvent.createdAt, since))
           .then((rows) => rows[0]),
         db
           .select({
@@ -332,15 +415,14 @@ export const adminAnalytics = new Hono<AppEnv>()
             count: sql<number>`COUNT(*)`,
           })
           .from(cliEvent)
+          .where(gte(cliEvent.createdAt, since))
           .groupBy(cliEvent.cliVersion)
           .orderBy(sql`COUNT(*) DESC`)
           .limit(100),
         db
-          .select({
-            os: cliEvent.os,
-            count: sql<number>`COUNT(*)`,
-          })
+          .select({ os: cliEvent.os, count: sql<number>`COUNT(*)` })
           .from(cliEvent)
+          .where(gte(cliEvent.createdAt, since))
           .groupBy(cliEvent.os)
           .orderBy(sql`COUNT(*) DESC`)
           .limit(100),
@@ -350,6 +432,7 @@ export const adminAnalytics = new Hono<AppEnv>()
             count: sql<number>`COUNT(*)`,
           })
           .from(cliEvent)
+          .where(gte(cliEvent.createdAt, since))
           .groupBy(cliEvent.eventType)
           .orderBy(sql`COUNT(*) DESC`),
       ]);
@@ -373,7 +456,8 @@ export const adminAnalytics = new Hono<AppEnv>()
     "/challenges/:slug/submissions-histogram",
     describeRoute({
       tags: ["Admin"],
-      summary: "Daily OK/KO submission counts for a challenge (last 30 days)",
+      summary:
+        "OK/KO submission counts for a challenge, bucketed by granularity",
       security: sessionSecurity,
       responses: {
         200: {
@@ -386,36 +470,45 @@ export const adminAnalytics = new Hono<AppEnv>()
         },
       },
     }),
+    validator("query", periodGranQuerySchema),
     analyticsRateLimit,
     async (c) => {
       const slug = c.req.param("slug");
+      const { period, granularity } = c.req.valid("query");
+      const trunc = GRAN_TRUNC[granularity];
+      const step = GRAN_STEP[granularity];
+      const format = GRAN_FORMAT[granularity];
+      const interval = PERIOD_INTERVALS[period];
 
       const rows = await db.execute(sql`
-        WITH days AS (
+        WITH buckets AS (
           SELECT generate_series(
-            (now() - INTERVAL '29 days')::date,
-            now()::date,
-            '1 day'::interval
-          )::date AS day
+            date_trunc(${trunc}, now() - ${sql.raw(`INTERVAL '${interval}'`)}),
+            date_trunc(${trunc}, now()),
+            ${sql.raw(`'${step}'::interval`)}
+          ) AS bucket
         ),
         counts AS (
           SELECT
-            ${userSubmission.timestamp}::date AS day,
+            date_trunc(${trunc}, ${userSubmission.timestamp}) AS bucket,
             COUNT(*) FILTER (WHERE ${userSubmission.validated} = true)  AS ok,
             COUNT(*) FILTER (WHERE ${userSubmission.validated} = false) AS ko
           FROM ${userSubmission}
           WHERE ${userSubmission.challengeSlug} = ${slug}
-            AND ${userSubmission.timestamp} >= now() - INTERVAL '30 days'
+            AND ${userSubmission.timestamp} >= now() - ${sql.raw(`INTERVAL '${interval}'`)}
           GROUP BY 1
         )
-        SELECT d.day::text, COALESCE(c.ok, 0) AS ok, COALESCE(c.ko, 0) AS ko
-        FROM days d
-        LEFT JOIN counts c ON c.day = d.day
-        ORDER BY d.day
+        SELECT
+          to_char(b.bucket, ${format}) AS date,
+          COALESCE(c.ok, 0) AS ok,
+          COALESCE(c.ko, 0) AS ko
+        FROM buckets b
+        LEFT JOIN counts c ON c.bucket = b.bucket
+        ORDER BY b.bucket
       `);
 
       const buckets = rows.rows.map((r) => ({
-        date: String(r.day).substring(0, 10),
+        date: String(r.date),
         ok: Number(r.ok),
         ko: Number(r.ko),
       }));

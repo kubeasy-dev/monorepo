@@ -9,6 +9,55 @@ import type {
 import { queryOptions } from "@tanstack/react-query";
 import { apiFetch } from "./api-client";
 
+// ── Period / granularity types (mirrored from API) ────────────────────────────
+
+export type AnalyticsPeriod = "24h" | "7d" | "30d" | "3m" | "6m" | "1y";
+export type AnalyticsGranularity = "hour" | "day" | "week" | "month";
+
+export const PERIOD_LABELS: Record<AnalyticsPeriod, string> = {
+  "24h": "24 h",
+  "7d": "7 d",
+  "30d": "30 d",
+  "3m": "3 mo",
+  "6m": "6 mo",
+  "1y": "1 yr",
+};
+
+export const GRANULARITY_LABELS: Record<AnalyticsGranularity, string> = {
+  hour: "Hour",
+  day: "Day",
+  week: "Week",
+  month: "Month",
+};
+
+/** Granularities available for each period. */
+export const PERIOD_GRANULARITIES: Record<
+  AnalyticsPeriod,
+  AnalyticsGranularity[]
+> = {
+  "24h": ["hour", "day"],
+  "7d": ["day", "week"],
+  "30d": ["day", "week"],
+  "3m": ["week", "month"],
+  "6m": ["week", "month"],
+  "1y": ["week", "month"],
+};
+
+/** Default granularity for each period. */
+export const PERIOD_DEFAULT_GRANULARITY: Record<
+  AnalyticsPeriod,
+  AnalyticsGranularity
+> = {
+  "24h": "hour",
+  "7d": "day",
+  "30d": "day",
+  "3m": "week",
+  "6m": "week",
+  "1y": "month",
+};
+
+// ── Shared output types ───────────────────────────────────────────────────────
+
 export type AnalyticsFunnelOutput = {
   totalUsers: number;
   usersStarted: number;
@@ -37,10 +86,6 @@ export type AnalyticsCliOutput = {
   byEventType: { eventType: string; count: number }[];
 };
 
-export type AnalyticsSubmissionsHistogramOutput = {
-  buckets: { date: string; ok: number; ko: number }[];
-};
-
 export type AnalyticsFunnelHistoryOutput = {
   weeks: {
     week: string;
@@ -49,6 +94,12 @@ export type AnalyticsFunnelHistoryOutput = {
     newCompleters: number;
   }[];
 };
+
+export type AnalyticsSubmissionsHistogramOutput = {
+  buckets: { date: string; ok: number; ko: number }[];
+};
+
+// ── Query options ─────────────────────────────────────────────────────────────
 
 export function adminChallengesOptions() {
   return queryOptions({
@@ -79,42 +130,65 @@ export function adminUsersStatsOptions() {
   });
 }
 
-export function adminAnalyticsFunnelOptions() {
+export function adminAnalyticsFunnelOptions(period: AnalyticsPeriod) {
   return queryOptions({
-    queryKey: ["admin", "analytics", "funnel"],
-    queryFn: () => apiFetch<AnalyticsFunnelOutput>("/admin/analytics/funnel"),
-  });
-}
-
-export function adminAnalyticsChallengesOptions() {
-  return queryOptions({
-    queryKey: ["admin", "analytics", "challenges"],
+    queryKey: ["admin", "analytics", "funnel", period],
     queryFn: () =>
-      apiFetch<AnalyticsChallengesOutput>("/admin/analytics/challenges"),
-  });
-}
-
-export function adminAnalyticsCliOptions() {
-  return queryOptions({
-    queryKey: ["admin", "analytics", "cli"],
-    queryFn: () => apiFetch<AnalyticsCliOutput>("/admin/analytics/cli"),
-  });
-}
-
-export function adminAnalyticsChallengeHistogramOptions(slug: string) {
-  return queryOptions({
-    queryKey: ["admin", "analytics", "challenges", slug, "histogram"],
-    queryFn: () =>
-      apiFetch<AnalyticsSubmissionsHistogramOutput>(
-        `/admin/analytics/challenges/${slug}/submissions-histogram`,
+      apiFetch<AnalyticsFunnelOutput>(
+        `/admin/analytics/funnel?period=${period}`,
       ),
   });
 }
 
-export function adminAnalyticsFunnelHistoryOptions() {
+export function adminAnalyticsChallengesOptions(period: AnalyticsPeriod) {
   return queryOptions({
-    queryKey: ["admin", "analytics", "funnel", "history"],
+    queryKey: ["admin", "analytics", "challenges", period],
     queryFn: () =>
-      apiFetch<AnalyticsFunnelHistoryOutput>("/admin/analytics/funnel/history"),
+      apiFetch<AnalyticsChallengesOutput>(
+        `/admin/analytics/challenges?period=${period}`,
+      ),
+  });
+}
+
+export function adminAnalyticsCliOptions(period: AnalyticsPeriod) {
+  return queryOptions({
+    queryKey: ["admin", "analytics", "cli", period],
+    queryFn: () =>
+      apiFetch<AnalyticsCliOutput>(`/admin/analytics/cli?period=${period}`),
+  });
+}
+
+export function adminAnalyticsFunnelHistoryOptions(
+  period: AnalyticsPeriod,
+  granularity: AnalyticsGranularity,
+) {
+  return queryOptions({
+    queryKey: ["admin", "analytics", "funnel", "history", period, granularity],
+    queryFn: () =>
+      apiFetch<AnalyticsFunnelHistoryOutput>(
+        `/admin/analytics/funnel/history?period=${period}&granularity=${granularity}`,
+      ),
+  });
+}
+
+export function adminAnalyticsChallengeHistogramOptions(
+  slug: string,
+  period: AnalyticsPeriod,
+  granularity: AnalyticsGranularity,
+) {
+  return queryOptions({
+    queryKey: [
+      "admin",
+      "analytics",
+      "challenges",
+      slug,
+      "histogram",
+      period,
+      granularity,
+    ],
+    queryFn: () =>
+      apiFetch<AnalyticsSubmissionsHistogramOutput>(
+        `/admin/analytics/challenges/${slug}/submissions-histogram?period=${period}&granularity=${granularity}`,
+      ),
   });
 }
