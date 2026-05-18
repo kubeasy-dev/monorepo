@@ -73,22 +73,12 @@ export function ChallengesTable({ challenges }: ChallengesTableProps) {
           <TableHead>Theme</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Difficulty</TableHead>
-          <TableHead>Completion %</TableHead>
-          <TableHead>Success Rate %</TableHead>
+          <TableHead className="text-right">Starts</TableHead>
           <TableHead>Available</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {challenges.map((challenge) => {
-          const completionPct =
-            challenge.starts > 0
-              ? `${((challenge.completions / challenge.starts) * 100).toFixed(1)}%`
-              : "—";
-          const successRatePct =
-            challenge.totalSubmissions > 0
-              ? `${((challenge.successfulSubmissions / challenge.totalSubmissions) * 100).toFixed(1)}%`
-              : "—";
-
           return (
             <TableRow key={challenge.slug}>
               <TableCell className="font-medium">{challenge.title}</TableCell>
@@ -102,8 +92,9 @@ export function ChallengesTable({ challenges }: ChallengesTableProps) {
                   {challenge.difficulty}
                 </Badge>
               </TableCell>
-              <TableCell>{completionPct}</TableCell>
-              <TableCell>{successRatePct}</TableCell>
+              <TableCell className="text-right tabular-nums text-muted-foreground">
+                {challenge.starts.toLocaleString()}
+              </TableCell>
               <TableCell>
                 <Switch
                   checked={challenge.available}

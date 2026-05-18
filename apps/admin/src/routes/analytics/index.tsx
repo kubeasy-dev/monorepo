@@ -1,3 +1,4 @@
+import type { AdminStatsOutput } from "@kubeasy/api-schemas/challenges";
 import {
   Table,
   TableBody,
@@ -10,10 +11,12 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
+  BarChart3,
   CheckCircle,
   Monitor,
   Terminal,
   TrendingUp,
+  Trophy,
   Users,
 } from "lucide-react";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -26,6 +29,7 @@ import {
   adminAnalyticsCliOptions,
   adminAnalyticsFunnelHistoryOptions,
   adminAnalyticsFunnelOptions,
+  adminChallengesStatsOptions,
 } from "@/lib/query-options";
 
 export const Route = createFileRoute("/analytics/")({
@@ -372,10 +376,48 @@ function CompletionBar({
   );
 }
 
+function ChallengesGlobalStats({ stats }: { stats: AdminStatsOutput }) {
+  const avgAttempts =
+    stats.totalStarts > 0
+      ? (stats.totalSubmissions / stats.totalStarts).toFixed(1)
+      : "—";
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <StatCard
+        icon={Trophy}
+        label="Completion Rate"
+        value={`${(stats.completionRate * 100).toFixed(1)}%`}
+        sub={`${stats.totalCompletions.toLocaleString()} completions`}
+      />
+      <StatCard
+        icon={CheckCircle}
+        label="Success Rate"
+        value={`${(stats.successRate * 100).toFixed(1)}%`}
+        sub={`${stats.successfulSubmissions.toLocaleString()} successful submissions`}
+      />
+      <StatCard
+        icon={BarChart3}
+        label="Total Submissions"
+        value={stats.totalSubmissions.toLocaleString()}
+        sub="across all challenges"
+      />
+      <StatCard
+        icon={Activity}
+        label="Avg Attempts"
+        value={avgAttempts}
+        sub="per challenge starter"
+      />
+    </div>
+  );
+}
+
 function ChallengesSection({
   challenges,
+  stats,
 }: {
   challenges: AnalyticsChallengeItem[];
+  stats: AdminStatsOutput;
 }) {
   const animated = useBarAnimation();
   const sorted = [...challenges].sort((a, b) => b.uniqueUsers - a.uniqueUsers);
@@ -388,6 +430,7 @@ function ChallengesSection({
           ({challenges.length} challenges)
         </span>
       </h2>
+      <ChallengesGlobalStats stats={stats} />
       <Table>
         <TableHeader>
           <TableRow>
@@ -556,13 +599,19 @@ function AnalyticsContent() {
   const { data: challenges } = useSuspenseQuery(
     adminAnalyticsChallengesOptions(),
   );
+  const { data: challengeStats } = useSuspenseQuery(
+    adminChallengesStatsOptions(),
+  );
   const { data: cli } = useSuspenseQuery(adminAnalyticsCliOptions());
 
   return (
     <>
       <FunnelSection data={funnel} />
       <FunnelHistorySection data={funnelHistory} />
-      <ChallengesSection challenges={challenges.challenges} />
+      <ChallengesSection
+        challenges={challenges.challenges}
+        stats={challengeStats}
+      />
       <CliSection data={cli} />
     </>
   );
