@@ -2622,7 +2622,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Aggregated stats for CLI events",
+        "summary": "CLI events analytics (versions, OS, event type spread)",
         "security": [
           {
             "SessionAuth": []
@@ -2707,9 +2707,6 @@
                 }
               }
             }
-          },
-          "429": {
-            "description": "Too Many Requests"
           }
         }
       }

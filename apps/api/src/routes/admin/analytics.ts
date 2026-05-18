@@ -1,4 +1,4 @@
-import { countDistinct, desc, eq, ne, sql } from "drizzle-orm";
+import { countDistinct, eq, ne, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
 import { z } from "zod";
@@ -42,29 +42,6 @@ const failingObjectiveRowSchema = z.object({
     .max(256)
     .regex(/^[\w.-]+$/),
   fail_count: z.coerce.number(),
-});
-
-const CliVersionCountSchema = z.object({
-  cliVersion: z.string(),
-  count: z.number(),
-});
-
-const CliOsCountSchema = z.object({
-  os: z.string(),
-  count: z.number(),
-});
-
-const CliEventTypeCountSchema = z.object({
-  eventType: z.string(),
-  count: z.number(),
-});
-
-const CliAnalyticsOutputSchema = z.object({
-  totalEvents: z.number(),
-  uniqueUsers: z.number(),
-  byVersion: z.array(CliVersionCountSchema),
-  byOs: z.array(CliOsCountSchema),
-  byEventType: z.array(CliEventTypeCountSchema),
 });
 
 const analyticsRateLimit = slidingWindowRateLimit(redis, {
@@ -212,29 +189,43 @@ export const adminAnalytics = new Hono<AppEnv>()
     "/cli",
     describeRoute({
       tags: ["Admin"],
-      summary: "Aggregated stats for CLI events",
+      summary: "CLI events analytics (versions, OS, event type spread)",
       security: sessionSecurity,
       responses: {
         200: {
           description: "CLI analytics",
           content: {
             "application/json": {
-              schema: resolver(CliAnalyticsOutputSchema),
+              schema: resolver(
+                z.object({
+                  totalEvents: z.number(),
+                  uniqueUsers: z.number(),
+                  byVersion: z.array(
+                    z.object({ cliVersion: z.string(), count: z.number() }),
+                  ),
+                  byOs: z.array(
+                    z.object({ os: z.string(), count: z.number() }),
+                  ),
+                  byEventType: z.array(
+                    z.object({ eventType: z.string(), count: z.number() }),
+                  ),
+                }),
+              ),
             },
           },
         },
-        429: { description: "Too Many Requests" },
       },
     }),
     analyticsRateLimit,
     async (c) => {
-      const [[totalsRow], byVersion, byOs, byEventType] = await Promise.all([
+      const [totals, byVersion, byOs, byEventType] = await Promise.all([
         db
           .select({
             totalEvents: sql<number>`COUNT(*)`,
             uniqueUsers: countDistinct(cliEvent.userId),
           })
-          .from(cliEvent),
+          .from(cliEvent)
+          .then((rows) => rows[0]),
         db
           .select({
             cliVersion: cliEvent.cliVersion,
@@ -242,13 +233,16 @@ export const adminAnalytics = new Hono<AppEnv>()
           })
           .from(cliEvent)
           .groupBy(cliEvent.cliVersion)
-          .orderBy(desc(sql`COUNT(*)`))
+          .orderBy(sql`COUNT(*) DESC`)
           .limit(100),
         db
-          .select({ os: cliEvent.os, count: sql<number>`COUNT(*)` })
+          .select({
+            os: cliEvent.os,
+            count: sql<number>`COUNT(*)`,
+          })
           .from(cliEvent)
           .groupBy(cliEvent.os)
-          .orderBy(desc(sql`COUNT(*)`))
+          .orderBy(sql`COUNT(*) DESC`)
           .limit(100),
         db
           .select({
@@ -257,20 +251,17 @@ export const adminAnalytics = new Hono<AppEnv>()
           })
           .from(cliEvent)
           .groupBy(cliEvent.eventType)
-          .orderBy(desc(sql`COUNT(*)`)),
+          .orderBy(sql`COUNT(*) DESC`),
       ]);
 
       return c.json({
-        totalEvents: Number(totalsRow?.totalEvents ?? 0),
-        uniqueUsers: Number(totalsRow?.uniqueUsers ?? 0),
+        totalEvents: Number(totals?.totalEvents ?? 0),
+        uniqueUsers: Number(totals?.uniqueUsers ?? 0),
         byVersion: byVersion.map((r) => ({
           cliVersion: r.cliVersion,
           count: Number(r.count),
         })),
-        byOs: byOs.map((r) => ({
-          os: r.os,
-          count: Number(r.count),
-        })),
+        byOs: byOs.map((r) => ({ os: r.os, count: Number(r.count) })),
         byEventType: byEventType.map((r) => ({
           eventType: r.eventType,
           count: Number(r.count),
