@@ -134,3 +134,17 @@ No build step is needed for packages — apps import TypeScript source directly.
 ## Rules
 
 NEVER look documentation in node_modules folder, use context7 instead
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `kubeasy-dev/monorepo`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
