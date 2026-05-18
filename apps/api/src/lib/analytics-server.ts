@@ -1,8 +1,8 @@
 /**
- * PostHog server-side analytics tracking utilities
+ * Server-side analytics and event tracking utilities
  *
- * This file provides server-side tracking for events triggered from API routes
- * (especially for CLI interactions).
+ * PostHog is used for user-level events (signup, challenge lifecycle, onboarding).
+ * CLI lifecycle events (cli_login, cli_setup) are written directly to PostgreSQL.
  */
 
 import { log } from "evlog";
@@ -303,6 +303,11 @@ export async function trackCliLogin(
       os: metadata.os,
       arch: metadata.arch,
     });
+    log.debug({
+      message: "cli_login event recorded",
+      userId,
+      cliVersion: metadata.cliVersion,
+    });
   } catch (error) {
     log.error({
       message: "Failed to record cli_login event",
@@ -327,6 +332,11 @@ export async function trackCliSetup(
       cliVersion: metadata.cliVersion,
       os: metadata.os,
       arch: metadata.arch,
+    });
+    log.debug({
+      message: "cli_setup event recorded",
+      userId,
+      cliVersion: metadata.cliVersion,
     });
   } catch (error) {
     log.error({
