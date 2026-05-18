@@ -434,7 +434,7 @@ function ChallengeHistogramRow({
 
   return (
     <TableRow>
-      <TableCell colSpan={6} className="bg-muted/40 px-6 py-4">
+      <TableCell colSpan={7} className="bg-muted/40 px-6 py-4">
         <div className="flex items-center gap-6 mb-3">
           <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
             {PERIOD_LABELS[period]} · {GRANULARITY_LABELS[granularity]}
@@ -517,6 +517,7 @@ function ChallengesSection({
             <TableHead>Challenge</TableHead>
             <TableHead className="text-right">Tried</TableHead>
             <TableHead className="text-right">Submissions</TableHead>
+            <TableHead className="text-right">Avg / user</TableHead>
             <TableHead className="text-right">Results</TableHead>
             <TableHead className="w-56">Completion</TableHead>
             <TableHead>Top blockers</TableHead>
@@ -555,13 +556,11 @@ function ChallengesSection({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="tabular-nums font-bold">
-                      {item.totalAttempts}
-                    </div>
-                    <div className="text-xs text-muted-foreground tabular-nums">
-                      {item.avgAttempts.toFixed(1)}× per user
-                    </div>
+                  <TableCell className="text-right tabular-nums font-bold">
+                    {item.totalAttempts}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {item.avgAttempts.toFixed(1)}×
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2 text-sm font-bold tabular-nums">
@@ -627,7 +626,7 @@ function ChallengesSection({
           {sorted.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={8}
                 className="py-8 text-center text-muted-foreground"
               >
                 No submission data yet
