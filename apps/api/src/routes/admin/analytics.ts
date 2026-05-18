@@ -2,6 +2,7 @@ import {
   AnalyticsChallengesOutputSchema,
   AnalyticsCliOutputSchema,
   AnalyticsFunnelOutputSchema,
+  type AnalyticsPeriod,
 } from "@kubeasy/api-schemas/analytics";
 import { countDistinct, sql } from "drizzle-orm";
 import { Hono } from "hono";
@@ -29,7 +30,7 @@ const periodQuerySchema = z.object({
   period: periodSchema,
   compare: compareSchema,
 });
-const PERIOD_INTERVALS: Record<string, string> = {
+const PERIOD_INTERVALS: Record<AnalyticsPeriod, string> = {
   "24h": "24 hours",
   "7d": "7 days",
   "30d": "30 days",
