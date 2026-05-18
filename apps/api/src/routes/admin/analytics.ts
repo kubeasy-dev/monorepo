@@ -87,17 +87,6 @@ const FunnelOutputSchema = FunnelStatsSchema.extend({
   previous: FunnelStatsSchema.optional(),
 });
 
-const FunnelHistoryWeekSchema = z.object({
-  week: z.string(),
-  newSignups: z.number(),
-  newStarters: z.number(),
-  newCompleters: z.number(),
-});
-
-const FunnelHistoryOutputSchema = z.object({
-  weeks: z.array(FunnelHistoryWeekSchema),
-});
-
 const FailingObjectiveSchema = z.object({
   key: z.string(),
   failCount: z.number(),
@@ -215,93 +204,6 @@ export const adminAnalytics = new Hono<AppEnv>()
       ]);
 
       return c.json({ ...current, previous });
-    },
-  )
-  .get(
-    "/funnel/history",
-    describeRoute({
-      tags: ["Admin"],
-      summary:
-        "Funnel evolution over the selected period, bucketed by granularity",
-      security: sessionSecurity,
-      responses: {
-        200: {
-          description: "Funnel history",
-          content: {
-            "application/json": {
-              schema: resolver(FunnelHistoryOutputSchema),
-            },
-          },
-        },
-      },
-    }),
-    validator("query", periodGranQuerySchema),
-    analyticsRateLimit,
-    async (c) => {
-      const { period, granularity } = c.req.valid("query");
-      const trunc = GRAN_TRUNC[granularity];
-      const step = GRAN_STEP[granularity];
-      const format = GRAN_FORMAT[granularity];
-      const interval = PERIOD_INTERVALS[period];
-
-      const rows = await db.execute(sql`
-        WITH
-        buckets AS (
-          SELECT generate_series(
-            date_trunc(${trunc}, now() - ${sql.raw(`INTERVAL '${interval}'`)}) ,
-            date_trunc(${trunc}, now()),
-            ${sql.raw(`'${step}'::interval`)}
-          ) AS bucket
-        ),
-        first_starts AS (
-          SELECT user_id, MIN(started_at) AS first_at
-          FROM user_progress
-          GROUP BY user_id
-        ),
-        first_completions AS (
-          SELECT user_id, MIN(completed_at) AS first_at
-          FROM user_progress
-          WHERE completed_at IS NOT NULL
-          GROUP BY user_id
-        ),
-        period_signups AS (
-          SELECT date_trunc(${trunc}, created_at) AS bucket, COUNT(*)::int AS count
-          FROM "user"
-          WHERE created_at >= now() - ${sql.raw(`INTERVAL '${interval}'`)}
-          GROUP BY 1
-        ),
-        period_starters AS (
-          SELECT date_trunc(${trunc}, first_at) AS bucket, COUNT(*)::int AS count
-          FROM first_starts
-          WHERE first_at >= now() - ${sql.raw(`INTERVAL '${interval}'`)}
-          GROUP BY 1
-        ),
-        period_completers AS (
-          SELECT date_trunc(${trunc}, first_at) AS bucket, COUNT(*)::int AS count
-          FROM first_completions
-          WHERE first_at >= now() - ${sql.raw(`INTERVAL '${interval}'`)}
-          GROUP BY 1
-        )
-        SELECT
-          to_char(b.bucket, ${format}) AS week,
-          COALESCE(s.count, 0)  AS new_signups,
-          COALESCE(st.count, 0) AS new_starters,
-          COALESCE(c.count, 0)  AS new_completers
-        FROM buckets b
-        LEFT JOIN period_signups   s  ON s.bucket  = b.bucket
-        LEFT JOIN period_starters  st ON st.bucket = b.bucket
-        LEFT JOIN period_completers c ON c.bucket  = b.bucket
-        ORDER BY b.bucket
-      `);
-
-      const weeks = rows.rows.map((r) => ({
-        week: String(r.week),
-        newSignups: Number(r.new_signups),
-        newStarters: Number(r.new_starters),
-        newCompleters: Number(r.new_completers),
-      }));
-
-      return c.json({ weeks });
     },
   )
   .get(
