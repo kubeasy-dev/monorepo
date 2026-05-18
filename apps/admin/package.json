@@ -24,7 +24,7 @@
     "@opentelemetry/sdk-trace-web": "2.6.1",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",
-    "@tanstack/zod-adapter": "^1.167.0",
+    "@tanstack/zod-adapter": "1.167.0",
     "better-auth": "catalog:",
     "evlog": "catalog:",
     "lucide-react": "catalog:",
