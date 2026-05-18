@@ -2493,7 +2493,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Signup → started → completed funnel",
+        "summary": "Signup → started → completed funnel for a given period",
         "security": [
           {
             "SessionAuth": []
@@ -2515,6 +2515,25 @@
                     },
                     "usersCompleted": {
                       "type": "number"
+                    },
+                    "previous": {
+                      "type": "object",
+                      "properties": {
+                        "totalUsers": {
+                          "type": "number"
+                        },
+                        "usersStarted": {
+                          "type": "number"
+                        },
+                        "usersCompleted": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "totalUsers",
+                        "usersStarted",
+                        "usersCompleted"
+                      ]
                     }
                   },
                   "required": [
@@ -2526,7 +2545,32 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "default": "30d",
+              "type": "string",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "3m",
+                "6m",
+                "1y"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "compare",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/api/admin/analytics/challenges": {
@@ -2535,7 +2579,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Aggregated stats per challenge",
+        "summary": "Aggregated stats per challenge for a given period",
         "security": [
           {
             "SessionAuth": []
@@ -2604,6 +2648,39 @@
                           "topFailingObjectives"
                         ]
                       }
+                    },
+                    "previous": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "challengeSlug": {
+                            "type": "string"
+                          },
+                          "completionRate": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "uniqueUsers": {
+                            "type": "number"
+                          },
+                          "totalAttempts": {
+                            "type": "number"
+                          },
+                          "avgAttempts": {
+                            "type": "number",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "challengeSlug",
+                          "completionRate",
+                          "uniqueUsers",
+                          "totalAttempts",
+                          "avgAttempts"
+                        ]
+                      }
                     }
                   },
                   "required": [
@@ -2613,7 +2690,32 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "default": "30d",
+              "type": "string",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "3m",
+                "6m",
+                "1y"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "compare",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/api/admin/analytics/cli": {
@@ -2622,7 +2724,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Aggregated stats for CLI events",
+        "summary": "CLI events analytics (versions, OS, event type spread) for a given period",
         "security": [
           {
             "SessionAuth": []
@@ -2695,6 +2797,21 @@
                           "count"
                         ]
                       }
+                    },
+                    "previous": {
+                      "type": "object",
+                      "properties": {
+                        "totalEvents": {
+                          "type": "number"
+                        },
+                        "uniqueUsers": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "totalEvents",
+                        "uniqueUsers"
+                      ]
                     }
                   },
                   "required": [
@@ -2707,11 +2824,33 @@
                 }
               }
             }
-          },
-          "429": {
-            "description": "Too Many Requests"
           }
-        }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "default": "30d",
+              "type": "string",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "3m",
+                "6m",
+                "1y"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "compare",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/api/admin/challenges": {

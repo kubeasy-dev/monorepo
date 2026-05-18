@@ -1,12 +1,8 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
-import { ChallengesStats } from "@/components/challenges-stats";
 import { ChallengesTable } from "@/components/challenges-table";
-import {
-  adminChallengesOptions,
-  adminChallengesStatsOptions,
-} from "@/lib/query-options";
+import { adminChallengesOptions } from "@/lib/query-options";
 
 export const Route = createFileRoute("/challenges/")({
   component: ChallengesPage,
@@ -14,14 +10,8 @@ export const Route = createFileRoute("/challenges/")({
 
 function ChallengesContent() {
   const { data: challengesData } = useSuspenseQuery(adminChallengesOptions());
-  const { data: statsData } = useSuspenseQuery(adminChallengesStatsOptions());
 
-  return (
-    <>
-      <ChallengesStats stats={statsData} />
-      <ChallengesTable challenges={challengesData.challenges} />
-    </>
-  );
+  return <ChallengesTable challenges={challengesData.challenges} />;
 }
 
 function ChallengesPage() {

@@ -64,3 +64,4 @@ docker/secrets/
 # ========================
 .claude/worktrees/
 apps/web/.tanstack/
+.claude/scheduled_tasks.lock

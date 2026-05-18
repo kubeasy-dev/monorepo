@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersIndexRouteImport } from './routes/users/index'
 import { Route as ChallengesIndexRouteImport } from './routes/challenges/index'
+import { Route as AnalyticsIndexRouteImport } from './routes/analytics/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,33 +29,42 @@ const ChallengesIndexRoute = ChallengesIndexRouteImport.update({
   path: '/challenges/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsIndexRoute = AnalyticsIndexRouteImport.update({
+  id: '/analytics/',
+  path: '/analytics/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics/': typeof AnalyticsIndexRoute
   '/challenges/': typeof ChallengesIndexRoute
   '/users/': typeof UsersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsIndexRoute
   '/challenges': typeof ChallengesIndexRoute
   '/users': typeof UsersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics/': typeof AnalyticsIndexRoute
   '/challenges/': typeof ChallengesIndexRoute
   '/users/': typeof UsersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/challenges/' | '/users/'
+  fullPaths: '/' | '/analytics/' | '/challenges/' | '/users/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/challenges' | '/users'
-  id: '__root__' | '/' | '/challenges/' | '/users/'
+  to: '/' | '/analytics' | '/challenges' | '/users'
+  id: '__root__' | '/' | '/analytics/' | '/challenges/' | '/users/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsIndexRoute: typeof AnalyticsIndexRoute
   ChallengesIndexRoute: typeof ChallengesIndexRoute
   UsersIndexRoute: typeof UsersIndexRoute
 }
@@ -82,11 +92,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChallengesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics/': {
+      id: '/analytics/'
+      path: '/analytics'
+      fullPath: '/analytics/'
+      preLoaderRoute: typeof AnalyticsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsIndexRoute: AnalyticsIndexRoute,
   ChallengesIndexRoute: ChallengesIndexRoute,
   UsersIndexRoute: UsersIndexRoute,
 }
