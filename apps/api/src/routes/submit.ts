@@ -30,7 +30,12 @@ const challengeSubmissionQueue = createQueue(
   redis.options,
 );
 
-const slugParam = z.object({ slug: z.string() });
+const slugParam = z.object({
+  slug: z
+    .string()
+    .max(200)
+    .regex(/^[a-z0-9-]+$/, "Invalid slug format"),
+});
 
 const submitRateLimit = slidingWindowRateLimit(redis, {
   windowMs: 10_000,
