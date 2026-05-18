@@ -34,7 +34,8 @@ export async function createResendContact(params: {
   } catch (error) {
     log.error({
       message: "resend.createContact failed",
-      error: error instanceof Error ? error.stack : String(error),
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      errorStatus: (error as { statusCode?: number })?.statusCode,
     });
     throw error;
   }
@@ -58,8 +59,8 @@ export async function updateContactTopics(params: {
   } catch (error) {
     log.error({
       message: "resend.updateContactTopics failed",
-      error: error instanceof Error ? error.stack : String(error),
-      isEmail: params.contactIdOrEmail.includes("@"),
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      errorStatus: (error as { statusCode?: number })?.statusCode,
     });
     throw error;
   }
@@ -97,7 +98,8 @@ export async function getContactSubscriptions(
   } catch (error) {
     log.error({
       message: "resend.getContactSubscriptions failed",
-      error: error instanceof Error ? error.stack : String(error),
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      errorStatus: (error as { statusCode?: number })?.statusCode,
     });
     throw error;
   }
