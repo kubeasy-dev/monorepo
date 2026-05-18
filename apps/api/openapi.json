@@ -2487,6 +2487,135 @@
         }
       }
     },
+    "/api/admin/analytics/funnel": {
+      "get": {
+        "operationId": "getApiAdminAnalyticsFunnel",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Signup → started → completed funnel",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Funnel stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalUsers": {
+                      "type": "number"
+                    },
+                    "usersStarted": {
+                      "type": "number"
+                    },
+                    "usersCompleted": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "totalUsers",
+                    "usersStarted",
+                    "usersCompleted"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/analytics/challenges": {
+      "get": {
+        "operationId": "getApiAdminAnalyticsChallenges",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Aggregated stats per challenge",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Challenge analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "challengeSlug": {
+                            "type": "string"
+                          },
+                          "totalAttempts": {
+                            "type": "number"
+                          },
+                          "uniqueUsers": {
+                            "type": "number"
+                          },
+                          "validatedSubmissions": {
+                            "type": "number"
+                          },
+                          "completionRate": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "avgAttempts": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "topFailingObjectives": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "failCount": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "failCount"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "challengeSlug",
+                          "totalAttempts",
+                          "uniqueUsers",
+                          "validatedSubmissions",
+                          "completionRate",
+                          "avgAttempts",
+                          "topFailingObjectives"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "challenges"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/challenges": {
       "get": {
         "operationId": "getApiAdminChallenges",
