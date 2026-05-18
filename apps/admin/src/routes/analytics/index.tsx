@@ -642,33 +642,50 @@ function PeriodSelector({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-function AnalyticsContent({
+const SectionFallback = (
+  <div className="bg-secondary neo-border-thick neo-shadow p-6 mb-12 animate-pulse h-40" />
+);
+
+function FunnelContent({
   period,
   compare,
 }: {
   period: AnalyticsPeriod;
   compare: boolean;
 }) {
-  const { data: funnel } = useSuspenseQuery(
+  const { data } = useSuspenseQuery(
     adminAnalyticsFunnelOptions(period, compare),
   );
-  const { data: challenges } = useSuspenseQuery(
+  return <FunnelSection data={data} />;
+}
+
+function ChallengesContent({
+  period,
+  compare,
+}: {
+  period: AnalyticsPeriod;
+  compare: boolean;
+}) {
+  const { data } = useSuspenseQuery(
     adminAnalyticsChallengesOptions(period, compare),
   );
-  const { data: cli } = useSuspenseQuery(
-    adminAnalyticsCliOptions(period, compare),
-  );
-
   return (
-    <>
-      <FunnelSection data={funnel} />
-      <ChallengesSection
-        challenges={challenges.challenges}
-        previousChallenges={challenges.previous}
-      />
-      <CliSection data={cli} />
-    </>
+    <ChallengesSection
+      challenges={data.challenges}
+      previousChallenges={data.previous}
+    />
   );
+}
+
+function CliContent({
+  period,
+  compare,
+}: {
+  period: AnalyticsPeriod;
+  compare: boolean;
+}) {
+  const { data } = useSuspenseQuery(adminAnalyticsCliOptions(period, compare));
+  return <CliSection data={data} />;
 }
 
 function AnalyticsPage() {
@@ -697,12 +714,14 @@ function AnalyticsPage() {
           onCompareToggle={toggleCompare}
         />
       </div>
-      <Suspense
-        fallback={
-          <div className="text-muted-foreground text-sm">Loading...</div>
-        }
-      >
-        <AnalyticsContent period={period} compare={compare} />
+      <Suspense fallback={SectionFallback}>
+        <FunnelContent period={period} compare={compare} />
+      </Suspense>
+      <Suspense fallback={SectionFallback}>
+        <ChallengesContent period={period} compare={compare} />
+      </Suspense>
+      <Suspense fallback={SectionFallback}>
+        <CliContent period={period} compare={compare} />
       </Suspense>
     </div>
   );

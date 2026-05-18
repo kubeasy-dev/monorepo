@@ -15,7 +15,8 @@
     "./onboarding": "./src/onboarding.ts",
     "./registry": "./src/registry.ts",
     "./cli": "./src/cli.ts",
-    "./sse-events": "./src/sse-events.ts"
+    "./sse-events": "./src/sse-events.ts",
+    "./analytics": "./src/analytics.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

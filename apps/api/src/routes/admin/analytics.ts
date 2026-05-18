@@ -1,3 +1,8 @@
+import {
+  AnalyticsChallengesOutputSchema,
+  AnalyticsCliOutputSchema,
+  AnalyticsFunnelOutputSchema,
+} from "@kubeasy/api-schemas/analytics";
 import { countDistinct, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
@@ -45,46 +50,6 @@ function periodWhere(col: unknown, interval: string, prev: boolean) {
   return sql`${col} >= now() - ${i}`;
 }
 
-// ── Output schemas ─────────────────────────────────────────────────────────────
-
-const FunnelStatsSchema = z.object({
-  totalUsers: z.number(),
-  usersStarted: z.number(),
-  usersCompleted: z.number(),
-});
-
-const FunnelOutputSchema = FunnelStatsSchema.extend({
-  previous: FunnelStatsSchema.optional(),
-});
-
-const FailingObjectiveSchema = z.object({
-  key: z.string(),
-  failCount: z.number(),
-});
-
-const ChallengeStatsItemSchema = z.object({
-  challengeSlug: z.string(),
-  totalAttempts: z.number(),
-  uniqueUsers: z.number(),
-  validatedSubmissions: z.number(),
-  completionRate: z.number().min(0).max(1),
-  avgAttempts: z.number().min(0),
-  topFailingObjectives: z.array(FailingObjectiveSchema),
-});
-
-const ChallengeStatsPrevSchema = z.object({
-  challengeSlug: z.string(),
-  completionRate: z.number().min(0).max(1),
-  uniqueUsers: z.number(),
-  totalAttempts: z.number(),
-  avgAttempts: z.number().min(0),
-});
-
-const ChallengesAnalyticsOutputSchema = z.object({
-  challenges: z.array(ChallengeStatsItemSchema),
-  previous: z.array(ChallengeStatsPrevSchema).optional(),
-});
-
 // Schema for validating raw JSONB rows from failing objectives query
 const failingObjectiveRowSchema = z.object({
   challenge_slug: z.string(),
@@ -116,7 +81,9 @@ export const adminAnalytics = new Hono<AppEnv>()
         200: {
           description: "Funnel stats",
           content: {
-            "application/json": { schema: resolver(FunnelOutputSchema) },
+            "application/json": {
+              schema: resolver(AnalyticsFunnelOutputSchema),
+            },
           },
         },
       },
@@ -176,7 +143,7 @@ export const adminAnalytics = new Hono<AppEnv>()
           description: "Challenge analytics",
           content: {
             "application/json": {
-              schema: resolver(ChallengesAnalyticsOutputSchema),
+              schema: resolver(AnalyticsChallengesOutputSchema),
             },
           },
         },
@@ -292,27 +259,7 @@ export const adminAnalytics = new Hono<AppEnv>()
           description: "CLI analytics",
           content: {
             "application/json": {
-              schema: resolver(
-                z.object({
-                  totalEvents: z.number(),
-                  uniqueUsers: z.number(),
-                  byVersion: z.array(
-                    z.object({ cliVersion: z.string(), count: z.number() }),
-                  ),
-                  byOs: z.array(
-                    z.object({ os: z.string(), count: z.number() }),
-                  ),
-                  byEventType: z.array(
-                    z.object({ eventType: z.string(), count: z.number() }),
-                  ),
-                  previous: z
-                    .object({
-                      totalEvents: z.number(),
-                      uniqueUsers: z.number(),
-                    })
-                    .optional(),
-                }),
-              ),
+              schema: resolver(AnalyticsCliOutputSchema),
             },
           },
         },
