@@ -253,6 +253,8 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
   const status = statusData?.status ?? "not_started";
 
   const { items: timelineItems, auditCount } = useMemo(() => {
+    // Hono client infers a discriminated union where { status: "not_started" } lacks
+    // startedAt, so s?.startedAt fails without this cast to the flat schema type.
     const s = statusData as GetStatusOutput | undefined;
     if (!s?.startedAt) return { items: [], auditCount: 0 };
 
