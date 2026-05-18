@@ -1,4 +1,4 @@
-import { countDistinct, gte, sql } from "drizzle-orm";
+import { countDistinct, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
@@ -18,7 +18,16 @@ const granularitySchema = z
   .enum(["hour", "day", "week", "month"])
   .default("day");
 
-const periodQuerySchema = z.object({ period: periodSchema });
+// compare=true fetches the previous period and includes it in the response
+const compareSchema = z
+  .string()
+  .optional()
+  .transform((v) => v === "true");
+
+const periodQuerySchema = z.object({
+  period: periodSchema,
+  compare: compareSchema,
+});
 const periodGranQuerySchema = z.object({
   period: periodSchema,
   granularity: granularitySchema,
@@ -54,12 +63,28 @@ const GRAN_FORMAT: Record<string, string> = {
   month: "YYYY-MM-DD",
 };
 
+// ── Period range helper ────────────────────────────────────────────────────────
+
+/** Returns a SQL condition for col within the current or previous period window. */
+// col is typed as unknown because Drizzle's sql tag accepts any interpolated value
+function periodWhere(col: unknown, interval: string, prev: boolean) {
+  const i = sql.raw(`INTERVAL '${interval}'`);
+  if (prev) {
+    return sql`${col} >= now() - 2 * ${i} AND ${col} < now() - ${i}`;
+  }
+  return sql`${col} >= now() - ${i}`;
+}
+
 // ── Output schemas ─────────────────────────────────────────────────────────────
 
-const FunnelOutputSchema = z.object({
+const FunnelStatsSchema = z.object({
   totalUsers: z.number(),
   usersStarted: z.number(),
   usersCompleted: z.number(),
+});
+
+const FunnelOutputSchema = FunnelStatsSchema.extend({
+  previous: FunnelStatsSchema.optional(),
 });
 
 const FunnelHistoryWeekSchema = z.object({
@@ -88,8 +113,17 @@ const ChallengeStatsItemSchema = z.object({
   topFailingObjectives: z.array(FailingObjectiveSchema),
 });
 
+const ChallengeStatsPrevSchema = z.object({
+  challengeSlug: z.string(),
+  completionRate: z.number().min(0).max(1),
+  uniqueUsers: z.number(),
+  totalAttempts: z.number(),
+  avgAttempts: z.number().min(0),
+});
+
 const ChallengesAnalyticsOutputSchema = z.object({
   challenges: z.array(ChallengeStatsItemSchema),
+  previous: z.array(ChallengeStatsPrevSchema).optional(),
 });
 
 // Schema for validating raw JSONB rows from failing objectives query
@@ -142,43 +176,51 @@ export const adminAnalytics = new Hono<AppEnv>()
     validator("query", periodQuerySchema),
     analyticsRateLimit,
     async (c) => {
-      const { period } = c.req.valid("query");
-      const interval = sql.raw(`INTERVAL '${PERIOD_INTERVALS[period]}'`);
+      const { period, compare } = c.req.valid("query");
+      const i = PERIOD_INTERVALS[period];
 
-      const [[totalRow], [startedRow], [completedRow]] = await Promise.all([
-        db
-          .select({ totalUsers: sql<number>`COUNT(*)` })
-          .from(user)
-          .where(gte(user.createdAt, sql`now() - ${interval}`)),
-        db
-          .select({ usersStarted: sql<number>`COUNT(DISTINCT user_id)` })
-          .from(
-            db
-              .select({ userId: userProgress.userId })
-              .from(userProgress)
-              .where(
-                sql`${userProgress.status} != 'not_started' AND ${userProgress.startedAt} >= now() - ${interval}`,
-              )
-              .as("s"),
-          ),
-        db
-          .select({ usersCompleted: sql<number>`COUNT(DISTINCT user_id)` })
-          .from(
-            db
-              .select({ userId: userProgress.userId })
-              .from(userProgress)
-              .where(
-                sql`${userProgress.status} = 'completed' AND ${userProgress.completedAt} >= now() - ${interval}`,
-              )
-              .as("c"),
-          ),
+      async function fetchFunnelStats(prev: boolean) {
+        const [[totalRow], [startedRow], [completedRow]] = await Promise.all([
+          db
+            .select({ totalUsers: sql<number>`COUNT(*)` })
+            .from(user)
+            .where(periodWhere(user.createdAt, i, prev)),
+          db
+            .select({ usersStarted: sql<number>`COUNT(DISTINCT user_id)` })
+            .from(
+              db
+                .select({ userId: userProgress.userId })
+                .from(userProgress)
+                .where(
+                  sql`${userProgress.status} != 'not_started' AND ${periodWhere(userProgress.startedAt, i, prev)}`,
+                )
+                .as("s"),
+            ),
+          db
+            .select({ usersCompleted: sql<number>`COUNT(DISTINCT user_id)` })
+            .from(
+              db
+                .select({ userId: userProgress.userId })
+                .from(userProgress)
+                .where(
+                  sql`${userProgress.status} = 'completed' AND ${periodWhere(userProgress.completedAt, i, prev)}`,
+                )
+                .as("c"),
+            ),
+        ]);
+        return {
+          totalUsers: Number(totalRow?.totalUsers ?? 0),
+          usersStarted: Number(startedRow?.usersStarted ?? 0),
+          usersCompleted: Number(completedRow?.usersCompleted ?? 0),
+        };
+      }
+
+      const [current, previous] = await Promise.all([
+        fetchFunnelStats(false),
+        compare ? fetchFunnelStats(true) : Promise.resolve(undefined),
       ]);
 
-      return c.json({
-        totalUsers: Number(totalRow?.totalUsers ?? 0),
-        usersStarted: Number(startedRow?.usersStarted ?? 0),
-        usersCompleted: Number(completedRow?.usersCompleted ?? 0),
-      });
+      return c.json({ ...current, previous });
     },
   )
   .get(
@@ -288,34 +330,42 @@ export const adminAnalytics = new Hono<AppEnv>()
     validator("query", periodQuerySchema),
     analyticsRateLimit,
     async (c) => {
-      const { period } = c.req.valid("query");
-      const interval = sql.raw(`INTERVAL '${PERIOD_INTERVALS[period]}'`);
+      const { period, compare } = c.req.valid("query");
+      const i = PERIOD_INTERVALS[period];
 
-      const baseStats = await db
-        .select({
-          challengeSlug: userSubmission.challengeSlug,
-          totalAttempts: sql<number>`COUNT(*)`,
-          uniqueUsers: countDistinct(userSubmission.userId),
-          validatedSubmissions: sql<number>`COUNT(DISTINCT ${userSubmission.userId}) FILTER (WHERE ${userSubmission.validated} = true)`,
-        })
-        .from(userSubmission)
-        .where(gte(userSubmission.timestamp, sql`now() - ${interval}`))
-        .groupBy(userSubmission.challengeSlug)
-        .orderBy(userSubmission.challengeSlug);
+      async function fetchBaseStats(prev: boolean) {
+        return db
+          .select({
+            challengeSlug: userSubmission.challengeSlug,
+            totalAttempts: sql<number>`COUNT(*)`,
+            uniqueUsers: countDistinct(userSubmission.userId),
+            validatedSubmissions: sql<number>`COUNT(DISTINCT ${userSubmission.userId}) FILTER (WHERE ${userSubmission.validated} = true)`,
+          })
+          .from(userSubmission)
+          .where(periodWhere(userSubmission.timestamp, i, prev))
+          .groupBy(userSubmission.challengeSlug)
+          .orderBy(userSubmission.challengeSlug);
+      }
 
-      const failingObjectivesRows = await db.execute(sql`
-        SELECT
-          s.challenge_slug,
-          obj->>'objectiveKey' AS key,
-          COUNT(*) AS fail_count
-        FROM user_submission s,
-             jsonb_array_elements(s.objectives) AS obj
-        WHERE (obj->>'passed')::boolean = false
-          AND s.objectives IS NOT NULL
-          AND s.timestamp >= now() - ${interval}
-        GROUP BY s.challenge_slug, obj->>'objectiveKey'
-        ORDER BY s.challenge_slug, COUNT(*) DESC
-      `);
+      const [baseStats, prevStats, failingObjectivesRows] = await Promise.all([
+        fetchBaseStats(false),
+        compare
+          ? fetchBaseStats(true)
+          : Promise.resolve([] as Awaited<ReturnType<typeof fetchBaseStats>>),
+        db.execute(sql`
+          SELECT
+            s.challenge_slug,
+            obj->>'objectiveKey' AS key,
+            COUNT(*) AS fail_count
+          FROM user_submission s,
+               jsonb_array_elements(s.objectives) AS obj
+          WHERE (obj->>'passed')::boolean = false
+            AND s.objectives IS NOT NULL
+            AND ${periodWhere(sql`s.timestamp`, i, false)}
+          GROUP BY s.challenge_slug, obj->>'objectiveKey'
+          ORDER BY s.challenge_slug, COUNT(*) DESC
+        `),
+      ]);
 
       const failingBySlug = new Map<
         string,
@@ -345,8 +395,6 @@ export const adminAnalytics = new Hono<AppEnv>()
         const completionRate =
           uniqueUsers > 0 ? validatedSubmissions / uniqueUsers : 0;
         const avgAttempts = uniqueUsers > 0 ? totalAttempts / uniqueUsers : 0;
-        const topFailingObjectives = failingBySlug.get(row.challengeSlug) ?? [];
-
         return {
           challengeSlug: row.challengeSlug,
           totalAttempts,
@@ -354,11 +402,27 @@ export const adminAnalytics = new Hono<AppEnv>()
           validatedSubmissions,
           completionRate,
           avgAttempts,
-          topFailingObjectives,
+          topFailingObjectives: failingBySlug.get(row.challengeSlug) ?? [],
         };
       });
 
-      return c.json({ challenges });
+      const previous = compare
+        ? prevStats.map((row) => {
+            const totalAttempts = Number(row.totalAttempts);
+            const uniqueUsers = Number(row.uniqueUsers);
+            const validatedSubmissions = Number(row.validatedSubmissions);
+            return {
+              challengeSlug: row.challengeSlug,
+              totalAttempts,
+              uniqueUsers,
+              completionRate:
+                uniqueUsers > 0 ? validatedSubmissions / uniqueUsers : 0,
+              avgAttempts: uniqueUsers > 0 ? totalAttempts / uniqueUsers : 0,
+            };
+          })
+        : undefined;
+
+      return c.json({ challenges, previous });
     },
   )
   .get(
@@ -386,6 +450,12 @@ export const adminAnalytics = new Hono<AppEnv>()
                   byEventType: z.array(
                     z.object({ eventType: z.string(), count: z.number() }),
                   ),
+                  previous: z
+                    .object({
+                      totalEvents: z.number(),
+                      uniqueUsers: z.number(),
+                    })
+                    .optional(),
                 }),
               ),
             },
@@ -396,46 +466,51 @@ export const adminAnalytics = new Hono<AppEnv>()
     validator("query", periodQuerySchema),
     analyticsRateLimit,
     async (c) => {
-      const { period } = c.req.valid("query");
-      const interval = sql.raw(`INTERVAL '${PERIOD_INTERVALS[period]}'`);
-      const since = sql`now() - ${interval}`;
+      const { period, compare } = c.req.valid("query");
+      const i = PERIOD_INTERVALS[period];
 
-      const [totals, byVersion, byOs, byEventType] = await Promise.all([
-        db
+      function fetchCliTotals(prev: boolean) {
+        return db
           .select({
             totalEvents: sql<number>`COUNT(*)`,
             uniqueUsers: countDistinct(cliEvent.userId),
           })
           .from(cliEvent)
-          .where(gte(cliEvent.createdAt, since))
-          .then((rows) => rows[0]),
-        db
-          .select({
-            cliVersion: cliEvent.cliVersion,
-            count: sql<number>`COUNT(*)`,
-          })
-          .from(cliEvent)
-          .where(gte(cliEvent.createdAt, since))
-          .groupBy(cliEvent.cliVersion)
-          .orderBy(sql`COUNT(*) DESC`)
-          .limit(100),
-        db
-          .select({ os: cliEvent.os, count: sql<number>`COUNT(*)` })
-          .from(cliEvent)
-          .where(gte(cliEvent.createdAt, since))
-          .groupBy(cliEvent.os)
-          .orderBy(sql`COUNT(*) DESC`)
-          .limit(100),
-        db
-          .select({
-            eventType: cliEvent.eventType,
-            count: sql<number>`COUNT(*)`,
-          })
-          .from(cliEvent)
-          .where(gte(cliEvent.createdAt, since))
-          .groupBy(cliEvent.eventType)
-          .orderBy(sql`COUNT(*) DESC`),
-      ]);
+          .where(periodWhere(cliEvent.createdAt, i, prev))
+          .then((rows) => rows[0]);
+      }
+
+      const [totals, prevTotals, byVersion, byOs, byEventType] =
+        await Promise.all([
+          fetchCliTotals(false),
+          compare ? fetchCliTotals(true) : Promise.resolve(undefined),
+          db
+            .select({
+              cliVersion: cliEvent.cliVersion,
+              count: sql<number>`COUNT(*)`,
+            })
+            .from(cliEvent)
+            .where(periodWhere(cliEvent.createdAt, i, false))
+            .groupBy(cliEvent.cliVersion)
+            .orderBy(sql`COUNT(*) DESC`)
+            .limit(100),
+          db
+            .select({ os: cliEvent.os, count: sql<number>`COUNT(*)` })
+            .from(cliEvent)
+            .where(periodWhere(cliEvent.createdAt, i, false))
+            .groupBy(cliEvent.os)
+            .orderBy(sql`COUNT(*) DESC`)
+            .limit(100),
+          db
+            .select({
+              eventType: cliEvent.eventType,
+              count: sql<number>`COUNT(*)`,
+            })
+            .from(cliEvent)
+            .where(periodWhere(cliEvent.createdAt, i, false))
+            .groupBy(cliEvent.eventType)
+            .orderBy(sql`COUNT(*) DESC`),
+        ]);
 
       return c.json({
         totalEvents: Number(totals?.totalEvents ?? 0),
@@ -449,6 +524,12 @@ export const adminAnalytics = new Hono<AppEnv>()
           eventType: r.eventType,
           count: Number(r.count),
         })),
+        previous: prevTotals
+          ? {
+              totalEvents: Number(prevTotals.totalEvents ?? 0),
+              uniqueUsers: Number(prevTotals.uniqueUsers ?? 0),
+            }
+          : undefined,
       });
     },
   )

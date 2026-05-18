@@ -58,10 +58,14 @@ export const PERIOD_DEFAULT_GRANULARITY: Record<
 
 // ── Shared output types ───────────────────────────────────────────────────────
 
-export type AnalyticsFunnelOutput = {
+export type AnalyticsFunnelStats = {
   totalUsers: number;
   usersStarted: number;
   usersCompleted: number;
+};
+
+export type AnalyticsFunnelOutput = AnalyticsFunnelStats & {
+  previous?: AnalyticsFunnelStats;
 };
 
 export type AnalyticsChallengeItem = {
@@ -74,8 +78,17 @@ export type AnalyticsChallengeItem = {
   topFailingObjectives: { key: string; failCount: number }[];
 };
 
+export type AnalyticsChallengePrevItem = {
+  challengeSlug: string;
+  completionRate: number;
+  uniqueUsers: number;
+  totalAttempts: number;
+  avgAttempts: number;
+};
+
 export type AnalyticsChallengesOutput = {
   challenges: AnalyticsChallengeItem[];
+  previous?: AnalyticsChallengePrevItem[];
 };
 
 export type AnalyticsCliOutput = {
@@ -84,6 +97,7 @@ export type AnalyticsCliOutput = {
   byVersion: { cliVersion: string; count: number }[];
   byOs: { os: string; count: number }[];
   byEventType: { eventType: string; count: number }[];
+  previous?: { totalEvents: number; uniqueUsers: number };
 };
 
 export type AnalyticsFunnelHistoryOutput = {
@@ -130,31 +144,42 @@ export function adminUsersStatsOptions() {
   });
 }
 
-export function adminAnalyticsFunnelOptions(period: AnalyticsPeriod) {
+export function adminAnalyticsFunnelOptions(
+  period: AnalyticsPeriod,
+  compare = false,
+) {
   return queryOptions({
-    queryKey: ["admin", "analytics", "funnel", period],
+    queryKey: ["admin", "analytics", "funnel", period, compare],
     queryFn: () =>
       apiFetch<AnalyticsFunnelOutput>(
-        `/admin/analytics/funnel?period=${period}`,
+        `/admin/analytics/funnel?period=${period}&compare=${compare}`,
       ),
   });
 }
 
-export function adminAnalyticsChallengesOptions(period: AnalyticsPeriod) {
+export function adminAnalyticsChallengesOptions(
+  period: AnalyticsPeriod,
+  compare = false,
+) {
   return queryOptions({
-    queryKey: ["admin", "analytics", "challenges", period],
+    queryKey: ["admin", "analytics", "challenges", period, compare],
     queryFn: () =>
       apiFetch<AnalyticsChallengesOutput>(
-        `/admin/analytics/challenges?period=${period}`,
+        `/admin/analytics/challenges?period=${period}&compare=${compare}`,
       ),
   });
 }
 
-export function adminAnalyticsCliOptions(period: AnalyticsPeriod) {
+export function adminAnalyticsCliOptions(
+  period: AnalyticsPeriod,
+  compare = false,
+) {
   return queryOptions({
-    queryKey: ["admin", "analytics", "cli", period],
+    queryKey: ["admin", "analytics", "cli", period, compare],
     queryFn: () =>
-      apiFetch<AnalyticsCliOutput>(`/admin/analytics/cli?period=${period}`),
+      apiFetch<AnalyticsCliOutput>(
+        `/admin/analytics/cli?period=${period}&compare=${compare}`,
+      ),
   });
 }
 

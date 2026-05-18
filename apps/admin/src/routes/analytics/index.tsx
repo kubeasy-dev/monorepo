@@ -11,6 +11,8 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
+  ArrowDown,
+  ArrowUp,
   BarChart3,
   CheckCircle,
   ChevronDown,
@@ -42,6 +44,43 @@ import {
   PERIOD_LABELS,
 } from "@/lib/query-options";
 
+// ─── Delta badge ──────────────────────────────────────────────────────────────
+
+function DeltaBadge({
+  current,
+  previous,
+  lowerIsBetter = false,
+}: {
+  current: number;
+  previous: number;
+  lowerIsBetter?: boolean;
+}) {
+  if (previous === 0) return null;
+  const delta = ((current - previous) / previous) * 100;
+  const positive = lowerIsBetter ? delta < 0 : delta > 0;
+  const neutral = delta === 0;
+  const abs = Math.abs(delta);
+  return (
+    <span
+      className={[
+        "inline-flex items-center gap-0.5 text-xs font-black px-1.5 py-0.5",
+        neutral
+          ? "bg-muted text-muted-foreground"
+          : positive
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800",
+      ].join(" ")}
+    >
+      {delta > 0 ? (
+        <ArrowUp className="w-3 h-3" />
+      ) : delta < 0 ? (
+        <ArrowDown className="w-3 h-3" />
+      ) : null}
+      {abs.toFixed(1)}%
+    </span>
+  );
+}
+
 export const Route = createFileRoute("/analytics/")({
   component: AnalyticsPage,
 });
@@ -62,11 +101,17 @@ function StatCard({
   label,
   value,
   sub,
+  rawCurrent,
+  rawPrevious,
+  lowerIsBetter,
 }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
   sub: string;
+  rawCurrent?: number;
+  rawPrevious?: number;
+  lowerIsBetter?: boolean;
 }) {
   return (
     <div className="bg-secondary neo-border-thick neo-shadow p-6">
@@ -76,7 +121,16 @@ function StatCard({
         </div>
         <div>
           <p className="text-sm font-bold text-foreground">{label}</p>
-          <p className="text-3xl font-black text-foreground">{value}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-3xl font-black text-foreground">{value}</p>
+            {rawCurrent !== undefined && rawPrevious !== undefined && (
+              <DeltaBadge
+                current={rawCurrent}
+                previous={rawPrevious}
+                lowerIsBetter={lowerIsBetter}
+              />
+            )}
+          </div>
         </div>
       </div>
       <p className="text-sm font-bold text-foreground">{sub}</p>
@@ -95,6 +149,7 @@ function FunnelSection({ data }: { data: AnalyticsFunnelOutput }) {
     data.totalUsers > 0
       ? ((data.usersCompleted / data.totalUsers) * 100).toFixed(1)
       : "0.0";
+  const prev = data.previous;
 
   return (
     <section className="mb-12">
@@ -105,18 +160,24 @@ function FunnelSection({ data }: { data: AnalyticsFunnelOutput }) {
           label="Signed Up"
           value={data.totalUsers.toLocaleString()}
           sub="100% — baseline"
+          rawCurrent={data.totalUsers}
+          rawPrevious={prev?.totalUsers}
         />
         <StatCard
           icon={Activity}
           label="Started a Challenge"
           value={data.usersStarted.toLocaleString()}
           sub={`${startedPct}% of signups`}
+          rawCurrent={data.usersStarted}
+          rawPrevious={prev?.usersStarted}
         />
         <StatCard
           icon={CheckCircle}
           label="Completed a Challenge"
           value={data.usersCompleted.toLocaleString()}
           sub={`${completedPct}% of signups`}
+          rawCurrent={data.usersCompleted}
+          rawPrevious={prev?.usersCompleted}
         />
       </div>
     </section>
@@ -605,11 +666,17 @@ function ChallengeHistogramRow({
 
 function ChallengesSection({
   challenges,
+  previousChallenges,
   stats,
   period,
   granularity,
 }: {
   challenges: AnalyticsChallengeItem[];
+  previousChallenges?: {
+    challengeSlug: string;
+    completionRate: number;
+    uniqueUsers: number;
+  }[];
   stats: AdminStatsOutput;
   period: AnalyticsPeriod;
   granularity: AnalyticsGranularity;
@@ -617,6 +684,7 @@ function ChallengesSection({
   const animated = useBarAnimation();
   const sorted = [...challenges].sort((a, b) => b.uniqueUsers - a.uniqueUsers);
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
+  const prevMap = new Map(previousChallenges?.map((p) => [p.challengeSlug, p]));
 
   function toggle(slug: string) {
     setExpandedSlug((prev) => (prev === slug ? null : slug));
@@ -646,6 +714,7 @@ function ChallengesSection({
         <TableBody>
           {sorted.map((item, i) => {
             const isExpanded = expandedSlug === item.challengeSlug;
+            const prev = prevMap.get(item.challengeSlug);
             return (
               <React.Fragment key={item.challengeSlug}>
                 <TableRow
@@ -663,7 +732,15 @@ function ChallengesSection({
                     {item.challengeSlug}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {item.uniqueUsers}
+                    <div className="flex items-center justify-end gap-1.5">
+                      {item.uniqueUsers}
+                      {prev && (
+                        <DeltaBadge
+                          current={item.uniqueUsers}
+                          previous={prev.uniqueUsers}
+                        />
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {item.totalAttempts}
@@ -672,11 +749,21 @@ function ChallengesSection({
                     {item.avgAttempts.toFixed(1)}×
                   </TableCell>
                   <TableCell>
-                    <CompletionBar
-                      rate={item.completionRate}
-                      animated={animated}
-                      delay={i * 40}
-                    />
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <CompletionBar
+                          rate={item.completionRate}
+                          animated={animated}
+                          delay={i * 40}
+                        />
+                      </div>
+                      {prev && (
+                        <DeltaBadge
+                          current={item.completionRate}
+                          previous={prev.completionRate}
+                        />
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
                     {item.topFailingObjectives.length > 0
@@ -766,6 +853,7 @@ function BreakdownCard({
 
 function CliSection({ data }: { data: AnalyticsCliOutput }) {
   const animated = useBarAnimation();
+  const prev = data.previous;
 
   return (
     <section className="mb-12">
@@ -776,12 +864,16 @@ function CliSection({ data }: { data: AnalyticsCliOutput }) {
           label="Total CLI Events"
           value={data.totalEvents.toLocaleString()}
           sub="login + setup events"
+          rawCurrent={data.totalEvents}
+          rawPrevious={prev?.totalEvents}
         />
         <StatCard
           icon={Monitor}
           label="Unique CLI Users"
           value={data.uniqueUsers.toLocaleString()}
           sub="distinct users seen"
+          rawCurrent={data.uniqueUsers}
+          rawPrevious={prev?.uniqueUsers}
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -847,16 +939,58 @@ function SegmentedControl<T extends string>({
   );
 }
 
+function CompareToggle({
+  enabled,
+  onToggle,
+}: {
+  enabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={[
+        "flex items-center gap-2 px-3 py-1.5 text-xs font-black neo-border-thick transition-colors",
+        enabled
+          ? "bg-primary text-primary-foreground"
+          : "bg-secondary text-foreground hover:bg-muted",
+      ].join(" ")}
+    >
+      <span
+        className={[
+          "inline-flex w-7 h-4 rounded-full relative transition-colors",
+          enabled ? "bg-primary-foreground/30" : "bg-muted-foreground/30",
+        ].join(" ")}
+      >
+        <span
+          className={[
+            "absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200",
+            enabled
+              ? "left-3.5 bg-primary-foreground"
+              : "left-0.5 bg-muted-foreground",
+          ].join(" ")}
+        />
+      </span>
+      vs prev period
+    </button>
+  );
+}
+
 function PeriodGranularitySelector({
   period,
   granularity,
+  compare,
   onPeriodChange,
   onGranularityChange,
+  onCompareToggle,
 }: {
   period: AnalyticsPeriod;
   granularity: AnalyticsGranularity;
+  compare: boolean;
   onPeriodChange: (p: AnalyticsPeriod) => void;
   onGranularityChange: (g: AnalyticsGranularity) => void;
+  onCompareToggle: () => void;
 }) {
   const periodOptions = (Object.keys(PERIOD_LABELS) as AnalyticsPeriod[]).map(
     (p) => ({ value: p, label: PERIOD_LABELS[p] }),
@@ -868,7 +1002,7 @@ function PeriodGranularitySelector({
   }));
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 flex-wrap">
       <SegmentedControl
         options={periodOptions}
         value={period}
@@ -880,6 +1014,7 @@ function PeriodGranularitySelector({
         value={granularity}
         onChange={onGranularityChange}
       />
+      <CompareToggle enabled={compare} onToggle={onCompareToggle} />
     </div>
   );
 }
@@ -889,23 +1024,27 @@ function PeriodGranularitySelector({
 function AnalyticsContent({
   period,
   granularity,
+  compare,
 }: {
   period: AnalyticsPeriod;
   granularity: AnalyticsGranularity;
+  compare: boolean;
 }) {
   const { data: funnel } = useSuspenseQuery(
-    adminAnalyticsFunnelOptions(period),
+    adminAnalyticsFunnelOptions(period, compare),
   );
   const { data: funnelHistory } = useSuspenseQuery(
     adminAnalyticsFunnelHistoryOptions(period, granularity),
   );
   const { data: challenges } = useSuspenseQuery(
-    adminAnalyticsChallengesOptions(period),
+    adminAnalyticsChallengesOptions(period, compare),
   );
   const { data: challengeStats } = useSuspenseQuery(
     adminChallengesStatsOptions(),
   );
-  const { data: cli } = useSuspenseQuery(adminAnalyticsCliOptions(period));
+  const { data: cli } = useSuspenseQuery(
+    adminAnalyticsCliOptions(period, compare),
+  );
 
   return (
     <>
@@ -913,6 +1052,7 @@ function AnalyticsContent({
       <FunnelHistorySection data={funnelHistory} granularity={granularity} />
       <ChallengesSection
         challenges={challenges.challenges}
+        previousChallenges={challenges.previous}
         stats={challengeStats}
         period={period}
         granularity={granularity}
@@ -927,6 +1067,7 @@ function AnalyticsPage() {
   const [granularity, setGranularity] = useState<AnalyticsGranularity>(
     PERIOD_DEFAULT_GRANULARITY["30d"],
   );
+  const [compare, setCompare] = useState(false);
 
   function handlePeriodChange(p: AnalyticsPeriod) {
     const defaultGran = PERIOD_DEFAULT_GRANULARITY[p];
@@ -945,8 +1086,10 @@ function AnalyticsPage() {
         <PeriodGranularitySelector
           period={period}
           granularity={granularity}
+          compare={compare}
           onPeriodChange={handlePeriodChange}
           onGranularityChange={setGranularity}
+          onCompareToggle={() => setCompare((c) => !c)}
         />
       </div>
       <Suspense
@@ -954,7 +1097,11 @@ function AnalyticsPage() {
           <div className="text-muted-foreground text-sm">Loading...</div>
         }
       >
-        <AnalyticsContent period={period} granularity={granularity} />
+        <AnalyticsContent
+          period={period}
+          granularity={granularity}
+          compare={compare}
+        />
       </Suspense>
     </div>
   );
