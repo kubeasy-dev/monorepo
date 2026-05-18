@@ -14,10 +14,6 @@ import type { AppEnv } from "../../middleware/session";
 const periodSchema = z
   .enum(["24h", "7d", "30d", "3m", "6m", "1y"])
   .default("30d");
-const granularitySchema = z
-  .enum(["hour", "day", "week", "month"])
-  .default("day");
-
 // compare=true fetches the previous period and includes it in the response
 const compareSchema = z
   .string()
@@ -28,11 +24,6 @@ const periodQuerySchema = z.object({
   period: periodSchema,
   compare: compareSchema,
 });
-const periodGranQuerySchema = z.object({
-  period: periodSchema,
-  granularity: granularitySchema,
-});
-
 const PERIOD_INTERVALS: Record<string, string> = {
   "24h": "24 hours",
   "7d": "7 days",
@@ -40,27 +31,6 @@ const PERIOD_INTERVALS: Record<string, string> = {
   "3m": "3 months",
   "6m": "6 months",
   "1y": "1 year",
-};
-
-// PostgreSQL date_trunc truncation level and generate_series step per granularity
-const GRAN_TRUNC: Record<string, string> = {
-  hour: "hour",
-  day: "day",
-  week: "week",
-  month: "month",
-};
-const GRAN_STEP: Record<string, string> = {
-  hour: "1 hour",
-  day: "1 day",
-  week: "1 week",
-  month: "1 month",
-};
-// to_char format string per granularity — always produces a sortable ISO-ish string
-const GRAN_FORMAT: Record<string, string> = {
-  hour: 'YYYY-MM-DD"T"HH24:MI',
-  day: "YYYY-MM-DD",
-  week: "YYYY-MM-DD",
-  month: "YYYY-MM-DD",
 };
 
 // ── Period range helper ────────────────────────────────────────────────────────
@@ -123,16 +93,6 @@ const failingObjectiveRowSchema = z.object({
     .max(256)
     .regex(/^[\w.-]+$/),
   fail_count: z.coerce.number(),
-});
-
-const SubmissionsHistogramBucketSchema = z.object({
-  date: z.string(),
-  ok: z.number(),
-  ko: z.number(),
-});
-
-const SubmissionsHistogramOutputSchema = z.object({
-  buckets: z.array(SubmissionsHistogramBucketSchema),
 });
 
 // ── Rate limit ─────────────────────────────────────────────────────────────────
@@ -427,69 +387,5 @@ export const adminAnalytics = new Hono<AppEnv>()
             }
           : undefined,
       });
-    },
-  )
-  .get(
-    "/challenges/:slug/submissions-histogram",
-    describeRoute({
-      tags: ["Admin"],
-      summary:
-        "OK/KO submission counts for a challenge, bucketed by granularity",
-      security: sessionSecurity,
-      responses: {
-        200: {
-          description: "Submissions histogram",
-          content: {
-            "application/json": {
-              schema: resolver(SubmissionsHistogramOutputSchema),
-            },
-          },
-        },
-      },
-    }),
-    validator("query", periodGranQuerySchema),
-    analyticsRateLimit,
-    async (c) => {
-      const slug = c.req.param("slug");
-      const { period, granularity } = c.req.valid("query");
-      const trunc = GRAN_TRUNC[granularity];
-      const step = GRAN_STEP[granularity];
-      const format = GRAN_FORMAT[granularity];
-      const interval = PERIOD_INTERVALS[period];
-
-      const rows = await db.execute(sql`
-        WITH buckets AS (
-          SELECT generate_series(
-            date_trunc(${trunc}, now() - ${sql.raw(`INTERVAL '${interval}'`)}),
-            date_trunc(${trunc}, now()),
-            ${sql.raw(`'${step}'::interval`)}
-          ) AS bucket
-        ),
-        counts AS (
-          SELECT
-            date_trunc(${trunc}, ${userSubmission.timestamp}) AS bucket,
-            COUNT(*) FILTER (WHERE ${userSubmission.validated} = true)  AS ok,
-            COUNT(*) FILTER (WHERE ${userSubmission.validated} = false) AS ko
-          FROM ${userSubmission}
-          WHERE ${userSubmission.challengeSlug} = ${slug}
-            AND ${userSubmission.timestamp} >= now() - ${sql.raw(`INTERVAL '${interval}'`)}
-          GROUP BY 1
-        )
-        SELECT
-          to_char(b.bucket, ${format}) AS date,
-          COALESCE(c.ok, 0) AS ok,
-          COALESCE(c.ko, 0) AS ko
-        FROM buckets b
-        LEFT JOIN counts c ON c.bucket = b.bucket
-        ORDER BY b.bucket
-      `);
-
-      const buckets = rows.rows.map((r) => ({
-        date: String(r.date),
-        ok: Number(r.ok),
-        ko: Number(r.ko),
-      }));
-
-      return c.json({ buckets });
     },
   );

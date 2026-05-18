@@ -14,29 +14,22 @@ import {
   ArrowUp,
   BarChart3,
   CheckCircle,
-  ChevronDown,
-  ChevronRight,
   Monitor,
   Terminal,
   TrendingUp,
   Trophy,
   Users,
 } from "lucide-react";
-import React, { Suspense, useEffect, useState } from "react";
+import type React from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   type AnalyticsChallengeItem,
   type AnalyticsCliOutput,
   type AnalyticsFunnelOutput,
-  type AnalyticsGranularity,
   type AnalyticsPeriod,
-  type AnalyticsSubmissionsHistogramOutput,
-  adminAnalyticsChallengeHistogramOptions,
   adminAnalyticsChallengesOptions,
   adminAnalyticsCliOptions,
   adminAnalyticsFunnelOptions,
-  GRANULARITY_LABELS,
-  PERIOD_DEFAULT_GRANULARITY,
-  PERIOD_GRANULARITIES,
   PERIOD_LABELS,
 } from "@/lib/query-options";
 
@@ -223,39 +216,6 @@ const CHART_COLORS = {
   completers: "oklch(0.7 0.22 50)",
 } as const;
 
-// ─── Bucket label formatter ───────────────────────────────────────────────────
-
-function formatBucketLabel(
-  bucket: string,
-  granularity: AnalyticsGranularity,
-): string {
-  // Hourly buckets come as "YYYY-MM-DDTHH:MM", others as "YYYY-MM-DD"
-  const isHourly = bucket.includes("T");
-  if (isHourly) {
-    const [datePart, timePart] = bucket.split("T");
-    const d = new Date(`${datePart}T${timePart}:00Z`);
-    return d.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone: "UTC",
-    });
-  }
-  const d = new Date(`${bucket}T12:00:00Z`);
-  if (granularity === "month") {
-    return d.toLocaleDateString("en-US", {
-      month: "short",
-      year: "2-digit",
-      timeZone: "UTC",
-    });
-  }
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-}
-
 // ─── Challenge stats ──────────────────────────────────────────────────────────
 
 function CompletionBar({
@@ -336,160 +296,9 @@ function ChallengesGlobalStats({
 const OK_COLOR = "oklch(0.55 0.18 150)";
 const KO_COLOR = "oklch(0.55 0.22 25)";
 
-function SubmissionsHistogram({
-  data,
-  granularity,
-}: {
-  data: AnalyticsSubmissionsHistogramOutput;
-  granularity: AnalyticsGranularity;
-}) {
-  const { buckets } = data;
-  const VW = 860;
-  const VH = 160;
-  const pad = { t: 10, r: 10, b: 36, l: 10 };
-  const CW = VW - pad.l - pad.r;
-  const CH = VH - pad.t - pad.b;
-  const n = buckets.length;
-
-  const maxVal = Math.max(1, ...buckets.map((b) => b.ok + b.ko));
-  const niceMax = Math.ceil(maxVal / 2) * 2;
-
-  const barGroupW = n > 0 ? CW / n : CW;
-  const gap = barGroupW * 0.15;
-  const barW = (barGroupW - gap * 3) / 2;
-
-  const yOf = (v: number) => pad.t + CH * (1 - v / niceMax);
-
-  // Show label every ~7 days to avoid crowding
-  const labelStep = Math.ceil(n / 12);
-
-  return (
-    <svg
-      viewBox={`0 0 ${VW} ${VH}`}
-      className="w-full"
-      style={{ height: "160px" }}
-      role="img"
-      aria-label="Daily OK/KO submissions over the last 30 days"
-    >
-      {/* Baseline */}
-      <line
-        x1={pad.l}
-        y1={pad.t + CH}
-        x2={pad.l + CW}
-        y2={pad.t + CH}
-        stroke="oklch(0.15 0 0)"
-        strokeWidth="1.5"
-      />
-
-      {buckets.map((b, i) => {
-        const gx = pad.l + i * barGroupW + gap;
-        const okH = CH * (b.ok / niceMax);
-        const koH = CH * (b.ko / niceMax);
-        const showLabel = i % labelStep === 0;
-        const label = formatBucketLabel(b.date, granularity);
-
-        return (
-          <g key={b.date}>
-            {/* OK bar */}
-            <rect
-              x={gx}
-              y={yOf(b.ok)}
-              width={barW}
-              height={okH}
-              fill={OK_COLOR}
-            />
-            {/* KO bar */}
-            <rect
-              x={gx + barW + gap}
-              y={yOf(b.ko)}
-              width={barW}
-              height={koH}
-              fill={KO_COLOR}
-            />
-            {showLabel && (
-              <text
-                x={gx + barW}
-                y={pad.t + CH + 20}
-                textAnchor="middle"
-                fontSize="10"
-                fontFamily="Geist Variable, sans-serif"
-                fontWeight="700"
-                fill="oklch(0.45 0 0)"
-              >
-                {label}
-              </text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-function ChallengeHistogramRow({
-  slug,
-  period,
-  granularity,
-}: {
-  slug: string;
-  period: AnalyticsPeriod;
-  granularity: AnalyticsGranularity;
-}) {
-  const { data } = useSuspenseQuery(
-    adminAnalyticsChallengeHistogramOptions(slug, period, granularity),
-  );
-  const total = data.buckets.reduce((s, b) => s + b.ok + b.ko, 0);
-  const totalOk = data.buckets.reduce((s, b) => s + b.ok, 0);
-  const totalKo = data.buckets.reduce((s, b) => s + b.ko, 0);
-
-  return (
-    <TableRow>
-      <TableCell colSpan={7} className="bg-muted/40 px-6 py-4">
-        <div className="flex items-center gap-6 mb-3">
-          <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-            {PERIOD_LABELS[period]} · {GRANULARITY_LABELS[granularity]}
-          </span>
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-block w-3 h-3 rounded-sm"
-              style={{ background: OK_COLOR }}
-            />
-            <span className="text-xs font-bold">
-              OK — {totalOk.toLocaleString()}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-block w-3 h-3 rounded-sm"
-              style={{ background: KO_COLOR }}
-            />
-            <span className="text-xs font-bold">
-              KO — {totalKo.toLocaleString()}
-            </span>
-          </div>
-          {total > 0 && (
-            <span className="text-xs font-bold text-muted-foreground">
-              {((totalOk / total) * 100).toFixed(1)}% success rate
-            </span>
-          )}
-        </div>
-        <Suspense
-          fallback={
-            <div className="text-xs text-muted-foreground">Loading…</div>
-          }
-        >
-          <SubmissionsHistogram data={data} granularity={granularity} />
-        </Suspense>
-      </TableCell>
-    </TableRow>
-  );
-}
-
 function ChallengesSection({
   challenges,
   previousChallenges,
-  period,
-  granularity,
 }: {
   challenges: AnalyticsChallengeItem[];
   previousChallenges?: {
@@ -497,17 +306,10 @@ function ChallengesSection({
     completionRate: number;
     uniqueUsers: number;
   }[];
-  period: AnalyticsPeriod;
-  granularity: AnalyticsGranularity;
 }) {
   const animated = useBarAnimation();
   const sorted = [...challenges].sort((a, b) => b.uniqueUsers - a.uniqueUsers);
-  const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const prevMap = new Map(previousChallenges?.map((p) => [p.challengeSlug, p]));
-
-  function toggle(slug: string) {
-    setExpandedSlug((prev) => (prev === slug ? null : slug));
-  }
 
   return (
     <section className="mb-12">
@@ -521,7 +323,6 @@ function ChallengesSection({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-6" />
             <TableHead>Challenge</TableHead>
             <TableHead className="text-right">Tried</TableHead>
             <TableHead className="text-right">Submissions</TableHead>
@@ -533,108 +334,86 @@ function ChallengesSection({
         </TableHeader>
         <TableBody>
           {sorted.map((item, i) => {
-            const isExpanded = expandedSlug === item.challengeSlug;
             const prev = prevMap.get(item.challengeSlug);
             const failedSubmissions =
               item.totalAttempts - item.validatedSubmissions;
             return (
-              <React.Fragment key={item.challengeSlug}>
-                <TableRow
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => toggle(item.challengeSlug)}
-                >
-                  <TableCell className="pr-0">
-                    {isExpanded ? (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              <TableRow key={item.challengeSlug}>
+                <TableCell className="font-mono font-bold">
+                  {item.challengeSlug}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>{item.uniqueUsers}</span>
+                    {prev && (
+                      <DeltaBadge
+                        current={item.uniqueUsers}
+                        previous={prev.uniqueUsers}
+                      />
                     )}
-                  </TableCell>
-                  <TableCell className="font-mono font-bold">
-                    {item.challengeSlug}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <span>{item.uniqueUsers}</span>
-                      {prev && (
-                        <DeltaBadge
-                          current={item.uniqueUsers}
-                          previous={prev.uniqueUsers}
-                        />
-                      )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right tabular-nums font-bold">
+                  {item.totalAttempts}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {item.avgAttempts.toFixed(1)}×
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2 text-sm font-bold tabular-nums">
+                    <span style={{ color: OK_COLOR }}>
+                      {item.validatedSubmissions} ✓
+                    </span>
+                    <span style={{ color: KO_COLOR }}>
+                      {failedSubmissions} ✗
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <CompletionBar
+                        rate={item.completionRate}
+                        animated={animated}
+                        delay={i * 40}
+                      />
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums font-bold">
-                    {item.totalAttempts}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {item.avgAttempts.toFixed(1)}×
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2 text-sm font-bold tabular-nums">
-                      <span style={{ color: OK_COLOR }}>
-                        {item.validatedSubmissions} ✓
-                      </span>
-                      <span style={{ color: KO_COLOR }}>
-                        {failedSubmissions} ✗
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <CompletionBar
-                          rate={item.completionRate}
-                          animated={animated}
-                          delay={i * 40}
-                        />
-                      </div>
-                      {prev && (
-                        <DeltaBadge
-                          current={item.completionRate}
-                          previous={prev.completionRate}
-                        />
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {item.topFailingObjectives.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {item.topFailingObjectives.slice(0, 3).map((o) => (
-                          <span
-                            key={o.key}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold neo-border"
-                            style={{
-                              background: "oklch(0.97 0.02 25)",
-                              color: KO_COLOR,
-                            }}
-                          >
-                            {o.key}
-                            <span className="opacity-70">×{o.failCount}</span>
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                    {prev && (
+                      <DeltaBadge
+                        current={item.completionRate}
+                        previous={prev.completionRate}
+                      />
                     )}
-                  </TableCell>
-                </TableRow>
-                {isExpanded && (
-                  <Suspense>
-                    <ChallengeHistogramRow
-                      slug={item.challengeSlug}
-                      period={period}
-                      granularity={granularity}
-                    />
-                  </Suspense>
-                )}
-              </React.Fragment>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {item.topFailingObjectives.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {item.topFailingObjectives.slice(0, 3).map((o) => (
+                        <span
+                          key={o.key}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold neo-border"
+                          style={{
+                            background: "oklch(0.97 0.02 25)",
+                            color: KO_COLOR,
+                          }}
+                        >
+                          {o.key}
+                          <span className="opacity-70">×{o.failCount}</span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+              </TableRow>
             );
           })}
           {sorted.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={8}
+                colSpan={7}
                 className="py-8 text-center text-muted-foreground"
               >
                 No submission data yet
@@ -822,29 +601,20 @@ function CompareToggle({
   );
 }
 
-function PeriodGranularitySelector({
+function PeriodSelector({
   period,
-  granularity,
   compare,
   onPeriodChange,
-  onGranularityChange,
   onCompareToggle,
 }: {
   period: AnalyticsPeriod;
-  granularity: AnalyticsGranularity;
   compare: boolean;
   onPeriodChange: (p: AnalyticsPeriod) => void;
-  onGranularityChange: (g: AnalyticsGranularity) => void;
   onCompareToggle: () => void;
 }) {
   const periodOptions = (Object.keys(PERIOD_LABELS) as AnalyticsPeriod[]).map(
     (p) => ({ value: p, label: PERIOD_LABELS[p] }),
   );
-
-  const granOptions = PERIOD_GRANULARITIES[period].map((g) => ({
-    value: g,
-    label: GRANULARITY_LABELS[g],
-  }));
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
@@ -852,12 +622,6 @@ function PeriodGranularitySelector({
         options={periodOptions}
         value={period}
         onChange={onPeriodChange}
-      />
-      <span className="text-xs font-bold text-muted-foreground">by</span>
-      <SegmentedControl
-        options={granOptions}
-        value={granularity}
-        onChange={onGranularityChange}
       />
       <CompareToggle enabled={compare} onToggle={onCompareToggle} />
     </div>
@@ -868,11 +632,9 @@ function PeriodGranularitySelector({
 
 function AnalyticsContent({
   period,
-  granularity,
   compare,
 }: {
   period: AnalyticsPeriod;
-  granularity: AnalyticsGranularity;
   compare: boolean;
 }) {
   const { data: funnel } = useSuspenseQuery(
@@ -891,8 +653,6 @@ function AnalyticsContent({
       <ChallengesSection
         challenges={challenges.challenges}
         previousChallenges={challenges.previous}
-        period={period}
-        granularity={granularity}
       />
       <CliSection data={cli} />
     </>
@@ -901,17 +661,7 @@ function AnalyticsContent({
 
 function AnalyticsPage() {
   const [period, setPeriod] = useState<AnalyticsPeriod>("30d");
-  const [granularity, setGranularity] = useState<AnalyticsGranularity>(
-    PERIOD_DEFAULT_GRANULARITY["30d"],
-  );
   const [compare, setCompare] = useState(false);
-
-  function handlePeriodChange(p: AnalyticsPeriod) {
-    const defaultGran = PERIOD_DEFAULT_GRANULARITY[p];
-    const available = PERIOD_GRANULARITIES[p];
-    setPeriod(p);
-    setGranularity(available.includes(granularity) ? granularity : defaultGran);
-  }
 
   return (
     <div className="py-8">
@@ -920,12 +670,10 @@ function AnalyticsPage() {
           <TrendingUp className="w-7 h-7" />
           <h1 className="text-2xl font-black">Analytics</h1>
         </div>
-        <PeriodGranularitySelector
+        <PeriodSelector
           period={period}
-          granularity={granularity}
           compare={compare}
-          onPeriodChange={handlePeriodChange}
-          onGranularityChange={setGranularity}
+          onPeriodChange={setPeriod}
           onCompareToggle={() => setCompare((c) => !c)}
         />
       </div>
@@ -934,11 +682,7 @@ function AnalyticsPage() {
           <div className="text-muted-foreground text-sm">Loading...</div>
         }
       >
-        <AnalyticsContent
-          period={period}
-          granularity={granularity}
-          compare={compare}
-        />
+        <AnalyticsContent period={period} compare={compare} />
       </Suspense>
     </div>
   );

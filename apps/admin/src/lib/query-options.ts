@@ -9,10 +9,9 @@ import type {
 import { queryOptions } from "@tanstack/react-query";
 import { apiFetch } from "./api-client";
 
-// ── Period / granularity types (mirrored from API) ────────────────────────────
+// ── Period type (mirrored from API) ───────────────────────────────────────────
 
 export type AnalyticsPeriod = "24h" | "7d" | "30d" | "3m" | "6m" | "1y";
-export type AnalyticsGranularity = "hour" | "day" | "week" | "month";
 
 export const PERIOD_LABELS: Record<AnalyticsPeriod, string> = {
   "24h": "24 h",
@@ -21,39 +20,6 @@ export const PERIOD_LABELS: Record<AnalyticsPeriod, string> = {
   "3m": "3 mo",
   "6m": "6 mo",
   "1y": "1 yr",
-};
-
-export const GRANULARITY_LABELS: Record<AnalyticsGranularity, string> = {
-  hour: "Hour",
-  day: "Day",
-  week: "Week",
-  month: "Month",
-};
-
-/** Granularities available for each period. */
-export const PERIOD_GRANULARITIES: Record<
-  AnalyticsPeriod,
-  AnalyticsGranularity[]
-> = {
-  "24h": ["hour", "day"],
-  "7d": ["day", "week"],
-  "30d": ["day", "week"],
-  "3m": ["week", "month"],
-  "6m": ["week", "month"],
-  "1y": ["week", "month"],
-};
-
-/** Default granularity for each period. */
-export const PERIOD_DEFAULT_GRANULARITY: Record<
-  AnalyticsPeriod,
-  AnalyticsGranularity
-> = {
-  "24h": "hour",
-  "7d": "day",
-  "30d": "day",
-  "3m": "week",
-  "6m": "week",
-  "1y": "month",
 };
 
 // ── Shared output types ───────────────────────────────────────────────────────
@@ -98,19 +64,6 @@ export type AnalyticsCliOutput = {
   byOs: { os: string; count: number }[];
   byEventType: { eventType: string; count: number }[];
   previous?: { totalEvents: number; uniqueUsers: number };
-};
-
-export type AnalyticsFunnelHistoryOutput = {
-  weeks: {
-    week: string;
-    newSignups: number;
-    newStarters: number;
-    newCompleters: number;
-  }[];
-};
-
-export type AnalyticsSubmissionsHistogramOutput = {
-  buckets: { date: string; ok: number; ko: number }[];
 };
 
 // ── Query options ─────────────────────────────────────────────────────────────
@@ -179,41 +132,6 @@ export function adminAnalyticsCliOptions(
     queryFn: () =>
       apiFetch<AnalyticsCliOutput>(
         `/admin/analytics/cli?period=${period}&compare=${compare}`,
-      ),
-  });
-}
-
-export function adminAnalyticsFunnelHistoryOptions(
-  period: AnalyticsPeriod,
-  granularity: AnalyticsGranularity,
-) {
-  return queryOptions({
-    queryKey: ["admin", "analytics", "funnel", "history", period, granularity],
-    queryFn: () =>
-      apiFetch<AnalyticsFunnelHistoryOutput>(
-        `/admin/analytics/funnel/history?period=${period}&granularity=${granularity}`,
-      ),
-  });
-}
-
-export function adminAnalyticsChallengeHistogramOptions(
-  slug: string,
-  period: AnalyticsPeriod,
-  granularity: AnalyticsGranularity,
-) {
-  return queryOptions({
-    queryKey: [
-      "admin",
-      "analytics",
-      "challenges",
-      slug,
-      "histogram",
-      period,
-      granularity,
-    ],
-    queryFn: () =>
-      apiFetch<AnalyticsSubmissionsHistogramOutput>(
-        `/admin/analytics/challenges/${slug}/submissions-histogram?period=${period}&granularity=${granularity}`,
       ),
   });
 }
