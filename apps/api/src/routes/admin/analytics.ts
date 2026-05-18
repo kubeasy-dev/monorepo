@@ -109,7 +109,7 @@ export const adminAnalytics = new Hono<AppEnv>()
     "/funnel/history",
     describeRoute({
       tags: ["Admin"],
-      summary: "Weekly funnel evolution over the last 12 weeks",
+      summary: "Monthly funnel evolution over the last 12 months",
       security: sessionSecurity,
       responses: {
         200: {
@@ -126,11 +126,11 @@ export const adminAnalytics = new Hono<AppEnv>()
     async (c) => {
       const rows = await db.execute(sql`
         WITH
-        weeks AS (
+        months AS (
           SELECT generate_series(
-            date_trunc('week', now() - INTERVAL '11 weeks'),
-            date_trunc('week', now()),
-            '1 week'::interval
+            date_trunc('month', now() - INTERVAL '11 months'),
+            date_trunc('month', now()),
+            '1 month'::interval
           )::date AS week
         ),
         first_starts AS (
@@ -145,33 +145,33 @@ export const adminAnalytics = new Hono<AppEnv>()
           GROUP BY user_id
         ),
         weekly_signups AS (
-          SELECT date_trunc('week', created_at)::date AS week, COUNT(*)::int AS count
+          SELECT date_trunc('month', created_at)::date AS week, COUNT(*)::int AS count
           FROM "user"
-          WHERE created_at >= now() - INTERVAL '12 weeks'
+          WHERE created_at >= now() - INTERVAL '12 months'
           GROUP BY 1
         ),
         weekly_starters AS (
-          SELECT date_trunc('week', first_at)::date AS week, COUNT(*)::int AS count
+          SELECT date_trunc('month', first_at)::date AS week, COUNT(*)::int AS count
           FROM first_starts
-          WHERE first_at >= now() - INTERVAL '12 weeks'
+          WHERE first_at >= now() - INTERVAL '12 months'
           GROUP BY 1
         ),
         weekly_completers AS (
-          SELECT date_trunc('week', first_at)::date AS week, COUNT(*)::int AS count
+          SELECT date_trunc('month', first_at)::date AS week, COUNT(*)::int AS count
           FROM first_completions
-          WHERE first_at >= now() - INTERVAL '12 weeks'
+          WHERE first_at >= now() - INTERVAL '12 months'
           GROUP BY 1
         )
         SELECT
-          w.week::text,
+          m.week::text,
           COALESCE(s.count, 0) AS new_signups,
           COALESCE(st.count, 0) AS new_starters,
           COALESCE(c.count, 0) AS new_completers
-        FROM weeks w
-        LEFT JOIN weekly_signups s ON s.week = w.week
-        LEFT JOIN weekly_starters st ON st.week = w.week
-        LEFT JOIN weekly_completers c ON c.week = w.week
-        ORDER BY w.week
+        FROM months m
+        LEFT JOIN weekly_signups s ON s.week = m.week
+        LEFT JOIN weekly_starters st ON st.week = m.week
+        LEFT JOIN weekly_completers c ON c.week = m.week
+        ORDER BY m.week
       `);
 
       const weeks = rows.rows.map((r) => ({

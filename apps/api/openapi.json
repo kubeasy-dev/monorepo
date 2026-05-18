@@ -2535,7 +2535,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Weekly funnel evolution over the last 12 weeks",
+        "summary": "Monthly funnel evolution over the last 12 months",
         "security": [
           {
             "SessionAuth": []

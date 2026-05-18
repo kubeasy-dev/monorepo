@@ -137,7 +137,7 @@ const SERIES = [
 
 function formatWeekLabel(week: string) {
   const d = new Date(`${week}T12:00:00Z`);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 }
 
 function FunnelLineChart({
@@ -187,7 +187,7 @@ function FunnelLineChart({
       className="w-full"
       style={{ height: "220px" }}
       role="img"
-      aria-label="Funnel evolution over the last 12 weeks"
+      aria-label="Funnel evolution over the last 12 months"
       onMouseMove={onMouseMove}
       onMouseLeave={() => setHoveredIdx(null)}
     >
@@ -215,9 +215,8 @@ function FunnelLineChart({
         strokeWidth="2"
       />
 
-      {/* X axis labels — every other week if dense */}
+      {/* X axis labels */}
       {weeks.map((w, i) => {
-        if (n > 8 && i % 2 !== 0) return null;
         return (
           <text
             key={w.week}
@@ -324,7 +323,7 @@ function FunnelHistorySection({
 }) {
   return (
     <section className="mb-12">
-      <h2 className="text-xl font-black mb-4">Funnel Over Time</h2>
+      <h2 className="text-xl font-black mb-4">Funnel Over Time (12 months)</h2>
       <div className="bg-secondary neo-border-thick neo-shadow p-6">
         {/* Legend */}
         <div className="flex gap-6 mb-5">
