@@ -169,6 +169,7 @@ function TimelineRow({
             <div
               role="button"
               tabIndex={0}
+              aria-expanded={hovered && !!item.objectives?.length}
               className={cn(
                 "flex items-center justify-between px-4 py-2.5 neo-border-thick cursor-default transition-transform",
                 item.validated
@@ -178,6 +179,10 @@ function TimelineRow({
               onClick={() => setHovered((v) => !v)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") setHovered((v) => !v);
+              }}
+              onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node))
+                  setHovered(false);
               }}
             >
               <div className="flex items-center gap-2.5">
@@ -296,7 +301,7 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
       });
     }
 
-    if (status === "completed" && s.completedAt) {
+    if (s.status === "completed" && s.completedAt) {
       items.push({
         type: "completed",
         timestamp: new Date(s.completedAt),
@@ -313,7 +318,7 @@ export function ChallengeTimeline({ slug }: { slug: string }) {
       items,
       auditCount: items.filter((i) => i.type === "audit").length,
     };
-  }, [statusData, submissionsData, status]);
+  }, [statusData, submissionsData]);
 
   // Returns null while loading (WEB-05: status/submissions are client-only queries).
   // The card appears after both queries resolve, which causes a one-time layout shift.
