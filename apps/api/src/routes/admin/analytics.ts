@@ -1,10 +1,12 @@
-import { countDistinct, sql } from "drizzle-orm";
+import { countDistinct, ne, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
 import { z } from "zod";
 import { db } from "../../db";
 import { user, userProgress, userSubmission } from "../../db/schema";
 import { sessionSecurity } from "../../lib/openapi-shared";
+import { redis } from "../../lib/redis";
+import { slidingWindowRateLimit } from "../../middleware/rate-limit";
 import type { AppEnv } from "../../middleware/session";
 
 const FunnelOutputSchema = z.object({
@@ -22,7 +24,7 @@ const ChallengeStatsItemSchema = z.object({
   challengeSlug: z.string(),
   totalAttempts: z.number(),
   uniqueUsers: z.number(),
-  completions: z.number(),
+  validatedSubmissions: z.number(),
   completionRate: z.number(),
   avgAttempts: z.number(),
   topFailingObjectives: z.array(FailingObjectiveSchema),
@@ -30,6 +32,22 @@ const ChallengeStatsItemSchema = z.object({
 
 const ChallengesAnalyticsOutputSchema = z.object({
   challenges: z.array(ChallengeStatsItemSchema),
+});
+
+// Schema for validating raw JSONB rows from failing objectives query
+const failingObjectiveRowSchema = z.object({
+  challenge_slug: z.string(),
+  key: z
+    .string()
+    .max(256)
+    .regex(/^[\w.-]+$/),
+  fail_count: z.coerce.number(),
+});
+
+const analyticsRateLimit = slidingWindowRateLimit(redis, {
+  windowMs: 60_000,
+  max: 30,
+  keyFn: (c) => `admin-analytics:${c.get("user")?.id ?? "unknown"}`,
 });
 
 export const adminAnalytics = new Hono<AppEnv>()
@@ -48,6 +66,7 @@ export const adminAnalytics = new Hono<AppEnv>()
         },
       },
     }),
+    analyticsRateLimit,
     async (c) => {
       const [totalRow] = await db
         .select({ totalUsers: sql<number>`COUNT(*)` })
@@ -58,7 +77,7 @@ export const adminAnalytics = new Hono<AppEnv>()
           usersStarted: countDistinct(userProgress.userId),
         })
         .from(userProgress)
-        .where(sql`${userProgress.status} != 'not_started'`);
+        .where(ne(userProgress.status, "not_started"));
 
       const [completedRow] = await db
         .select({
@@ -91,6 +110,7 @@ export const adminAnalytics = new Hono<AppEnv>()
         },
       },
     }),
+    analyticsRateLimit,
     async (c) => {
       // Aggregate base stats per challenge
       const baseStats = await db
@@ -98,10 +118,11 @@ export const adminAnalytics = new Hono<AppEnv>()
           challengeSlug: userSubmission.challengeSlug,
           totalAttempts: sql<number>`COUNT(*)`,
           uniqueUsers: countDistinct(userSubmission.userId),
-          completions: sql<number>`COUNT(*) FILTER (WHERE ${userSubmission.validated} = true)`,
+          validatedSubmissions: sql<number>`COUNT(DISTINCT ${userSubmission.userId}) FILTER (WHERE ${userSubmission.validated} = true)`,
         })
         .from(userSubmission)
-        .groupBy(userSubmission.challengeSlug);
+        .groupBy(userSubmission.challengeSlug)
+        .orderBy(userSubmission.challengeSlug);
 
       // Get top failing objectives per challenge using jsonb_array_elements
       const failingObjectivesRows = await db.execute(sql`
@@ -118,15 +139,15 @@ export const adminAnalytics = new Hono<AppEnv>()
       `);
 
       // Group failing objectives by challenge slug, keep top 5
+      // Validate each row with Zod before processing
       const failingBySlug = new Map<
         string,
         Array<{ key: string; failCount: number }>
       >();
-      for (const row of failingObjectivesRows.rows as Array<{
-        challenge_slug: string;
-        key: string;
-        fail_count: string;
-      }>) {
+      for (const row of failingObjectivesRows.rows
+        .map((r) => failingObjectiveRowSchema.safeParse(r))
+        .filter((r) => r.success)
+        .map((r) => r.data)) {
         const existing = failingBySlug.get(row.challenge_slug) ?? [];
         if (existing.length < 5) {
           existing.push({ key: row.key, failCount: Number(row.fail_count) });
@@ -137,17 +158,17 @@ export const adminAnalytics = new Hono<AppEnv>()
       const challenges = baseStats.map((row) => {
         const totalAttempts = Number(row.totalAttempts);
         const uniqueUsers = Number(row.uniqueUsers);
-        const completions = Number(row.completions);
-        const completionRate = uniqueUsers > 0 ? completions / uniqueUsers : 0;
+        const validatedSubmissions = Number(row.validatedSubmissions);
+        const completionRate =
+          uniqueUsers > 0 ? validatedSubmissions / uniqueUsers : 0;
         const avgAttempts = uniqueUsers > 0 ? totalAttempts / uniqueUsers : 0;
-        const topFailingObjectives =
-          failingBySlug.get(row.challengeSlug) ?? [];
+        const topFailingObjectives = failingBySlug.get(row.challengeSlug) ?? [];
 
         return {
           challengeSlug: row.challengeSlug,
           totalAttempts,
           uniqueUsers,
-          completions,
+          validatedSubmissions,
           completionRate,
           avgAttempts,
           topFailingObjectives,

@@ -2563,7 +2563,7 @@
                           "uniqueUsers": {
                             "type": "number"
                           },
-                          "completions": {
+                          "validatedSubmissions": {
                             "type": "number"
                           },
                           "completionRate": {
@@ -2595,7 +2595,7 @@
                           "challengeSlug",
                           "totalAttempts",
                           "uniqueUsers",
-                          "completions",
+                          "validatedSubmissions",
                           "completionRate",
                           "avgAttempts",
                           "topFailingObjectives"
