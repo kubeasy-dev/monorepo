@@ -565,7 +565,7 @@ function ChallengeHistogramRow({
       <TableCell colSpan={6} className="bg-muted/40 px-6 py-4">
         <div className="flex items-center gap-6 mb-3">
           <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-            Last 30 days
+            {PERIOD_LABELS[period]} · {GRANULARITY_LABELS[granularity]}
           </span>
           <div className="flex items-center gap-2">
             <span
