@@ -90,7 +90,7 @@ src/
     auth.ts               # Better Auth server config
     cors.ts               # Allowed origins list
     redis.ts              # Shared ioredis client
-    analytics-server.ts   # PostHog server-side event tracking
+    analytics-server.ts   # Server-side analytics
     resend.ts             # Resend email client
     env.ts                # Environment variable validation
   schemas/          # Zod schemas for request/response bodies
@@ -197,8 +197,6 @@ GOOGLE_CLIENT_SECRET=
 MICROSOFT_CLIENT_ID=
 MICROSOFT_CLIENT_SECRET=
 RESEND_API_KEY=        # Transactional email
-POSTHOG_KEY=           # PostHog project API key (analytics disabled if missing)
-POSTHOG_HOST=          # PostHog host (e.g. https://eu.i.posthog.com)
 OTEL_EXPORTER_OTLP_ENDPOINT=  # OpenTelemetry collector endpoint (traces/metrics/logs)
 PORT=3001              # HTTP server port (optional, defaults to 3001)
 ```

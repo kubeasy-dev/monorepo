@@ -92,8 +92,6 @@ Create `.env` files in each app (see their respective CLAUDE.md). Key variables:
 | `GOOGLE_CLIENT_ID/SECRET` | `apps/api` | Google OAuth |
 | `MICROSOFT_CLIENT_ID/SECRET` | `apps/api` | Microsoft OAuth |
 | `RESEND_API_KEY` | `apps/api` | Transactional email |
-| `POSTHOG_KEY` | `apps/api` | PostHog project API key (analytics) |
-| `POSTHOG_HOST` | `apps/api` | PostHog host (e.g. `https://eu.i.posthog.com`) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `apps/api`, `apps/web` | OpenTelemetry collector endpoint |
 | `VITE_API_URL` | `apps/web`, `apps/admin` | API base URL for client-side fetch |
 | `VITE_UMAMI_ID` | `apps/web` | Umami website ID (Vite) |
