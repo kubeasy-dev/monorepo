@@ -37,6 +37,15 @@ export type AnalyticsCliOutput = {
   byEventType: { eventType: string; count: number }[];
 };
 
+export type AnalyticsFunnelHistoryOutput = {
+  weeks: {
+    week: string;
+    newSignups: number;
+    newStarters: number;
+    newCompleters: number;
+  }[];
+};
+
 export function adminChallengesOptions() {
   return queryOptions({
     queryKey: ["admin", "challenges"],
@@ -85,5 +94,13 @@ export function adminAnalyticsCliOptions() {
   return queryOptions({
     queryKey: ["admin", "analytics", "cli"],
     queryFn: () => apiFetch<AnalyticsCliOutput>("/admin/analytics/cli"),
+  });
+}
+
+export function adminAnalyticsFunnelHistoryOptions() {
+  return queryOptions({
+    queryKey: ["admin", "analytics", "funnel", "history"],
+    queryFn: () =>
+      apiFetch<AnalyticsFunnelHistoryOutput>("/admin/analytics/funnel/history"),
   });
 }

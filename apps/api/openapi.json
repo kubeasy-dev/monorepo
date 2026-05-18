@@ -2529,6 +2529,63 @@
         }
       }
     },
+    "/api/admin/analytics/funnel/history": {
+      "get": {
+        "operationId": "getApiAdminAnalyticsFunnelHistory",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Weekly funnel evolution over the last 12 weeks",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Funnel history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "weeks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "week": {
+                            "type": "string"
+                          },
+                          "newSignups": {
+                            "type": "number"
+                          },
+                          "newStarters": {
+                            "type": "number"
+                          },
+                          "newCompleters": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "week",
+                          "newSignups",
+                          "newStarters",
+                          "newCompleters"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "weeks"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/analytics/challenges": {
       "get": {
         "operationId": "getApiAdminAnalyticsChallenges",

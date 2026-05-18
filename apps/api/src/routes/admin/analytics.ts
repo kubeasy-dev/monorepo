@@ -15,6 +15,17 @@ const FunnelOutputSchema = z.object({
   usersCompleted: z.number(),
 });
 
+const FunnelHistoryWeekSchema = z.object({
+  week: z.string(),
+  newSignups: z.number(),
+  newStarters: z.number(),
+  newCompleters: z.number(),
+});
+
+const FunnelHistoryOutputSchema = z.object({
+  weeks: z.array(FunnelHistoryWeekSchema),
+});
+
 const FailingObjectiveSchema = z.object({
   key: z.string(),
   failCount: z.number(),
@@ -92,6 +103,85 @@ export const adminAnalytics = new Hono<AppEnv>()
         usersStarted: Number(startedRow?.usersStarted ?? 0),
         usersCompleted: Number(completedRow?.usersCompleted ?? 0),
       });
+    },
+  )
+  .get(
+    "/funnel/history",
+    describeRoute({
+      tags: ["Admin"],
+      summary: "Weekly funnel evolution over the last 12 weeks",
+      security: sessionSecurity,
+      responses: {
+        200: {
+          description: "Funnel history",
+          content: {
+            "application/json": {
+              schema: resolver(FunnelHistoryOutputSchema),
+            },
+          },
+        },
+      },
+    }),
+    analyticsRateLimit,
+    async (c) => {
+      const rows = await db.execute(sql`
+        WITH
+        weeks AS (
+          SELECT generate_series(
+            date_trunc('week', now() - INTERVAL '11 weeks'),
+            date_trunc('week', now()),
+            '1 week'::interval
+          )::date AS week
+        ),
+        first_starts AS (
+          SELECT user_id, MIN(started_at) AS first_at
+          FROM user_progress
+          GROUP BY user_id
+        ),
+        first_completions AS (
+          SELECT user_id, MIN(completed_at) AS first_at
+          FROM user_progress
+          WHERE completed_at IS NOT NULL
+          GROUP BY user_id
+        ),
+        weekly_signups AS (
+          SELECT date_trunc('week', created_at)::date AS week, COUNT(*)::int AS count
+          FROM "user"
+          WHERE created_at >= now() - INTERVAL '12 weeks'
+          GROUP BY 1
+        ),
+        weekly_starters AS (
+          SELECT date_trunc('week', first_at)::date AS week, COUNT(*)::int AS count
+          FROM first_starts
+          WHERE first_at >= now() - INTERVAL '12 weeks'
+          GROUP BY 1
+        ),
+        weekly_completers AS (
+          SELECT date_trunc('week', first_at)::date AS week, COUNT(*)::int AS count
+          FROM first_completions
+          WHERE first_at >= now() - INTERVAL '12 weeks'
+          GROUP BY 1
+        )
+        SELECT
+          w.week::text,
+          COALESCE(s.count, 0) AS new_signups,
+          COALESCE(st.count, 0) AS new_starters,
+          COALESCE(c.count, 0) AS new_completers
+        FROM weeks w
+        LEFT JOIN weekly_signups s ON s.week = w.week
+        LEFT JOIN weekly_starters st ON st.week = w.week
+        LEFT JOIN weekly_completers c ON c.week = w.week
+        ORDER BY w.week
+      `);
+
+      const weeks = rows.rows.map((r) => ({
+        week: String(r.week).substring(0, 10),
+        newSignups: Number(r.new_signups),
+        newStarters: Number(r.new_starters),
+        newCompleters: Number(r.new_completers),
+      }));
+
+      return c.json({ weeks });
     },
   )
   .get(
