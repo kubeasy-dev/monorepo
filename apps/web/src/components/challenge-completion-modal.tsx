@@ -111,6 +111,179 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+function CompletionModalContent({
+  payload,
+  challengeUrl,
+  onCopyLink,
+}: {
+  payload: ChallengeCompletedEventData;
+  challengeUrl: string;
+  onCopyLink: () => void;
+}) {
+  const shareText = encodeURIComponent(
+    `Just completed the "${payload.challengeSlug.replace(/-/g, " ")}" Kubernetes challenge on @kubeasy_dev! 🚀 (+${payload.xpGain.total} XP)`,
+  );
+  const shareUrl = encodeURIComponent(challengeUrl);
+  const shareLinks = {
+    twitter: `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`,
+    bluesky: `https://bsky.app/intent/compose?text=${shareText}%20${shareUrl}`,
+  };
+
+  return (
+    <DialogContent className="max-w-lg neo-border-thick neo-shadow-xl overflow-hidden">
+      {/* Confetti */}
+      <div
+        className="absolute inset-0 pointer-events-none overflow-hidden"
+        aria-hidden="true"
+      >
+        {CONFETTI_PIECES.map((p) => (
+          <ConfettiPiece key={p.id} {...p} />
+        ))}
+      </div>
+
+      <DialogHeader className="relative z-10">
+        <DialogTitle className="text-2xl font-black flex items-center gap-3">
+          <Trophy className="h-7 w-7 text-yellow-500" />
+          Challenge Completed!
+        </DialogTitle>
+        <DialogDescription className="font-semibold">
+          <span className="capitalize">
+            {payload.challengeSlug.replace(/-/g, " ")}
+          </span>
+          {" · "}
+          <span className="capitalize">
+            {
+              { easy: "Easy", medium: "Medium", hard: "Hard" }[
+                payload.difficulty
+              ]
+            }
+          </span>
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="relative z-10 space-y-4 mt-2">
+        {/* Stats row */}
+        <div className="flex gap-2">
+          <StatCard label="Attempts" value={payload.attemptsCount} />
+          <StatCard label="K8s Calls" value={payload.commandsCount} />
+        </div>
+
+        {/* XP card */}
+        <div className="bg-primary text-primary-foreground neo-border-thick rounded-lg p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Zap className="h-5 w-5" />
+            <span className="font-black text-lg">XP Earned</span>
+            <span className="ml-auto text-3xl font-black">
+              +{payload.xpGain.total}
+            </span>
+          </div>
+          <div className="space-y-1 text-sm font-medium opacity-90">
+            <div className="flex justify-between">
+              <span>Base XP</span>
+              <span>+{payload.xpGain.base}</span>
+            </div>
+            {payload.xpGain.firstChallenge > 0 && (
+              <div className="flex justify-between">
+                <span>First challenge bonus</span>
+                <span>+{payload.xpGain.firstChallenge}</span>
+              </div>
+            )}
+            {payload.xpGain.streak > 0 && (
+              <div className="flex justify-between">
+                <span>Streak bonus ({payload.currentStreak} days)</span>
+                <span>+{payload.xpGain.streak}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Level-up banner */}
+        {payload.leveledUp && (
+          <div className="bg-yellow-50 neo-border-thick neo-border-amber rounded-lg p-3 flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+            <p className="font-black text-yellow-900">
+              You ranked up to{" "}
+              <span className="text-yellow-700">{payload.newRank.name}</span>!
+            </p>
+          </div>
+        )}
+
+        {/* First challenge banner */}
+        {payload.isFirstChallenge && !payload.leveledUp && (
+          <div className="bg-blue-50 neo-border-thick rounded-lg p-3 flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-blue-600 flex-shrink-0" />
+            <p className="font-bold text-blue-900">
+              First challenge completed!
+            </p>
+          </div>
+        )}
+
+        {/* Share buttons */}
+        <div className="space-y-2">
+          <p className="text-sm font-bold">Share your achievement:</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="neo-border font-bold gap-2"
+              asChild
+            >
+              <a
+                href={shareLinks.twitter}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <XIcon className="h-4 w-4" />
+                Post
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="neo-border font-bold gap-2"
+              asChild
+            >
+              <a
+                href={shareLinks.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <LinkedInIcon className="h-4 w-4" />
+                Share
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="neo-border font-bold gap-2"
+              asChild
+            >
+              <a
+                href={shareLinks.bluesky}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <BlueSkyIcon className="h-4 w-4" />
+                Post
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="neo-border font-bold gap-2"
+              onClick={onCopyLink}
+            >
+              <Link className="h-4 w-4" />
+              Copy link
+            </Button>
+          </div>
+        </div>
+      </div>
+    </DialogContent>
+  );
+}
+
 export function ChallengeCompletionModal({
   payload,
   onClose,
@@ -119,19 +292,6 @@ export function ChallengeCompletionModal({
     typeof window !== "undefined" && payload
       ? `${window.location.origin}/challenges/${payload.challengeSlug}`
       : "";
-
-  const shareText = payload
-    ? encodeURIComponent(
-        `Just completed the "${payload.challengeSlug.replace(/-/g, " ")}" Kubernetes challenge on @kubeasy_dev! 🚀 (+${payload.xpGain.total} XP)`,
-      )
-    : "";
-  const shareUrl = encodeURIComponent(challengeUrl);
-
-  const shareLinks = {
-    twitter: `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`,
-    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`,
-    bluesky: `https://bsky.app/intent/compose?text=${shareText}%20${shareUrl}`,
-  };
 
   function copyLink() {
     navigator.clipboard.writeText(challengeUrl).then(
@@ -152,159 +312,11 @@ export function ChallengeCompletionModal({
       }}
     >
       {payload && (
-        <DialogContent className="max-w-lg neo-border-thick neo-shadow-xl overflow-hidden">
-          {/* Confetti */}
-          <div
-            className="absolute inset-0 pointer-events-none overflow-hidden"
-            aria-hidden="true"
-          >
-            {CONFETTI_PIECES.map((p) => (
-              <ConfettiPiece key={p.id} {...p} />
-            ))}
-          </div>
-
-          <DialogHeader className="relative z-10">
-            <DialogTitle className="text-2xl font-black flex items-center gap-3">
-              <Trophy className="h-7 w-7 text-yellow-500" />
-              Challenge Completed!
-            </DialogTitle>
-            <DialogDescription className="font-semibold">
-              <span className="capitalize">
-                {payload.challengeSlug.replace(/-/g, " ")}
-              </span>
-              {" · "}
-              <span className="capitalize">
-                {
-                  { easy: "Easy", medium: "Medium", hard: "Hard" }[
-                    payload.difficulty
-                  ]
-                }
-              </span>
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="relative z-10 space-y-4 mt-2">
-            {/* Stats row */}
-            <div className="flex gap-2">
-              <StatCard label="Attempts" value={payload.attemptsCount} />
-              <StatCard label="K8s Calls" value={payload.commandsCount} />
-            </div>
-
-            {/* XP card */}
-            <div className="bg-primary text-primary-foreground neo-border-thick rounded-lg p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                <span className="font-black text-lg">XP Earned</span>
-                <span className="ml-auto text-3xl font-black">
-                  +{payload.xpGain.total}
-                </span>
-              </div>
-              <div className="space-y-1 text-sm font-medium opacity-90">
-                <div className="flex justify-between">
-                  <span>Base XP</span>
-                  <span>+{payload.xpGain.base}</span>
-                </div>
-                {payload.xpGain.firstChallenge > 0 && (
-                  <div className="flex justify-between">
-                    <span>First challenge bonus</span>
-                    <span>+{payload.xpGain.firstChallenge}</span>
-                  </div>
-                )}
-                {payload.xpGain.streak > 0 && (
-                  <div className="flex justify-between">
-                    <span>Streak bonus ({payload.currentStreak} days)</span>
-                    <span>+{payload.xpGain.streak}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Level-up banner */}
-            {payload.leveledUp && (
-              <div className="bg-yellow-50 neo-border-thick neo-border-amber rounded-lg p-3 flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-yellow-600 flex-shrink-0" />
-                <p className="font-black text-yellow-900">
-                  You ranked up to{" "}
-                  <span className="text-yellow-700">
-                    {payload.newRank.name}
-                  </span>
-                  !
-                </p>
-              </div>
-            )}
-
-            {/* First challenge banner */}
-            {payload.isFirstChallenge && !payload.leveledUp && (
-              <div className="bg-blue-50 neo-border-thick rounded-lg p-3 flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                <p className="font-bold text-blue-900">
-                  First challenge completed!
-                </p>
-              </div>
-            )}
-
-            {/* Share buttons */}
-            <div className="space-y-2">
-              <p className="text-sm font-bold">Share your achievement:</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="neo-border font-bold gap-2"
-                  asChild
-                >
-                  <a
-                    href={shareLinks.twitter}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <XIcon className="h-4 w-4" />
-                    Post
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="neo-border font-bold gap-2"
-                  asChild
-                >
-                  <a
-                    href={shareLinks.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <LinkedInIcon className="h-4 w-4" />
-                    Share
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="neo-border font-bold gap-2"
-                  asChild
-                >
-                  <a
-                    href={shareLinks.bluesky}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <BlueSkyIcon className="h-4 w-4" />
-                    Post
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="neo-border font-bold gap-2"
-                  onClick={copyLink}
-                >
-                  <Link className="h-4 w-4" />
-                  Copy link
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
+        <CompletionModalContent
+          payload={payload}
+          challengeUrl={challengeUrl}
+          onCopyLink={copyLink}
+        />
       )}
     </Dialog>
   );

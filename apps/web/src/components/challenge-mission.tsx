@@ -109,7 +109,11 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
   });
 
   const status = statusData?.status ?? "not_started";
-  useChallengeCelebrationSSE(slug, isAuthenticated, handleChallengeCompleted);
+  useChallengeCelebrationSSE(
+    slug,
+    isAuthenticated && status !== "completed",
+    handleChallengeCompleted,
+  );
   const isLoading =
     isLoadingObjectives ||
     isSessionLoading ||

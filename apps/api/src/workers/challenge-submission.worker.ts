@@ -10,7 +10,11 @@ import { all } from "better-all";
 import { Worker } from "bullmq";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "../db/index";
-import { userSubmission, userXpTransaction } from "../db/schema/index";
+import {
+  userProgress,
+  userSubmission,
+  userXpTransaction,
+} from "../db/schema/index";
 import { trackChallengeCompleted } from "../lib/analytics-server";
 import { redis, redisConfig } from "../lib/redis";
 import {
@@ -42,25 +46,41 @@ export function createChallengeSubmissionWorker() {
       const { userId, challengeSlug, difficulty } = job.data;
 
       try {
+        // Idempotency guard: exit early if XP was already awarded for this challenge
+        const [existingTx] = await db
+          .select({ id: userXpTransaction.id })
+          .from(userXpTransaction)
+          .where(
+            and(
+              eq(userXpTransaction.userId, userId),
+              eq(userXpTransaction.challengeSlug, challengeSlug),
+              eq(userXpTransaction.action, "challenge_completed"),
+            ),
+          )
+          .limit(1);
+        if (existingTx) return;
+
         // 1 & 2. Check first challenge + calculate streak in parallel (independent DB queries)
-        const { completedTransactions, currentStreak } = await all({
-          async completedTransactions() {
+        // Uses userProgress (written synchronously by submit route) rather than userXpTransaction
+        // (written asynchronously by xp-award worker) to avoid TOCTOU false positives.
+        const { completedCount, currentStreak } = await all({
+          async completedCount() {
             const [row] = await db
               .select({ count: count() })
-              .from(userXpTransaction)
+              .from(userProgress)
               .where(
                 and(
-                  eq(userXpTransaction.userId, userId),
-                  eq(userXpTransaction.action, "challenge_completed"),
+                  eq(userProgress.userId, userId),
+                  eq(userProgress.status, "completed"),
                 ),
               );
-            return row;
+            return row?.count ?? 0;
           },
           async currentStreak() {
             return calculateStreak(userId);
           },
         });
-        const isFirstChallenge = (completedTransactions?.count ?? 0) === 0;
+        const isFirstChallenge = completedCount === 1;
 
         // 3. Calculate XP amounts
         const xpGain = calculateXPGain({

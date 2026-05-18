@@ -1,10 +1,20 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { describeRoute } from "hono-openapi";
+import { describeRoute, validator } from "hono-openapi";
 import { Redis } from "ioredis";
+import { z } from "zod";
 import { sessionSecurity } from "../lib/openapi-shared";
-import { redisConfig } from "../lib/redis";
+import { redis, redisConfig } from "../lib/redis";
+import { slidingWindowRateLimit } from "../middleware/rate-limit";
 import { type AppEnv, requireAuth } from "../middleware/session";
+
+const slugParam = z.object({ slug: z.string().max(200) });
+
+const sseRateLimit = slidingWindowRateLimit(redis, {
+  windowMs: 60_000,
+  max: 20,
+  keyFn: (c) => `sse:${c.get("user")?.id}`,
+});
 
 type SSEStream = Parameters<Parameters<typeof streamSSE>[1]>[0];
 
@@ -32,7 +42,7 @@ function createRedisSSEHandler(
       aborted = true;
       try {
         await subscriber.unsubscribe(channel);
-        await subscriber.quit();
+        subscriber.disconnect();
       } catch (err) {
         log.error("SSE cleanup error", { channel, error: String(err) });
       }
@@ -89,9 +99,11 @@ export const sse = new Hono<AppEnv>()
       },
     }),
     requireAuth,
+    sseRateLimit,
+    validator("param", slugParam),
     async (c) => {
       const user = c.get("user");
-      const slug = c.req.param("slug");
+      const { slug } = c.req.valid("param");
       const channel = `challenge:${user.id}:${slug}`;
       const handler = createRedisSSEHandler(channel, parseDynamicEvent);
       return streamSSE(c, (stream) => handler(stream, c.get("log")));
@@ -111,6 +123,7 @@ export const sse = new Hono<AppEnv>()
       },
     }),
     requireAuth,
+    sseRateLimit,
     async (c) => {
       const user = c.get("user");
       const channel = `invalidate-cache:${user.id}`;
