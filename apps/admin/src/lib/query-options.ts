@@ -37,6 +37,10 @@ export type AnalyticsCliOutput = {
   byEventType: { eventType: string; count: number }[];
 };
 
+export type AnalyticsSubmissionsHistogramOutput = {
+  buckets: { date: string; ok: number; ko: number }[];
+};
+
 export type AnalyticsFunnelHistoryOutput = {
   weeks: {
     week: string;
@@ -94,6 +98,16 @@ export function adminAnalyticsCliOptions() {
   return queryOptions({
     queryKey: ["admin", "analytics", "cli"],
     queryFn: () => apiFetch<AnalyticsCliOutput>("/admin/analytics/cli"),
+  });
+}
+
+export function adminAnalyticsChallengeHistogramOptions(slug: string) {
+  return queryOptions({
+    queryKey: ["admin", "analytics", "challenges", slug, "histogram"],
+    queryFn: () =>
+      apiFetch<AnalyticsSubmissionsHistogramOutput>(
+        `/admin/analytics/challenges/${slug}/submissions-histogram`,
+      ),
   });
 }
 

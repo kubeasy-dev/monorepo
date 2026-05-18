@@ -13,18 +13,22 @@ import {
   Activity,
   BarChart3,
   CheckCircle,
+  ChevronDown,
+  ChevronRight,
   Monitor,
   Terminal,
   TrendingUp,
   Trophy,
   Users,
 } from "lucide-react";
-import { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import {
   type AnalyticsChallengeItem,
   type AnalyticsCliOutput,
   type AnalyticsFunnelHistoryOutput,
   type AnalyticsFunnelOutput,
+  type AnalyticsSubmissionsHistogramOutput,
+  adminAnalyticsChallengeHistogramOptions,
   adminAnalyticsChallengesOptions,
   adminAnalyticsCliOptions,
   adminAnalyticsFunnelHistoryOptions,
@@ -412,6 +416,152 @@ function ChallengesGlobalStats({ stats }: { stats: AdminStatsOutput }) {
   );
 }
 
+const OK_COLOR = "oklch(0.55 0.18 150)";
+const KO_COLOR = "oklch(0.55 0.22 25)";
+
+function SubmissionsHistogram({
+  data,
+}: {
+  data: AnalyticsSubmissionsHistogramOutput;
+}) {
+  const { buckets } = data;
+  const VW = 860;
+  const VH = 160;
+  const pad = { t: 10, r: 10, b: 36, l: 10 };
+  const CW = VW - pad.l - pad.r;
+  const CH = VH - pad.t - pad.b;
+  const n = buckets.length;
+
+  const maxVal = Math.max(1, ...buckets.map((b) => b.ok + b.ko));
+  const niceMax = Math.ceil(maxVal / 2) * 2;
+
+  const barGroupW = n > 0 ? CW / n : CW;
+  const gap = barGroupW * 0.15;
+  const barW = (barGroupW - gap * 3) / 2;
+
+  const yOf = (v: number) => pad.t + CH * (1 - v / niceMax);
+
+  // Show label every ~7 days to avoid crowding
+  const labelStep = Math.ceil(n / 12);
+
+  return (
+    <svg
+      viewBox={`0 0 ${VW} ${VH}`}
+      className="w-full"
+      style={{ height: "160px" }}
+      role="img"
+      aria-label="Daily OK/KO submissions over the last 30 days"
+    >
+      {/* Baseline */}
+      <line
+        x1={pad.l}
+        y1={pad.t + CH}
+        x2={pad.l + CW}
+        y2={pad.t + CH}
+        stroke="oklch(0.15 0 0)"
+        strokeWidth="1.5"
+      />
+
+      {buckets.map((b, i) => {
+        const gx = pad.l + i * barGroupW + gap;
+        const okH = CH * (b.ok / niceMax);
+        const koH = CH * (b.ko / niceMax);
+        const showLabel = i % labelStep === 0;
+        const d = new Date(`${b.date}T12:00:00Z`);
+        const label = d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+
+        return (
+          <g key={b.date}>
+            {/* OK bar */}
+            <rect
+              x={gx}
+              y={yOf(b.ok)}
+              width={barW}
+              height={okH}
+              fill={OK_COLOR}
+            />
+            {/* KO bar */}
+            <rect
+              x={gx + barW + gap}
+              y={yOf(b.ko)}
+              width={barW}
+              height={koH}
+              fill={KO_COLOR}
+            />
+            {showLabel && (
+              <text
+                x={gx + barW}
+                y={pad.t + CH + 20}
+                textAnchor="middle"
+                fontSize="10"
+                fontFamily="Geist Variable, sans-serif"
+                fontWeight="700"
+                fill="oklch(0.45 0 0)"
+              >
+                {label}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function ChallengeHistogramRow({ slug }: { slug: string }) {
+  const { data } = useSuspenseQuery(
+    adminAnalyticsChallengeHistogramOptions(slug),
+  );
+  const total = data.buckets.reduce((s, b) => s + b.ok + b.ko, 0);
+  const totalOk = data.buckets.reduce((s, b) => s + b.ok, 0);
+  const totalKo = data.buckets.reduce((s, b) => s + b.ko, 0);
+
+  return (
+    <TableRow>
+      <TableCell colSpan={6} className="bg-muted/40 px-6 py-4">
+        <div className="flex items-center gap-6 mb-3">
+          <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+            Last 30 days
+          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block w-3 h-3 rounded-sm"
+              style={{ background: OK_COLOR }}
+            />
+            <span className="text-xs font-bold">
+              OK — {totalOk.toLocaleString()}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block w-3 h-3 rounded-sm"
+              style={{ background: KO_COLOR }}
+            />
+            <span className="text-xs font-bold">
+              KO — {totalKo.toLocaleString()}
+            </span>
+          </div>
+          {total > 0 && (
+            <span className="text-xs font-bold text-muted-foreground">
+              {((totalOk / total) * 100).toFixed(1)}% success rate
+            </span>
+          )}
+        </div>
+        <Suspense
+          fallback={
+            <div className="text-xs text-muted-foreground">Loading…</div>
+          }
+        >
+          <SubmissionsHistogram data={data} />
+        </Suspense>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 function ChallengesSection({
   challenges,
   stats,
@@ -421,6 +571,11 @@ function ChallengesSection({
 }) {
   const animated = useBarAnimation();
   const sorted = [...challenges].sort((a, b) => b.uniqueUsers - a.uniqueUsers);
+  const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
+
+  function toggle(slug: string) {
+    setExpandedSlug((prev) => (prev === slug ? null : slug));
+  }
 
   return (
     <section className="mb-12">
@@ -434,6 +589,7 @@ function ChallengesSection({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-6" />
             <TableHead>Challenge</TableHead>
             <TableHead className="text-right">Users</TableHead>
             <TableHead className="text-right">Attempts</TableHead>
@@ -443,41 +599,61 @@ function ChallengesSection({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sorted.map((item, i) => (
-            <TableRow key={item.challengeSlug}>
-              <TableCell className="font-mono font-bold">
-                {item.challengeSlug}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {item.uniqueUsers}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {item.totalAttempts}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {item.avgAttempts.toFixed(1)}×
-              </TableCell>
-              <TableCell>
-                <CompletionBar
-                  rate={item.completionRate}
-                  animated={animated}
-                  delay={i * 40}
-                />
-              </TableCell>
-              <TableCell className="text-muted-foreground text-xs">
-                {item.topFailingObjectives.length > 0
-                  ? item.topFailingObjectives
-                      .slice(0, 3)
-                      .map((o) => `${o.key} (${o.failCount})`)
-                      .join(", ")
-                  : "—"}
-              </TableCell>
-            </TableRow>
-          ))}
+          {sorted.map((item, i) => {
+            const isExpanded = expandedSlug === item.challengeSlug;
+            return (
+              <React.Fragment key={item.challengeSlug}>
+                <TableRow
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => toggle(item.challengeSlug)}
+                >
+                  <TableCell className="pr-0">
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono font-bold">
+                    {item.challengeSlug}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {item.uniqueUsers}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {item.totalAttempts}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {item.avgAttempts.toFixed(1)}×
+                  </TableCell>
+                  <TableCell>
+                    <CompletionBar
+                      rate={item.completionRate}
+                      animated={animated}
+                      delay={i * 40}
+                    />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {item.topFailingObjectives.length > 0
+                      ? item.topFailingObjectives
+                          .slice(0, 3)
+                          .map((o) => `${o.key} (${o.failCount})`)
+                          .join(", ")
+                      : "—"}
+                  </TableCell>
+                </TableRow>
+                {isExpanded && (
+                  <Suspense>
+                    <ChallengeHistogramRow slug={item.challengeSlug} />
+                  </Suspense>
+                )}
+              </React.Fragment>
+            );
+          })}
           {sorted.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={6}
+                colSpan={7}
                 className="py-8 text-center text-muted-foreground"
               >
                 No submission data yet

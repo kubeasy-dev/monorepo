@@ -55,6 +55,16 @@ const failingObjectiveRowSchema = z.object({
   fail_count: z.coerce.number(),
 });
 
+const SubmissionsHistogramBucketSchema = z.object({
+  date: z.string(),
+  ok: z.number(),
+  ko: z.number(),
+});
+
+const SubmissionsHistogramOutputSchema = z.object({
+  buckets: z.array(SubmissionsHistogramBucketSchema),
+});
+
 const analyticsRateLimit = slidingWindowRateLimit(redis, {
   windowMs: 60_000,
   max: 30,
@@ -357,5 +367,59 @@ export const adminAnalytics = new Hono<AppEnv>()
           count: Number(r.count),
         })),
       });
+    },
+  )
+  .get(
+    "/challenges/:slug/submissions-histogram",
+    describeRoute({
+      tags: ["Admin"],
+      summary: "Daily OK/KO submission counts for a challenge (last 30 days)",
+      security: sessionSecurity,
+      responses: {
+        200: {
+          description: "Submissions histogram",
+          content: {
+            "application/json": {
+              schema: resolver(SubmissionsHistogramOutputSchema),
+            },
+          },
+        },
+      },
+    }),
+    analyticsRateLimit,
+    async (c) => {
+      const slug = c.req.param("slug");
+
+      const rows = await db.execute(sql`
+        WITH days AS (
+          SELECT generate_series(
+            (now() - INTERVAL '29 days')::date,
+            now()::date,
+            '1 day'::interval
+          )::date AS day
+        ),
+        counts AS (
+          SELECT
+            ${userSubmission.timestamp}::date AS day,
+            COUNT(*) FILTER (WHERE ${userSubmission.validated} = true)  AS ok,
+            COUNT(*) FILTER (WHERE ${userSubmission.validated} = false) AS ko
+          FROM ${userSubmission}
+          WHERE ${userSubmission.challengeSlug} = ${slug}
+            AND ${userSubmission.timestamp} >= now() - INTERVAL '30 days'
+          GROUP BY 1
+        )
+        SELECT d.day::text, COALESCE(c.ok, 0) AS ok, COALESCE(c.ko, 0) AS ko
+        FROM days d
+        LEFT JOIN counts c ON c.day = d.day
+        ORDER BY d.day
+      `);
+
+      const buckets = rows.rows.map((r) => ({
+        date: String(r.day).substring(0, 10),
+        ok: Number(r.ok),
+        ko: Number(r.ko),
+      }));
+
+      return c.json({ buckets });
     },
   );
