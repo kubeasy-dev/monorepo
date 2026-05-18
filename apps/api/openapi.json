@@ -672,7 +672,9 @@
             "in": "path",
             "name": "slug",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200,
+              "pattern": "^[a-z0-9-]+$"
             },
             "required": true
           }
@@ -1917,7 +1919,9 @@
             "in": "path",
             "name": "slug",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200,
+              "pattern": "^[a-z0-9-]+$"
             },
             "required": true
           }
