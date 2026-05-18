@@ -17,7 +17,6 @@ import {
   userXp,
   userXpTransaction,
 } from "../db/schema/index";
-import { trackChallengeStarted } from "../lib/analytics-server";
 import { cacheDel, cacheDelPattern, cached, cacheKey, TTL } from "../lib/cache";
 import { sessionOrBearerSecurity } from "../lib/openapi-shared";
 import { redis } from "../lib/redis";
@@ -293,14 +292,6 @@ export const progress = new Hono<AppEnv>()
         challengeSlug: slug,
         status: "in_progress",
         startedAt: now,
-      });
-
-      trackChallengeStarted(userId, slug, detail.title).catch((err) => {
-        c.get("log").error("challenge started tracking failed", {
-          userId,
-          slug,
-          error: String(err),
-        });
       });
 
       redis
