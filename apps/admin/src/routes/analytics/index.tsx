@@ -1,4 +1,3 @@
-import type { AdminStatsOutput } from "@kubeasy/api-schemas/challenges";
 import {
   Table,
   TableBody,
@@ -35,7 +34,6 @@ import {
   adminAnalyticsChallengesOptions,
   adminAnalyticsCliOptions,
   adminAnalyticsFunnelOptions,
-  adminChallengesStatsOptions,
   GRANULARITY_LABELS,
   PERIOD_DEFAULT_GRANULARITY,
   PERIOD_GRANULARITIES,
@@ -287,37 +285,49 @@ function CompletionBar({
   );
 }
 
-function ChallengesGlobalStats({ stats }: { stats: AdminStatsOutput }) {
+function ChallengesGlobalStats({
+  challenges,
+}: {
+  challenges: AnalyticsChallengeItem[];
+}) {
+  const totalSubmissions = challenges.reduce((s, c) => s + c.totalAttempts, 0);
+  const successfulSubmissions = challenges.reduce(
+    (s, c) => s + c.validatedSubmissions,
+    0,
+  );
+  const totalUniqueUsers = challenges.reduce((s, c) => s + c.uniqueUsers, 0);
+  const successRate =
+    totalSubmissions > 0 ? successfulSubmissions / totalSubmissions : 0;
   const avgAttempts =
-    stats.totalStarts > 0
-      ? (stats.totalSubmissions / stats.totalStarts).toFixed(1)
+    totalUniqueUsers > 0
+      ? (totalSubmissions / totalUniqueUsers).toFixed(1)
       : "—";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
       <StatCard
-        icon={Trophy}
-        label="Completion Rate"
-        value={`${(stats.completionRate * 100).toFixed(1)}%`}
-        sub={`${stats.totalCompletions.toLocaleString()} completions`}
+        icon={BarChart3}
+        label="Total Submissions"
+        value={totalSubmissions.toLocaleString()}
+        sub="across all challenges"
       />
       <StatCard
         icon={CheckCircle}
         label="Success Rate"
-        value={`${(stats.successRate * 100).toFixed(1)}%`}
-        sub={`${stats.successfulSubmissions.toLocaleString()} successful submissions`}
-      />
-      <StatCard
-        icon={BarChart3}
-        label="Total Submissions"
-        value={stats.totalSubmissions.toLocaleString()}
-        sub="across all challenges"
+        value={`${(successRate * 100).toFixed(1)}%`}
+        sub={`${successfulSubmissions.toLocaleString()} successful`}
       />
       <StatCard
         icon={Activity}
         label="Avg Attempts"
         value={avgAttempts}
         sub="per challenge starter"
+      />
+      <StatCard
+        icon={Trophy}
+        label="Active Challenges"
+        value={challenges.length}
+        sub="with submissions this period"
       />
     </div>
   );
@@ -478,7 +488,6 @@ function ChallengeHistogramRow({
 function ChallengesSection({
   challenges,
   previousChallenges,
-  stats,
   period,
   granularity,
 }: {
@@ -488,7 +497,6 @@ function ChallengesSection({
     completionRate: number;
     uniqueUsers: number;
   }[];
-  stats: AdminStatsOutput;
   period: AnalyticsPeriod;
   granularity: AnalyticsGranularity;
 }) {
@@ -509,7 +517,7 @@ function ChallengesSection({
           ({challenges.length} challenges)
         </span>
       </h2>
-      <ChallengesGlobalStats stats={stats} />
+      <ChallengesGlobalStats challenges={challenges} />
       <Table>
         <TableHeader>
           <TableRow>
@@ -873,9 +881,6 @@ function AnalyticsContent({
   const { data: challenges } = useSuspenseQuery(
     adminAnalyticsChallengesOptions(period, compare),
   );
-  const { data: challengeStats } = useSuspenseQuery(
-    adminChallengesStatsOptions(),
-  );
   const { data: cli } = useSuspenseQuery(
     adminAnalyticsCliOptions(period, compare),
   );
@@ -886,7 +891,6 @@ function AnalyticsContent({
       <ChallengesSection
         challenges={challenges.challenges}
         previousChallenges={challenges.previous}
-        stats={challengeStats}
         period={period}
         granularity={granularity}
       />
