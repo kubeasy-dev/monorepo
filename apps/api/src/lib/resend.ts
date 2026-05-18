@@ -35,7 +35,6 @@ export async function createResendContact(params: {
     log.error({
       message: "resend.createContact failed",
       error: error instanceof Error ? error.stack : String(error),
-      userId: params.userId,
     });
     throw error;
   }
