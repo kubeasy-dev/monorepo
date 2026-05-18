@@ -23,11 +23,10 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import {
   type AnalyticsChallengeItem,
   type AnalyticsCliOutput,
-  type AnalyticsFunnelHistoryOutput,
   type AnalyticsFunnelOutput,
   type AnalyticsGranularity,
   type AnalyticsPeriod,
@@ -35,7 +34,6 @@ import {
   adminAnalyticsChallengeHistogramOptions,
   adminAnalyticsChallengesOptions,
   adminAnalyticsCliOptions,
-  adminAnalyticsFunnelHistoryOptions,
   adminAnalyticsFunnelOptions,
   adminChallengesStatsOptions,
   GRANULARITY_LABELS,
@@ -219,7 +217,7 @@ function FunnelSection({ data }: { data: AnalyticsFunnelOutput }) {
   );
 }
 
-// ─── Funnel history chart ─────────────────────────────────────────────────────
+// ─── Shared chart colors ──────────────────────────────────────────────────────
 
 const CHART_COLORS = {
   signups: "oklch(0.55 0.25 280)",
@@ -227,23 +225,7 @@ const CHART_COLORS = {
   completers: "oklch(0.7 0.22 50)",
 } as const;
 
-const SERIES = [
-  {
-    key: "newSignups" as const,
-    label: "New signups",
-    color: CHART_COLORS.signups,
-  },
-  {
-    key: "newStarters" as const,
-    label: "First start",
-    color: CHART_COLORS.starters,
-  },
-  {
-    key: "newCompleters" as const,
-    label: "First completion",
-    color: CHART_COLORS.completers,
-  },
-];
+// ─── Bucket label formatter ───────────────────────────────────────────────────
 
 function formatBucketLabel(
   bucket: string,
@@ -274,212 +256,6 @@ function formatBucketLabel(
     day: "numeric",
     timeZone: "UTC",
   });
-}
-
-function FunnelLineChart({
-  weeks,
-  granularity,
-}: {
-  weeks: AnalyticsFunnelHistoryOutput["weeks"];
-  granularity: AnalyticsGranularity;
-}) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-
-  const VW = 900;
-  const VH = 220;
-  const pad = { t: 20, r: 20, b: 44, l: 10 };
-  const CW = VW - pad.l - pad.r;
-  const CH = VH - pad.t - pad.b;
-  const n = weeks.length;
-
-  const maxVal = Math.max(
-    1,
-    ...weeks.flatMap((w) => [w.newSignups, w.newStarters, w.newCompleters]),
-  );
-  const niceMax = Math.ceil(maxVal / 5) * 5;
-
-  const xOf = (i: number) => pad.l + (n <= 1 ? CW / 2 : (i / (n - 1)) * CW);
-  const yOf = (v: number) => pad.t + CH * (1 - v / niceMax);
-
-  function onMouseMove(e: React.MouseEvent<SVGSVGElement>) {
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const svgX = ((e.clientX - rect.left) / rect.width) * VW;
-    const idx = Math.round(((svgX - pad.l) / CW) * (n - 1));
-    setHoveredIdx(Math.max(0, Math.min(n - 1, idx)));
-  }
-
-  const hovered = hoveredIdx !== null ? weeks[hoveredIdx] : null;
-  const tipX =
-    hoveredIdx !== null
-      ? xOf(hoveredIdx) > VW - 160
-        ? xOf(hoveredIdx) - 138
-        : xOf(hoveredIdx) + 10
-      : 0;
-
-  return (
-    <svg
-      ref={svgRef}
-      viewBox={`0 0 ${VW} ${VH}`}
-      className="w-full"
-      style={{ height: "220px" }}
-      role="img"
-      aria-label="Funnel evolution over the last 12 months"
-      onMouseMove={onMouseMove}
-      onMouseLeave={() => setHoveredIdx(null)}
-    >
-      {/* Horizontal grid lines */}
-      {[0.25, 0.5, 0.75, 1].map((f) => (
-        <line
-          key={f}
-          x1={pad.l}
-          y1={yOf(f * niceMax)}
-          x2={pad.l + CW}
-          y2={yOf(f * niceMax)}
-          stroke="oklch(0.85 0 0)"
-          strokeWidth="1"
-          strokeDasharray="4 3"
-        />
-      ))}
-
-      {/* X axis baseline */}
-      <line
-        x1={pad.l}
-        y1={pad.t + CH}
-        x2={pad.l + CW}
-        y2={pad.t + CH}
-        stroke="oklch(0.15 0 0)"
-        strokeWidth="2"
-      />
-
-      {/* X axis labels */}
-      {weeks.map((w, i) => {
-        return (
-          <text
-            key={w.week}
-            x={xOf(i)}
-            y={pad.t + CH + 20}
-            textAnchor="middle"
-            fontSize="11"
-            fontFamily="Geist Variable, sans-serif"
-            fontWeight="700"
-            fill="oklch(0.35 0 0)"
-          >
-            {formatBucketLabel(w.week, granularity)}
-          </text>
-        );
-      })}
-
-      {/* Series */}
-      {SERIES.map(({ key, color }) => {
-        const points = weeks
-          .map((w, i) => `${xOf(i)},${yOf(w[key])}`)
-          .join(" ");
-        return (
-          <g key={key}>
-            <polyline
-              points={points}
-              fill="none"
-              stroke={color}
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-            {weeks.map((w, i) => (
-              <circle
-                key={w.week}
-                cx={xOf(i)}
-                cy={yOf(w[key])}
-                r={hoveredIdx === i ? 5 : 3.5}
-                fill={color}
-                stroke="white"
-                strokeWidth="1.5"
-                style={{ transition: "r 0.1s" }}
-              />
-            ))}
-          </g>
-        );
-      })}
-
-      {/* Hover guide line */}
-      {hoveredIdx !== null && (
-        <line
-          x1={xOf(hoveredIdx)}
-          y1={pad.t}
-          x2={xOf(hoveredIdx)}
-          y2={pad.t + CH}
-          stroke="oklch(0.15 0 0)"
-          strokeWidth="1"
-          strokeDasharray="3 2"
-        />
-      )}
-
-      {/* Hover tooltip */}
-      {hoveredIdx !== null && hovered && (
-        <g>
-          <rect
-            x={tipX}
-            y={pad.t}
-            width={128}
-            height={76}
-            fill="oklch(0.15 0 0)"
-          />
-          <text
-            x={tipX + 10}
-            y={pad.t + 16}
-            fill="oklch(0.85 0 0)"
-            fontSize="10"
-            fontFamily="Geist Variable, sans-serif"
-            fontWeight="700"
-          >
-            {formatBucketLabel(hovered.week, granularity)}
-          </text>
-          {SERIES.map(({ key, label, color }, i) => (
-            <text
-              key={key}
-              x={tipX + 10}
-              y={pad.t + 32 + i * 15}
-              fill={color}
-              fontSize="10"
-              fontFamily="Geist Variable, sans-serif"
-              fontWeight="700"
-            >
-              {label}: {hovered[key]}
-            </text>
-          ))}
-        </g>
-      )}
-    </svg>
-  );
-}
-
-function FunnelHistorySection({
-  data,
-  granularity,
-}: {
-  data: AnalyticsFunnelHistoryOutput;
-  granularity: AnalyticsGranularity;
-}) {
-  return (
-    <section className="mb-12">
-      <h2 className="text-xl font-black mb-4">Funnel Over Time</h2>
-      <div className="bg-secondary neo-border-thick neo-shadow p-6">
-        <div className="flex gap-6 mb-5">
-          {SERIES.map(({ label, color }) => (
-            <div key={label} className="flex items-center gap-2">
-              <div
-                className="w-6 h-0.5 rounded-none"
-                style={{ background: color }}
-              />
-              <span className="text-xs font-bold">{label}</span>
-            </div>
-          ))}
-        </div>
-        <FunnelLineChart weeks={data.weeks} granularity={granularity} />
-      </div>
-    </section>
-  );
 }
 
 // ─── Challenge stats ──────────────────────────────────────────────────────────
@@ -1068,9 +844,6 @@ function AnalyticsContent({
   const { data: funnel } = useSuspenseQuery(
     adminAnalyticsFunnelOptions(period, compare),
   );
-  const { data: funnelHistory } = useSuspenseQuery(
-    adminAnalyticsFunnelHistoryOptions(period, granularity),
-  );
   const { data: challenges } = useSuspenseQuery(
     adminAnalyticsChallengesOptions(period, compare),
   );
@@ -1084,7 +857,6 @@ function AnalyticsContent({
   return (
     <>
       <FunnelSection data={funnel} />
-      <FunnelHistorySection data={funnelHistory} granularity={granularity} />
       <ChallengesSection
         challenges={challenges.challenges}
         previousChallenges={challenges.previous}
