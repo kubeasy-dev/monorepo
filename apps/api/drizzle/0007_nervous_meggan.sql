@@ -1,0 +1,1 @@
+CREATE INDEX "cli_events_created_at_idx" ON "cli_events" USING btree ("created_at");

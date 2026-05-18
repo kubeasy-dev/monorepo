@@ -1,12 +1,14 @@
 /**
- * PostHog server-side analytics tracking utilities
+ * Server-side analytics and event tracking utilities
  *
- * This file provides server-side tracking for events triggered from API routes
- * (especially for CLI interactions).
+ * PostHog is used for user-level events (signup, challenge lifecycle, onboarding).
+ * CLI lifecycle events (cli_login, cli_setup) are written directly to PostgreSQL.
  */
 
 import { log } from "evlog";
 import { PostHog } from "posthog-node";
+import { db } from "../db";
+import { cliEvent } from "../db/schema";
 
 // Initialize PostHog client for server-side tracking
 const posthogKey = process.env.POSTHOG_KEY;
@@ -285,7 +287,7 @@ export async function setUserProperties(
 }
 
 /**
- * Track CLI login event (server-side)
+ * Track CLI login event (server-side) — stored in PostgreSQL
  * @param userId - The user ID
  * @param metadata - CLI metadata (version, os, arch)
  */
@@ -293,28 +295,29 @@ export async function trackCliLogin(
   userId: string,
   metadata: { cliVersion: string; os: string; arch: string },
 ) {
-  const properties = {
-    cliVersion: metadata.cliVersion,
-    os: metadata.os,
-    arch: metadata.arch,
-    source: "cli",
-  };
-  await safePostHogOperation(
-    "trackCliLogin",
-    async (client) => {
-      client.capture({
-        distinctId: userId,
-        event: "cli_login",
-        properties,
-      });
-      await client.flush();
-    },
-    { event: "cli_login", properties },
-  );
+  try {
+    await db.insert(cliEvent).values({
+      userId,
+      eventType: "cli_login",
+      cliVersion: metadata.cliVersion,
+      os: metadata.os,
+      arch: metadata.arch,
+    });
+    log.debug({
+      message: "cli_login event recorded",
+      userId,
+      cliVersion: metadata.cliVersion,
+    });
+  } catch (error) {
+    log.error({
+      message: "Failed to record cli_login event",
+      error: String(error),
+    });
+  }
 }
 
 /**
- * Track CLI setup event (server-side)
+ * Track CLI setup event (server-side) — stored in PostgreSQL
  * @param userId - The user ID
  * @param metadata - CLI metadata (version, os, arch)
  */
@@ -322,24 +325,25 @@ export async function trackCliSetup(
   userId: string,
   metadata: { cliVersion: string; os: string; arch: string },
 ) {
-  const properties = {
-    cliVersion: metadata.cliVersion,
-    os: metadata.os,
-    arch: metadata.arch,
-    source: "cli",
-  };
-  await safePostHogOperation(
-    "trackCliSetup",
-    async (client) => {
-      client.capture({
-        distinctId: userId,
-        event: "cli_setup",
-        properties,
-      });
-      await client.flush();
-    },
-    { event: "cli_setup", properties },
-  );
+  try {
+    await db.insert(cliEvent).values({
+      userId,
+      eventType: "cli_setup",
+      cliVersion: metadata.cliVersion,
+      os: metadata.os,
+      arch: metadata.arch,
+    });
+    log.debug({
+      message: "cli_setup event recorded",
+      userId,
+      cliVersion: metadata.cliVersion,
+    });
+  } catch (error) {
+    log.error({
+      message: "Failed to record cli_setup event",
+      error: String(error),
+    });
+  }
 }
 
 /**
