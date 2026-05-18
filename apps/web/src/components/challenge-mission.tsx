@@ -1,24 +1,8 @@
 import type { ChallengeCompletedEventData } from "@kubeasy/api-schemas/sse-events";
-import { Button } from "@kubeasy/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@kubeasy/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@kubeasy/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
-import {
-  CheckCircle2,
-  Circle,
-  Clock,
-  Loader2,
-  Target,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle2, Circle, Loader2, Target, XCircle } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { ChallengeCompletionModal } from "@/components/challenge-completion-modal";
 import { useChallengeCelebrationSSE } from "@/hooks/use-challenge-celebration-sse";
@@ -27,7 +11,6 @@ import {
   challengeObjectivesOptions,
   challengeStatusOptions,
   latestValidationOptions,
-  submissionsOptions,
 } from "@/lib/query-options";
 import type { rpc } from "@/lib/rpc";
 import { cn } from "@/lib/utils";
@@ -36,10 +19,6 @@ import { cn } from "@/lib/utils";
 // We filter on `200` to drop the 404 error variants from the union.
 type LatestValidationStatusOutput = InferResponseType<
   (typeof rpc.submissions)[":slug"]["latest"]["$get"],
-  200
->;
-type SubmissionsOutput = InferResponseType<
-  (typeof rpc.submissions)[":slug"]["$get"],
   200
 >;
 
@@ -74,7 +53,6 @@ interface DisplayObjective {
 }
 
 export function ChallengeMission({ slug }: ChallengeMissionProps) {
-  const [showHistory, setShowHistory] = useState(false);
   const [celebrationPayload, setCelebrationPayload] =
     useState<ChallengeCompletedEventData | null>(null);
 
@@ -95,11 +73,6 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
 
   const { data: validationStatus, isLoading: isLoadingValidation } = useQuery({
     ...latestValidationOptions(slug),
-    enabled: isAuthenticated,
-  });
-
-  const { data: submissionsData } = useQuery({
-    ...submissionsOptions(slug),
     enabled: isAuthenticated,
   });
 
@@ -180,10 +153,6 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
     }
     return <XCircle className="h-5 w-5 text-red-600 flex-shrink-0" />;
   };
-
-  // Get submissions array safely
-  const submissions =
-    (submissionsData as SubmissionsOutput | undefined)?.submissions ?? [];
 
   return (
     <>
@@ -330,56 +299,6 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
                   submit {slug}
                 </div>
               </>
-            )}
-
-            {/* History button */}
-            {submissions.length > 0 && (
-              <Dialog open={showHistory} onOpenChange={setShowHistory}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="neo-border font-bold"
-                  >
-                    <Clock className="h-4 w-4 mr-2" />
-                    View History ({submissions.length})
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto neo-border-thick">
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl font-black">
-                      Submission History
-                    </DialogTitle>
-                    <DialogDescription>
-                      Previous attempts for this challenge
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-3 mt-4">
-                    {submissions.map((submission) => (
-                      <div
-                        key={submission.id}
-                        className="p-4 bg-secondary neo-border-thick flex items-center justify-between"
-                      >
-                        <span className="font-bold text-sm">
-                          {submission.timestamp
-                            ? new Date(submission.timestamp).toLocaleString()
-                            : "Unknown date"}
-                        </span>
-                        <span
-                          className={cn(
-                            "font-bold text-sm px-2 py-0.5 neo-border",
-                            submission.validated
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700",
-                          )}
-                        >
-                          {submission.validated ? "Passed" : "Failed"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
             )}
           </div>
 

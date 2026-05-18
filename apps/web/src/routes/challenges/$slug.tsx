@@ -8,6 +8,7 @@ import type { RequestLogger } from "evlog";
 import { ArrowLeft, Clock } from "lucide-react";
 import { useRequest } from "nitro/context";
 import { ChallengeMission } from "@/components/challenge-mission";
+import { ChallengeTimeline } from "@/components/challenge-timeline";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { siteConfig } from "@/lib/constants";
 import {
@@ -180,6 +181,7 @@ function ChallengeDetailPage() {
 
       {/* Challenge Mission with Real-time Validation Status */}
       <ChallengeMission slug={slug} />
+      <ChallengeTimeline slug={slug} />
     </div>
   );
 }
