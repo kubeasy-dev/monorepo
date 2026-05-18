@@ -251,14 +251,14 @@ export const adminAnalytics = new Hono<AppEnv>()
         db.execute(sql`
           SELECT
             s.challenge_slug,
-            obj->>'objectiveKey' AS key,
+            obj->>'key' AS key,
             COUNT(*) AS fail_count
           FROM user_submission s,
                jsonb_array_elements(s.objectives) AS obj
           WHERE (obj->>'passed')::boolean = false
             AND s.objectives IS NOT NULL
             AND ${periodWhere(sql`s.timestamp`, i, false)}
-          GROUP BY s.challenge_slug, obj->>'objectiveKey'
+          GROUP BY s.challenge_slug, obj->>'key'
           ORDER BY s.challenge_slug, COUNT(*) DESC
         `),
       ]);
