@@ -50,8 +50,8 @@ function FunnelStep({
     <div
       className="flex-1 neo-border-thick neo-shadow p-6 flex flex-col justify-between min-h-[180px]"
       style={{
-        background: highlight ? "oklch(0.15 0 0)" : "oklch(0.95 0.05 85)",
-        color: highlight ? "oklch(0.98 0.01 90)" : "oklch(0.15 0 0)",
+        background: highlight ? "oklch(0.55 0.25 280)" : "oklch(0.95 0.05 85)",
+        color: highlight ? "oklch(1 0 0)" : "oklch(0.15 0 0)",
       }}
     >
       <div
@@ -77,7 +77,7 @@ function FunnelStep({
         <div
           className="text-xs font-black"
           style={{
-            color: highlight ? "oklch(0.75 0.2 150)" : "oklch(0.55 0.25 280)",
+            color: highlight ? "oklch(0.85 0.15 150)" : "oklch(0.55 0.25 280)",
           }}
         >
           {pct}
@@ -274,7 +274,7 @@ function ChallengesSection({
       {/* Column headers */}
       <div
         className="flex items-center gap-4 py-2 px-5 neo-border-thick neo-shadow text-[10px] font-black uppercase tracking-widest"
-        style={{ background: "oklch(0.15 0 0)", color: "oklch(0.98 0.01 90)" }}
+        style={{ background: "oklch(0.55 0.25 280)", color: "oklch(1 0 0)" }}
       >
         <span className="w-6 text-right flex-shrink-0 opacity-50">#</span>
         <span className="w-52 flex-shrink-0">Challenge</span>
@@ -317,8 +317,8 @@ function BigStat({
     <div
       className="neo-border-thick neo-shadow p-6 flex-1"
       style={{
-        background: accent ? "oklch(0.15 0 0)" : "oklch(0.95 0.05 85)",
-        color: accent ? "oklch(0.98 0.01 90)" : "oklch(0.15 0 0)",
+        background: accent ? "oklch(0.55 0.25 280)" : "oklch(0.95 0.05 85)",
+        color: accent ? "oklch(1 0 0)" : "oklch(0.15 0 0)",
       }}
     >
       <div
