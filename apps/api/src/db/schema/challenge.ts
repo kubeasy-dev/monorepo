@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -117,5 +118,8 @@ export const userXpTransaction = pgTable(
   (table) => [
     index("user_xp_transaction_user_id_idx").on(table.userId),
     index("user_xp_transaction_user_action_idx").on(table.userId, table.action),
+    uniqueIndex("user_xp_transaction_unique_user_challenge_action_idx")
+      .on(table.userId, table.challengeSlug, table.action)
+      .where(sql`${table.challengeSlug} IS NOT NULL`),
   ],
 );

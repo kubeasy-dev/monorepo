@@ -4,6 +4,7 @@ export * from "./cli";
 export * from "./email";
 export * from "./progress";
 export * from "./registry";
+export * from "./sse-events";
 export {
   type AuditEvent,
   AuditEventSchema,

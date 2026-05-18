@@ -1,18 +1,27 @@
+import type { ChallengeCompletedEventData } from "@kubeasy/api-schemas/sse-events";
 import type { XpAwardPayload } from "@kubeasy/jobs";
 import {
   type ChallengeSubmissionPayload,
   createQueue,
   QUEUE_NAMES,
 } from "@kubeasy/jobs";
-import { metrics } from "@opentelemetry/api";
+import { metrics, SpanStatusCode, trace } from "@opentelemetry/api";
 import { all } from "better-all";
 import { Worker } from "bullmq";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "../db/index";
-import { userXpTransaction } from "../db/schema/index";
+import {
+  userProgress,
+  userSubmission,
+  userXpTransaction,
+} from "../db/schema/index";
 import { trackChallengeCompleted } from "../lib/analytics-server";
-import { redisConfig } from "../lib/redis";
-import { calculateStreak, calculateXPGain } from "../services/xp/index";
+import { redis, redisConfig } from "../lib/redis";
+import {
+  calculateStreak,
+  calculateXPGain,
+  getRankFromXp,
+} from "../services/xp/index";
 import type { ChallengeDifficulty } from "../services/xp/types";
 
 const meter = metrics.getMeter("kubeasy-api-workers");
@@ -34,28 +43,44 @@ export function createChallengeSubmissionWorker() {
     QUEUE_NAMES.CHALLENGE_SUBMISSION,
     async (job) => {
       const startTime = Date.now();
-      const { userId, challengeSlug, difficulty } = job.data;
+      const { userId, challengeSlug, difficulty, prevTotalXp } = job.data;
 
       try {
+        // Idempotency guard: exit early if XP was already awarded for this challenge
+        const [existingTx] = await db
+          .select({ id: userXpTransaction.id })
+          .from(userXpTransaction)
+          .where(
+            and(
+              eq(userXpTransaction.userId, userId),
+              eq(userXpTransaction.challengeSlug, challengeSlug),
+              eq(userXpTransaction.action, "challenge_completed"),
+            ),
+          )
+          .limit(1);
+        if (existingTx) return;
+
         // 1 & 2. Check first challenge + calculate streak in parallel (independent DB queries)
-        const { completedTransactions, currentStreak } = await all({
-          async completedTransactions() {
+        // Uses userProgress (written synchronously by submit route) rather than userXpTransaction
+        // (written asynchronously by xp-award worker) to avoid TOCTOU false positives.
+        const { completedCount, currentStreak } = await all({
+          async completedCount() {
             const [row] = await db
               .select({ count: count() })
-              .from(userXpTransaction)
+              .from(userProgress)
               .where(
                 and(
-                  eq(userXpTransaction.userId, userId),
-                  eq(userXpTransaction.action, "challenge_completed"),
+                  eq(userProgress.userId, userId),
+                  eq(userProgress.status, "completed"),
                 ),
               );
-            return row;
+            return row?.count ?? 0;
           },
           async currentStreak() {
             return calculateStreak(userId);
           },
         });
-        const isFirstChallenge = (completedTransactions?.count ?? 0) === 0;
+        const isFirstChallenge = completedCount === 1;
 
         // 3. Calculate XP amounts
         const xpGain = calculateXPGain({
@@ -64,58 +89,134 @@ export function createChallengeSubmissionWorker() {
           currentStreak,
         });
 
-        // 4. Fire analytics (fire-and-forget style, errors logged internally)
-        await trackChallengeCompleted(
-          userId,
-          challengeSlug,
-          difficulty,
-          xpGain.total,
-          isFirstChallenge,
-        );
-
-        // 5. Dispatch XP_AWARD jobs in parallel
-        await all({
-          // Base XP always awarded
-          async base() {
-            return xpAwardQueue.add("xp-base", {
+        // 4. Gather stats for the celebration SSE event (parallel with analytics)
+        // prevTotalXp is captured at job-dispatch time (before any XP is awarded),
+        // so it's correct even on retries where XP_AWARD jobs may have already run.
+        const { attemptsCount, commandsCount } = await all({
+          async attemptsCount() {
+            const [row] = await db
+              .select({ count: count() })
+              .from(userSubmission)
+              .where(
+                and(
+                  eq(userSubmission.userId, userId),
+                  eq(userSubmission.challengeSlug, challengeSlug),
+                ),
+              );
+            return row?.count ?? 0;
+          },
+          async commandsCount() {
+            const [row] = await db
+              .select({
+                total: sql<number>`COALESCE(SUM(jsonb_array_length(COALESCE(${userSubmission.auditEvents}, '[]'::jsonb))), 0)`,
+              })
+              .from(userSubmission)
+              .where(
+                and(
+                  eq(userSubmission.userId, userId),
+                  eq(userSubmission.challengeSlug, challengeSlug),
+                ),
+              );
+            return row?.total ?? 0;
+          },
+          // Fire-and-forget — must not propagate errors or the job retries and re-awards XP
+          async _analytics() {
+            await trackChallengeCompleted(
               userId,
               challengeSlug,
-              xpAmount: xpGain.baseXP,
-              action: "challenge_completed",
-              description: `Completed ${difficulty} challenge`,
-            } satisfies XpAwardPayload);
+              difficulty,
+              xpGain.total,
+              isFirstChallenge,
+            ).catch(() => {});
           },
-          // First challenge bonus
+        });
+
+        const prevRank = getRankFromXp(prevTotalXp);
+        const newRank = getRankFromXp(prevTotalXp + xpGain.total);
+
+        // 5. Dispatch XP_AWARD jobs in parallel with deterministic jobIds so
+        //    re-enqueues on retry are deduplicated at the BullMQ level.
+        await all({
+          async base() {
+            return xpAwardQueue.add(
+              "xp-base",
+              {
+                userId,
+                challengeSlug,
+                xpAmount: xpGain.baseXP,
+                action: "challenge_completed",
+                description: `Completed ${difficulty} challenge`,
+              } satisfies XpAwardPayload,
+              { jobId: `xp-base:${userId}:${challengeSlug}` },
+            );
+          },
           async firstChallenge() {
             if (isFirstChallenge && xpGain.firstChallengeBonus > 0) {
-              return xpAwardQueue.add("xp-first-challenge", {
-                userId,
-                challengeSlug,
-                xpAmount: xpGain.firstChallengeBonus,
-                action: "first_challenge",
-                description: "First challenge bonus",
-              } satisfies XpAwardPayload);
+              return xpAwardQueue.add(
+                "xp-first-challenge",
+                {
+                  userId,
+                  challengeSlug,
+                  xpAmount: xpGain.firstChallengeBonus,
+                  action: "first_challenge",
+                  description: "First challenge bonus",
+                } satisfies XpAwardPayload,
+                { jobId: `xp-first-challenge:${userId}:${challengeSlug}` },
+              );
             }
           },
-          // Streak bonus
           async streak() {
             if (xpGain.streakBonus > 0) {
-              return xpAwardQueue.add("xp-streak", {
-                userId,
-                challengeSlug,
-                xpAmount: xpGain.streakBonus,
-                action: "daily_streak",
-                description: `${currentStreak} day streak bonus`,
-              } satisfies XpAwardPayload);
+              return xpAwardQueue.add(
+                "xp-streak",
+                {
+                  userId,
+                  challengeSlug,
+                  xpAmount: xpGain.streakBonus,
+                  action: "daily_streak",
+                  description: `${currentStreak} day streak bonus`,
+                } satisfies XpAwardPayload,
+                { jobId: `xp-streak:${userId}:${challengeSlug}` },
+              );
             }
           },
         });
+
+        // 6. Emit celebration SSE event
+        const eventData: ChallengeCompletedEventData = {
+          challengeSlug,
+          difficulty: difficulty as ChallengeDifficulty,
+          xpGain: {
+            base: xpGain.baseXP,
+            firstChallenge: xpGain.firstChallengeBonus,
+            streak: xpGain.streakBonus,
+            total: xpGain.total,
+          },
+          isFirstChallenge,
+          currentStreak,
+          attemptsCount,
+          commandsCount,
+          leveledUp: prevRank.name !== newRank.name,
+          prevRank,
+          newRank,
+        };
+        await redis
+          .publish(
+            `challenge:${userId}:${challengeSlug}`,
+            JSON.stringify({ event: "challenge-completed", data: eventData }),
+          )
+          .catch(() => {
+            // Non-critical — don't fail the job if SSE publish fails
+          });
 
         jobCounter.add(1, {
           queue: QUEUE_NAMES.CHALLENGE_SUBMISSION,
           status: "success",
         });
       } catch (error) {
+        const span = trace.getActiveSpan();
+        span?.recordException(error as Error);
+        span?.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
         jobCounter.add(1, {
           queue: QUEUE_NAMES.CHALLENGE_SUBMISSION,
           status: "error",

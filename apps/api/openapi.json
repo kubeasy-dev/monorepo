@@ -905,7 +905,9 @@
             "in": "path",
             "name": "slug",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200,
+              "pattern": "^[a-z0-9-]+$"
             },
             "required": true
           }
@@ -967,7 +969,9 @@
             "in": "path",
             "name": "slug",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200,
+              "pattern": "^[a-z0-9-]+$"
             },
             "required": true
           }
@@ -1033,7 +1037,9 @@
             "in": "path",
             "name": "slug",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200,
+              "pattern": "^[a-z0-9-]+$"
             },
             "required": true
           }
@@ -1097,7 +1103,9 @@
             "in": "path",
             "name": "slug",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200,
+              "pattern": "^[a-z0-9-]+$"
             },
             "required": true
           }
@@ -2241,6 +2249,44 @@
             }
           }
         }
+      }
+    },
+    "/api/sse/challenge/{slug}": {
+      "get": {
+        "operationId": "getApiSseChallengeBySlug",
+        "tags": [
+          "SSE"
+        ],
+        "summary": "Per-challenge SSE channel (challenge-completed events)",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "pattern": "^[a-z0-9-]+$"
+            },
+            "required": true
+          }
+        ]
       }
     },
     "/api/sse/invalidate-cache": {

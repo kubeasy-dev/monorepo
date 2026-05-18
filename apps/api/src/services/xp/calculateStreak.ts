@@ -1,21 +1,8 @@
-/**
- * Calculate user's current streak (consecutive days with completions)
- *
- * Uses daily_streak transactions as source of truth
- */
-
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, isNotNull } from "drizzle-orm";
 import { db } from "../../db/index";
-import { userXpTransaction } from "../../db/schema/index";
+import { userProgress } from "../../db/schema/index";
 import { MAX_STREAK_WINDOW_DAYS } from "./constants";
 
-/**
- * Normalize a date to UTC midnight (start of day in UTC)
- * This ensures consistent date comparison regardless of server timezone
- *
- * @param date - Date to normalize
- * @returns New Date object set to midnight UTC on the same calendar day
- */
 function normalizeToUTCMidnight(date: Date): Date {
   return new Date(
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
@@ -23,10 +10,12 @@ function normalizeToUTCMidnight(date: Date): Date {
 }
 
 /**
- * Calculate the current streak for a user
+ * Calculate the current streak for a user (consecutive calendar days with
+ * at least one challenge completion).
  *
- * @param userId - User ID to calculate streak for
- * @returns Number of consecutive days (including today if completed)
+ * Reads userProgress.completedAt — written synchronously by the submit route —
+ * instead of daily_streak XP transactions, which are written asynchronously by
+ * xp-award.worker and may not exist yet when this function is called.
  */
 export async function calculateStreak(userId: string): Promise<number> {
   const today = normalizeToUTCMidnight(new Date());
@@ -34,64 +23,49 @@ export async function calculateStreak(userId: string): Promise<number> {
   const windowStart = new Date(today);
   windowStart.setUTCDate(windowStart.getUTCDate() - MAX_STREAK_WINDOW_DAYS);
 
-  // Get all daily_streak transactions within the window
-  const streakTransactions = await db
-    .select({
-      createdAt: userXpTransaction.createdAt,
-    })
-    .from(userXpTransaction)
+  const completions = await db
+    .select({ completedAt: userProgress.completedAt })
+    .from(userProgress)
     .where(
       and(
-        eq(userXpTransaction.userId, userId),
-        eq(userXpTransaction.action, "daily_streak"),
-        gte(userXpTransaction.createdAt, windowStart),
+        eq(userProgress.userId, userId),
+        eq(userProgress.status, "completed"),
+        isNotNull(userProgress.completedAt),
+        gte(userProgress.completedAt, windowStart),
       ),
-    )
-    .orderBy(userXpTransaction.createdAt);
+    );
 
-  if (streakTransactions.length === 0) {
-    return 0;
-  }
+  if (completions.length === 0) return 0;
 
-  // Get unique days (multiple transactions on same day count as 1)
   const uniqueDays = new Set<string>();
-  for (const transaction of streakTransactions) {
-    const date = normalizeToUTCMidnight(new Date(transaction.createdAt));
-    uniqueDays.add(date.toISOString());
+  for (const { completedAt } of completions) {
+    if (completedAt) {
+      uniqueDays.add(normalizeToUTCMidnight(completedAt).toISOString());
+    }
   }
 
-  // Sort days in descending order (most recent first)
   const sortedDays = Array.from(uniqueDays)
-    .map((dateStr) => new Date(dateStr))
+    .map((d) => new Date(d))
     .sort((a, b) => b.getTime() - a.getTime());
 
-  // Start from most recent day and count backwards
-  let streak = 0;
-  const expectedDate = new Date(today);
-
-  // If last activity was not today or yesterday, streak is broken
   const mostRecentDay = sortedDays[0];
   const daysSinceLastActivity = Math.floor(
     (today.getTime() - mostRecentDay.getTime()) / (1000 * 60 * 60 * 24),
   );
 
-  if (daysSinceLastActivity > 1) {
-    // Streak is broken (more than 1 day gap)
-    return 0;
-  }
+  if (daysSinceLastActivity > 1) return 0;
 
-  // If last activity was yesterday, start from yesterday
+  const expectedDate = new Date(today);
   if (daysSinceLastActivity === 1) {
     expectedDate.setUTCDate(expectedDate.getUTCDate() - 1);
   }
 
-  // Count consecutive days backwards
+  let streak = 0;
   for (const day of sortedDays) {
     if (day.getTime() === expectedDate.getTime()) {
       streak++;
       expectedDate.setUTCDate(expectedDate.getUTCDate() - 1);
     } else {
-      // Gap found, stop counting
       break;
     }
   }

@@ -4,6 +4,7 @@ export interface ChallengeSubmissionPayload {
   userId: string;
   challengeSlug: string;
   difficulty: string;
+  prevTotalXp: number;
 }
 
 export interface XpAwardPayload {

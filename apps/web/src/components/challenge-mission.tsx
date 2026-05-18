@@ -1,3 +1,4 @@
+import type { ChallengeCompletedEventData } from "@kubeasy/api-schemas/sse-events";
 import { Button } from "@kubeasy/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@kubeasy/ui/card";
 import {
@@ -18,8 +19,9 @@ import {
   Target,
   XCircle,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useInvalidateCacheSSE } from "@/hooks/use-invalidate-cache-sse";
+import { useCallback, useMemo, useState } from "react";
+import { ChallengeCompletionModal } from "@/components/challenge-completion-modal";
+import { useChallengeCelebrationSSE } from "@/hooks/use-challenge-celebration-sse";
 import { authClient } from "@/lib/auth-client";
 import {
   challengeObjectivesOptions,
@@ -73,6 +75,15 @@ interface DisplayObjective {
 
 export function ChallengeMission({ slug }: ChallengeMissionProps) {
   const [showHistory, setShowHistory] = useState(false);
+  const [celebrationPayload, setCelebrationPayload] =
+    useState<ChallengeCompletedEventData | null>(null);
+
+  const handleChallengeCompleted = useCallback(
+    (data: ChallengeCompletedEventData) => {
+      setCelebrationPayload(data);
+    },
+    [],
+  );
 
   const { data: session, isPending: isSessionLoading } =
     authClient.useSession();
@@ -98,7 +109,11 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
   });
 
   const status = statusData?.status ?? "not_started";
-  useInvalidateCacheSSE(status === "in_progress");
+  useChallengeCelebrationSSE(
+    slug,
+    isAuthenticated && status !== "completed",
+    handleChallengeCompleted,
+  );
   const isLoading =
     isLoadingObjectives ||
     isSessionLoading ||
@@ -171,203 +186,213 @@ export function ChallengeMission({ slug }: ChallengeMissionProps) {
     (submissionsData as SubmissionsOutput | undefined)?.submissions ?? [];
 
   return (
-    <Card className="neo-border-thick neo-shadow-xl bg-secondary">
-      <CardHeader>
-        <CardTitle className="text-2xl font-black flex items-center gap-3">
-          <Target className="h-6 w-6" />
-          Your Mission
-          {totalObjectives > 0 && (
-            <span className="ml-auto text-base font-bold">
-              {passedObjectives}/{totalObjectives}
-            </span>
+    <>
+      <ChallengeCompletionModal
+        payload={celebrationPayload}
+        onClose={() => setCelebrationPayload(null)}
+      />
+      <Card className="neo-border-thick neo-shadow-xl bg-secondary">
+        <CardHeader>
+          <CardTitle className="text-2xl font-black flex items-center gap-3">
+            <Target className="h-6 w-6" />
+            Your Mission
+            {totalObjectives > 0 && (
+              <span className="ml-auto text-base font-bold">
+                {passedObjectives}/{totalObjectives}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Loading state */}
+          {isLoading && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm font-medium">
+                Loading validation status...
+              </span>
+            </div>
           )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Loading state */}
-        {isLoading && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm font-medium">
-              Loading validation status...
-            </span>
-          </div>
-        )}
 
-        {/* Success Message - only when completed */}
-        {isCompleted && (
-          <div className="bg-green-50 neo-border-thick rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
-              <p className="font-bold text-green-900">
-                Congratulations! You&apos;ve successfully completed this
-                challenge.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Objectives Checklist */}
-        {!isLoading && displayObjectives.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-sm font-bold">
-              Complete the objectives below and submit your solution:
-            </p>
-
-            <div className="space-y-2">
-              {displayObjectives.map((obj) => (
-                <div
-                  key={obj.id}
-                  className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg neo-border",
-                    obj.status === true
-                      ? "bg-green-50"
-                      : obj.status === false
-                        ? "bg-red-50"
-                        : "bg-white",
-                  )}
-                >
-                  <StatusIcon objStatus={obj.status} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold">{obj.title}</p>
-                      <span
-                        className={cn(
-                          "text-xs font-semibold px-2 py-0.5 rounded-full",
-                          CATEGORY_COLORS[obj.category] ||
-                            "bg-gray-100 text-gray-700",
-                        )}
-                      >
-                        {CATEGORY_LABELS[obj.category] || obj.category}
-                      </span>
-                    </div>
-                    {obj.description && (
-                      <p className="text-sm text-foreground/70 mt-1">
-                        {obj.description}
-                      </p>
-                    )}
-                    {obj.message && (
-                      <p
-                        className={cn(
-                          "text-sm mt-2 font-medium",
-                          obj.status === true
-                            ? "text-green-700"
-                            : "text-red-600",
-                        )}
-                      >
-                        {obj.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Last Updated */}
-            {hasAnySubmission &&
-              (validationStatus as LatestValidationStatusOutput | undefined)
-                ?.timestamp && (
-                <p className="text-xs text-muted-foreground text-right font-medium">
-                  Last updated:{" "}
-                  {new Date(
-                    String(
-                      (validationStatus as LatestValidationStatusOutput)
-                        .timestamp,
-                    ),
-                  ).toLocaleString()}
+          {/* Success Message - only when completed */}
+          {isCompleted && (
+            <div className="bg-green-50 neo-border-thick rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
+                <p className="font-bold text-green-900">
+                  Congratulations! You&apos;ve successfully completed this
+                  challenge.
                 </p>
-              )}
-          </div>
-        )}
-
-        {/* CLI Commands */}
-        <div className="space-y-3">
-          {isCompleted ? (
-            <>
-              <p className="text-sm font-bold">Clean up the resources with:</p>
-              <div className="bg-black text-green-400 p-3 rounded-lg neo-border-thick font-mono text-sm">
-                <span className="text-gray-500">$</span> kubeasy challenge clean{" "}
-                {slug}
               </div>
-            </>
-          ) : status === "not_started" ? (
-            <>
+            </div>
+          )}
+
+          {/* Objectives Checklist */}
+          {!isLoading && displayObjectives.length > 0 && (
+            <div className="space-y-3">
               <p className="text-sm font-bold">
-                Start this challenge in your local Kubernetes cluster:
+                Complete the objectives below and submit your solution:
               </p>
-              <div className="bg-black text-green-400 p-3 rounded-lg neo-border-thick font-mono text-sm">
-                <span className="text-gray-500">$</span> kubeasy challenge start{" "}
-                {slug}
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-sm font-bold">Submit your solution:</p>
-              <div className="bg-black text-green-400 p-3 rounded-lg neo-border-thick font-mono text-sm">
-                <span className="text-gray-500">$</span> kubeasy challenge
-                submit {slug}
-              </div>
-            </>
-          )}
 
-          {/* History button */}
-          {submissions.length > 0 && (
-            <Dialog open={showHistory} onOpenChange={setShowHistory}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="neo-border font-bold"
-                >
-                  <Clock className="h-4 w-4 mr-2" />
-                  View History ({submissions.length})
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto neo-border-thick">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-black">
-                    Submission History
-                  </DialogTitle>
-                  <DialogDescription>
-                    Previous attempts for this challenge
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3 mt-4">
-                  {submissions.map((submission) => (
-                    <div
-                      key={submission.id}
-                      className="p-4 bg-secondary neo-border-thick flex items-center justify-between"
-                    >
-                      <span className="font-bold text-sm">
-                        {submission.timestamp
-                          ? new Date(submission.timestamp).toLocaleString()
-                          : "Unknown date"}
-                      </span>
-                      <span
-                        className={cn(
-                          "font-bold text-sm px-2 py-0.5 neo-border",
-                          submission.validated
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700",
-                        )}
-                      >
-                        {submission.validated ? "Passed" : "Failed"}
-                      </span>
+              <div className="space-y-2">
+                {displayObjectives.map((obj) => (
+                  <div
+                    key={obj.id}
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-lg neo-border",
+                      obj.status === true
+                        ? "bg-green-50"
+                        : obj.status === false
+                          ? "bg-red-50"
+                          : "bg-white",
+                    )}
+                  >
+                    <StatusIcon objStatus={obj.status} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-bold">{obj.title}</p>
+                        <span
+                          className={cn(
+                            "text-xs font-semibold px-2 py-0.5 rounded-full",
+                            CATEGORY_COLORS[obj.category] ||
+                              "bg-gray-100 text-gray-700",
+                          )}
+                        >
+                          {CATEGORY_LABELS[obj.category] || obj.category}
+                        </span>
+                      </div>
+                      {obj.description && (
+                        <p className="text-sm text-foreground/70 mt-1">
+                          {obj.description}
+                        </p>
+                      )}
+                      {obj.message && (
+                        <p
+                          className={cn(
+                            "text-sm mt-2 font-medium",
+                            obj.status === true
+                              ? "text-green-700"
+                              : "text-red-600",
+                          )}
+                        >
+                          {obj.message}
+                        </p>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
+                  </div>
+                ))}
+              </div>
 
-        {/* No objectives (backward compat) */}
-        {!isLoading && displayObjectives.length === 0 && !hasAnySubmission && (
-          <p className="text-sm font-medium text-muted-foreground">
-            Submit your solution to see validation progress.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+              {/* Last Updated */}
+              {hasAnySubmission &&
+                (validationStatus as LatestValidationStatusOutput | undefined)
+                  ?.timestamp && (
+                  <p className="text-xs text-muted-foreground text-right font-medium">
+                    Last updated:{" "}
+                    {new Date(
+                      String(
+                        (validationStatus as LatestValidationStatusOutput)
+                          .timestamp,
+                      ),
+                    ).toLocaleString()}
+                  </p>
+                )}
+            </div>
+          )}
+
+          {/* CLI Commands */}
+          <div className="space-y-3">
+            {isCompleted ? (
+              <>
+                <p className="text-sm font-bold">
+                  Clean up the resources with:
+                </p>
+                <div className="bg-black text-green-400 p-3 rounded-lg neo-border-thick font-mono text-sm">
+                  <span className="text-gray-500">$</span> kubeasy challenge
+                  clean {slug}
+                </div>
+              </>
+            ) : status === "not_started" ? (
+              <>
+                <p className="text-sm font-bold">
+                  Start this challenge in your local Kubernetes cluster:
+                </p>
+                <div className="bg-black text-green-400 p-3 rounded-lg neo-border-thick font-mono text-sm">
+                  <span className="text-gray-500">$</span> kubeasy challenge
+                  start {slug}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-bold">Submit your solution:</p>
+                <div className="bg-black text-green-400 p-3 rounded-lg neo-border-thick font-mono text-sm">
+                  <span className="text-gray-500">$</span> kubeasy challenge
+                  submit {slug}
+                </div>
+              </>
+            )}
+
+            {/* History button */}
+            {submissions.length > 0 && (
+              <Dialog open={showHistory} onOpenChange={setShowHistory}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="neo-border font-bold"
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    View History ({submissions.length})
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto neo-border-thick">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-black">
+                      Submission History
+                    </DialogTitle>
+                    <DialogDescription>
+                      Previous attempts for this challenge
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3 mt-4">
+                    {submissions.map((submission) => (
+                      <div
+                        key={submission.id}
+                        className="p-4 bg-secondary neo-border-thick flex items-center justify-between"
+                      >
+                        <span className="font-bold text-sm">
+                          {submission.timestamp
+                            ? new Date(submission.timestamp).toLocaleString()
+                            : "Unknown date"}
+                        </span>
+                        <span
+                          className={cn(
+                            "font-bold text-sm px-2 py-0.5 neo-border",
+                            submission.validated
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700",
+                          )}
+                        >
+                          {submission.validated ? "Passed" : "Failed"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+
+          {/* No objectives (backward compat) */}
+          {!isLoading &&
+            displayObjectives.length === 0 &&
+            !hasAnySubmission && (
+              <p className="text-sm font-medium text-muted-foreground">
+                Submit your solution to see validation progress.
+              </p>
+            )}
+        </CardContent>
+      </Card>
+    </>
   );
 }

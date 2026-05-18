@@ -18,25 +18,28 @@ export function createXpAwardWorker() {
       log.set({ jobId: job.id, worker: "xp-award" });
       const { userId, challengeSlug, xpAmount, action, description } = job.data;
 
-      // 1. Atomic userXp UPSERT (add xpAmount to totalXp)
-      await db
-        .insert(userXp)
-        .values({ userId, totalXp: xpAmount })
-        .onConflictDoUpdate({
-          target: userXp.userId,
-          set: {
-            totalXp: sql`${userXp.totalXp} + ${xpAmount}`,
-            updatedAt: new Date(),
-          },
-        });
+      // 1. Write the XP transaction record first — acts as the idempotency key.
+      //    ON CONFLICT DO NOTHING means retried jobs skip the XP update safely.
+      // 2. Atomically increment userXp total, but only if the transaction was new.
+      await db.transaction(async (tx) => {
+        const [inserted] = await tx
+          .insert(userXpTransaction)
+          .values({ userId, action, xpAmount, challengeSlug, description })
+          .onConflictDoNothing()
+          .returning({ id: userXpTransaction.id });
 
-      // 2. Insert userXpTransaction record
-      await db.insert(userXpTransaction).values({
-        userId,
-        action,
-        xpAmount,
-        challengeSlug,
-        description,
+        if (!inserted) return;
+
+        await tx
+          .insert(userXp)
+          .values({ userId, totalXp: xpAmount })
+          .onConflictDoUpdate({
+            target: userXp.userId,
+            set: {
+              totalXp: sql`${userXp.totalXp} + ${xpAmount}`,
+              updatedAt: new Date(),
+            },
+          });
       });
 
       // 3. Publish SSE cache-invalidation event for user's XP query
