@@ -7,7 +7,8 @@ import {
   TableRow,
 } from "@kubeasy/ui/table";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
 import {
   Activity,
   ArrowDown,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { Suspense, useEffect, useState } from "react";
+import { z } from "zod";
 import {
   type AnalyticsChallengeItem,
   type AnalyticsCliOutput,
@@ -70,7 +72,17 @@ function DeltaBadge({
   );
 }
 
+const analyticsSearchSchema = z.object({
+  period: z
+    .enum(["24h", "7d", "30d", "3m", "6m", "1y"])
+    .optional()
+    .default("30d")
+    .catch("30d"),
+  compare: z.boolean().optional().default(false).catch(false),
+});
+
 export const Route = createFileRoute("/analytics/")({
+  validateSearch: zodValidator(analyticsSearchSchema),
   component: AnalyticsPage,
 });
 
@@ -660,8 +672,16 @@ function AnalyticsContent({
 }
 
 function AnalyticsPage() {
-  const [period, setPeriod] = useState<AnalyticsPeriod>("30d");
-  const [compare, setCompare] = useState(false);
+  const { period, compare } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+
+  function setPeriod(p: AnalyticsPeriod) {
+    navigate({ search: { period: p, compare } });
+  }
+
+  function toggleCompare() {
+    navigate({ search: { period, compare: !compare } });
+  }
 
   return (
     <div className="py-8">
@@ -674,7 +694,7 @@ function AnalyticsPage() {
           period={period}
           compare={compare}
           onPeriodChange={setPeriod}
-          onCompareToggle={() => setCompare((c) => !c)}
+          onCompareToggle={toggleCompare}
         />
       </div>
       <Suspense
