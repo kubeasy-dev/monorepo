@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import { Button } from "@kubeasy/ui/button";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
-import { adminUsersOptions, adminUsersStatsOptions } from "@/lib/query-options";
+import React, { useState } from "react";
 import { UsersStats } from "@/components/users-stats";
 import { UsersTable } from "@/components/users-table";
 import { authClient } from "@/lib/auth-client";
-import { Button } from "@kubeasy/ui/button";
+import { adminUsersOptions, adminUsersStatsOptions } from "@/lib/query-options";
 
 export const Route = createFileRoute("/users/")({
   component: UsersPageWrapper,

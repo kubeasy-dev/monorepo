@@ -28,8 +28,6 @@ const updateNameSchema = z.object({
   lastName: z.string().optional(),
 });
 
-
-
 const updateTopicSchema = z.object({
   subscribed: z.boolean(),
 });

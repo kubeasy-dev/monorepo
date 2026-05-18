@@ -1,5 +1,5 @@
-import { ArrowRight, Calendar } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { ArrowRight, Calendar } from "lucide-react";
 import type { BlogPost } from "@/lib/notion";
 
 interface BlogCardProps {
@@ -17,7 +17,11 @@ export function BlogCard({ post, featured = false }: BlogCardProps) {
   if (featured) {
     return (
       <article className="group col-span-full neo-border-thick neo-shadow bg-secondary hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all">
-        <Link to="/blog/$slug" params={{ slug: post.slug }} className="flex flex-col md:flex-row">
+        <Link
+          to="/blog/$slug"
+          params={{ slug: post.slug }}
+          className="flex flex-col md:flex-row"
+        >
           {/* Cover Image */}
           <div className="relative aspect-video md:aspect-auto md:w-1/2 overflow-hidden border-b-2 md:border-b-0 md:border-r-2 border-foreground">
             {post.cover ? (
@@ -86,7 +90,11 @@ export function BlogCard({ post, featured = false }: BlogCardProps) {
 
   return (
     <article className="group neo-border-thick neo-shadow bg-secondary hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all">
-      <Link to="/blog/$slug" params={{ slug: post.slug }} className="flex flex-col h-full">
+      <Link
+        to="/blog/$slug"
+        params={{ slug: post.slug }}
+        className="flex flex-col h-full"
+      >
         {/* Compact header with category and date */}
         <div className="flex items-center justify-between px-4 py-3 border-b-2 border-foreground bg-background">
           <span className="text-xs font-black uppercase tracking-wider text-primary">

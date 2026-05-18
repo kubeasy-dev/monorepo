@@ -1,15 +1,5 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { MoreHorizontal } from "lucide-react";
 import type { AdminUserItem } from "@kubeasy/api-schemas/auth";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@kubeasy/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@kubeasy/ui/avatar";
 import { Badge } from "@kubeasy/ui/badge";
 import { Button } from "@kubeasy/ui/button";
 import {
@@ -19,7 +9,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@kubeasy/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@kubeasy/ui/avatar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@kubeasy/ui/table";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { MoreHorizontal } from "lucide-react";
+import { useState } from "react";
 import { authClient } from "../lib/auth-client";
 import { BanDialog } from "./ban-dialog";
 
@@ -46,8 +46,10 @@ export function UsersTable({
     mutationFn: ({
       userId,
       role,
-    }: { userId: string; role: "admin" | "user" }) =>
-      authClient.admin.setRole({ userId, role }),
+    }: {
+      userId: string;
+      role: "admin" | "user";
+    }) => authClient.admin.setRole({ userId, role }),
     onSettled: invalidate,
   });
 
@@ -90,7 +92,10 @@ export function UsersTable({
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.image ?? undefined} alt={user.name} />
+                      <AvatarImage
+                        src={user.image ?? undefined}
+                        alt={user.name}
+                      />
                       <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -124,10 +129,7 @@ export function UsersTable({
                       )}
                     </div>
                   ) : (
-                    <Badge
-                      variant="outline"
-                      className="text-green-600"
-                    >
+                    <Badge variant="outline" className="text-green-600">
                       Active
                     </Badge>
                   )}

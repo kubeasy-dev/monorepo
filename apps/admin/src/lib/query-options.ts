@@ -1,12 +1,12 @@
-import { queryOptions } from "@tanstack/react-query";
-import type {
-  AdminChallengeListOutput,
-  AdminStatsOutput,
-} from "@kubeasy/api-schemas/challenges";
 import type {
   AdminUserListOutput,
   AdminUserStatsOutput,
 } from "@kubeasy/api-schemas/auth";
+import type {
+  AdminChallengeListOutput,
+  AdminStatsOutput,
+} from "@kubeasy/api-schemas/challenges";
+import { queryOptions } from "@tanstack/react-query";
 import { apiFetch } from "./api-client";
 
 export function adminChallengesOptions() {

@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { Button } from "@kubeasy/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@kubeasy/ui/dialog";
-import { Button } from "@kubeasy/ui/button";
+import { useEffect, useState } from "react";
 
 interface BanDialogProps {
   open: boolean;

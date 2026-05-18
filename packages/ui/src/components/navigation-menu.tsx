@@ -1,11 +1,10 @@
 "use client";
 
+import { cn } from "@kubeasy/ui/utils";
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
 import { cva } from "class-variance-authority";
 import { ChevronDownIcon } from "lucide-react";
 import type * as React from "react";
-
-import { cn } from "@kubeasy/ui/utils";
 
 function NavigationMenu({
   className,

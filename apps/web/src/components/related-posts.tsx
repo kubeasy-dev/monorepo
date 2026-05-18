@@ -1,5 +1,5 @@
-import { ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
 import type { BlogPost } from "@/lib/notion";
 
 interface RelatedPostsProps {

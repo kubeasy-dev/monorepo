@@ -24,13 +24,47 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            Please review this pull request with a focus on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Security implications
-            - Performance considerations
+            Run a multi-agent review of this PR using the specialized agents defined in .claude/agents/.
 
-            Provide detailed feedback using inline comments for specific issues.
+            Steps:
+            1. Get the list of changed files: `gh pr diff ${{ github.event.pull_request.number }} --name-only`
+            2. Get the full diff: `gh pr diff ${{ github.event.pull_request.number }}`
+            3. Based on changed files, invoke the relevant agents IN PARALLEL:
+               - **security-reviewer** (defined in .claude/agents/security-reviewer.md) → if any file matches `apps/api/src/routes/*`, `apps/api/src/middleware/*`, or auth config
+               - **migration-reviewer** (defined in .claude/agents/migration-reviewer.md) → if any file matches `apps/api/drizzle/*.sql`
+               - **worker-reviewer** (defined in .claude/agents/worker-reviewer.md) → if any file matches `apps/api/src/workers/*`
+               - **api-contract-reviewer** (defined in .claude/agents/api-contract-reviewer.md) → if any file matches `apps/api/src/routes/*`
+            4. In parallel with the specialized agents, also do a general code review of the full diff:
+               - Code quality, readability, and TypeScript best practices
+               - Logic bugs, edge cases, off-by-one errors
+               - Performance issues (N+1 queries, missing pagination, unnecessary re-renders)
+               - Test coverage — are the changed code paths tested?
+
+            5. Aggregate all findings and post a single PR comment with this structure:
+
+            ```
+            ## 🤖 Automated Review
+
+            ### 📝 Code Quality
+            [general review findings or ✅ LGTM]
+
+            ### 🔒 Security
+            [findings or ✅ LGTM]
+
+            ### 🗄️ Migration Safety
+            [findings or ➖ Not applicable]
+
+            ### ⚙️ Worker Reliability
+            [findings or ➖ Not applicable]
+
+            ### 🔗 API Contract
+            [findings or ✅ LGTM]
+
+            ---
+            **Summary**: X issues found (Y critical, Z high)
+            ```
+
+            Post inline comments for CRITICAL and HIGH findings when possible.
 
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(cat:*)"

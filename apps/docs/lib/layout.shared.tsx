@@ -1,5 +1,5 @@
-import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
-import Image from 'next/image';
+import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
+import Image from "next/image";
 
 /**
  * Shared layout configurations
@@ -18,7 +18,7 @@ export function baseOptions(): BaseLayoutProps {
             alt="Kubeasy Logo"
             width={24}
             height={24}
-            style={{ display: 'inline-block' }}
+            style={{ display: "inline-block" }}
           />
           Kubeasy
         </>

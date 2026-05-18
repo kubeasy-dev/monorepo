@@ -1,7 +1,3 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertCircle, Check, Copy, Key, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 import { Alert, AlertDescription } from "@kubeasy/ui/alert";
 import { Button } from "@kubeasy/ui/button";
 import {
@@ -20,6 +16,10 @@ import {
   EmptyTitle,
 } from "@kubeasy/ui/empty";
 import { Input } from "@kubeasy/ui/input";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { AlertCircle, Check, Copy, Key, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { trackApiTokenCopied, trackApiTokenCreated } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 

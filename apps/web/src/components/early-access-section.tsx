@@ -1,5 +1,5 @@
-import { Beaker, Github, MessageSquare } from "lucide-react";
 import { Button } from "@kubeasy/ui/button";
+import { Beaker, Github, MessageSquare } from "lucide-react";
 import { siteConfig } from "@/lib/constants";
 
 export function EarlyAccessSection() {

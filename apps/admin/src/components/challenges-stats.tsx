@@ -56,13 +56,17 @@ export function ChallengesStats({ stats }: ChallengesStatsProps) {
             <BarChart3 className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <p className="text-sm font-bold text-foreground">Total Submissions</p>
+            <p className="text-sm font-bold text-foreground">
+              Total Submissions
+            </p>
             <p className="text-3xl font-black text-foreground">
               {stats.totalSubmissions.toLocaleString()}
             </p>
           </div>
         </div>
-        <p className="text-sm font-bold text-foreground">across all challenges</p>
+        <p className="text-sm font-bold text-foreground">
+          across all challenges
+        </p>
       </div>
 
       {/* Avg Attempts */}
@@ -76,7 +80,9 @@ export function ChallengesStats({ stats }: ChallengesStatsProps) {
             <p className="text-3xl font-black text-foreground">{avgAttempts}</p>
           </div>
         </div>
-        <p className="text-sm font-bold text-foreground">per challenge starter</p>
+        <p className="text-sm font-bold text-foreground">
+          per challenge starter
+        </p>
       </div>
     </div>
   );

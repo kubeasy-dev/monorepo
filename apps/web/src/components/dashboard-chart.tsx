@@ -1,5 +1,5 @@
 import { TrendingUp } from "lucide-react";
-import { Suspense, lazy, useEffect, useState, type ComponentType } from "react";
+import { type ComponentType, Suspense, useEffect, useState } from "react";
 
 function ChartFallback() {
   return (

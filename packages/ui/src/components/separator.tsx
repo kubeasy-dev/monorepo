@@ -1,9 +1,8 @@
 "use client";
 
+import { cn } from "@kubeasy/ui/utils";
 import * as SeparatorPrimitive from "@radix-ui/react-separator";
 import type * as React from "react";
-
-import { cn } from "@kubeasy/ui/utils";
 
 function Separator({
   className,
