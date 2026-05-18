@@ -8,12 +8,23 @@ import { redis, redisConfig } from "../lib/redis";
 import { slidingWindowRateLimit } from "../middleware/rate-limit";
 import { type AppEnv, requireAuth } from "../middleware/session";
 
-const slugParam = z.object({ slug: z.string().max(200) });
+const slugParam = z.object({
+  slug: z
+    .string()
+    .max(200)
+    .regex(/^[a-z0-9-]+$/, "Invalid slug format"),
+});
+
+const ALLOWED_SSE_EVENTS = new Set(["challenge-completed", "invalidate-cache"]);
 
 const sseRateLimit = slidingWindowRateLimit(redis, {
   windowMs: 60_000,
   max: 20,
-  keyFn: (c) => `sse:${c.get("user")?.id}`,
+  keyFn: (c) => {
+    const user = c.get("user");
+    if (!user) throw new Error("sseRateLimit used outside requireAuth");
+    return `sse:${user.id}`;
+  },
 });
 
 type SSEStream = Parameters<Parameters<typeof streamSSE>[1]>[0];
@@ -69,7 +80,7 @@ function parseDynamicEvent(
 ): { event: string; data: string } | null {
   try {
     const parsed = JSON.parse(message) as { event?: string; data?: unknown };
-    if (parsed.event) {
+    if (parsed.event && ALLOWED_SSE_EVENTS.has(parsed.event)) {
       return {
         event: parsed.event,
         data:

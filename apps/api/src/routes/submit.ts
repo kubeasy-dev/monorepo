@@ -15,6 +15,7 @@ import { db } from "../db/index";
 import {
   userProgress,
   userSubmission,
+  userXp,
   userXpTransaction,
 } from "../db/schema/index";
 import { trackChallengeSubmitted } from "../lib/analytics-server";
@@ -273,11 +274,17 @@ export const submit = new Hono<AppEnv>().post(
     }
 
     if (!txResult.hasXpAwarded) {
+      const [xpRow] = await db
+        .select({ totalXp: userXp.totalXp })
+        .from(userXp)
+        .where(eq(userXp.userId, userId))
+        .limit(1);
       challengeSubmissionQueue
         .add("challenge-completed", {
           userId,
           challengeSlug,
           difficulty: detail.difficulty,
+          prevTotalXp: xpRow?.totalXp ?? 0,
         })
         .catch((err) => {
           c.get("log").error("challenge-submission job dispatch failed", {

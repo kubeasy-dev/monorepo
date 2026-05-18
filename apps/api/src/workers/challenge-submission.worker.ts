@@ -43,7 +43,7 @@ export function createChallengeSubmissionWorker() {
     QUEUE_NAMES.CHALLENGE_SUBMISSION,
     async (job) => {
       const startTime = Date.now();
-      const { userId, challengeSlug, difficulty } = job.data;
+      const { userId, challengeSlug, difficulty, prevTotalXp } = job.data;
 
       try {
         // Idempotency guard: exit early if XP was already awarded for this challenge
@@ -90,16 +90,9 @@ export function createChallengeSubmissionWorker() {
         });
 
         // 4. Gather stats for the celebration SSE event (parallel with analytics)
-        const { prevTotalXp, attemptsCount, commandsCount } = await all({
-          async prevTotalXp() {
-            const [row] = await db
-              .select({
-                total: sql<number>`COALESCE(SUM(${userXpTransaction.xpAmount}), 0)`,
-              })
-              .from(userXpTransaction)
-              .where(eq(userXpTransaction.userId, userId));
-            return row?.total ?? 0;
-          },
+        // prevTotalXp is captured at job-dispatch time (before any XP is awarded),
+        // so it's correct even on retries where XP_AWARD jobs may have already run.
+        const { attemptsCount, commandsCount } = await all({
           async attemptsCount() {
             const [row] = await db
               .select({ count: count() })
