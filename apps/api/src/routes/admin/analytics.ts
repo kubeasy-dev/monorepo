@@ -100,8 +100,7 @@ const failingObjectiveRowSchema = z.object({
 const analyticsRateLimit = slidingWindowRateLimit(redis, {
   windowMs: 60_000,
   max: 30,
-  keyFn: (c) =>
-    `admin-analytics:${c.get("user")?.id ?? c.req.header("x-forwarded-for") ?? "unknown"}`,
+  keyFn: (c) => `admin-analytics:${c.get("user")?.id}`,
 });
 
 // ── Routes ─────────────────────────────────────────────────────────────────────
@@ -232,7 +231,7 @@ export const adminAnalytics = new Hono<AppEnv>()
       )) {
         if (!parsed.success) {
           c.get("log").warn("analytics: dropping malformed objective row", {
-            error: String(parsed.error),
+            error: parsed.error.issues.map((i) => i.message),
           });
           continue;
         }
@@ -365,7 +364,8 @@ export const adminAnalytics = new Hono<AppEnv>()
             .from(cliEvent)
             .where(periodWhere(cliEvent.createdAt, i, false))
             .groupBy(cliEvent.eventType)
-            .orderBy(sql`COUNT(*) DESC`),
+            .orderBy(sql`COUNT(*) DESC`)
+            .limit(100),
         ]);
 
       return c.json({
