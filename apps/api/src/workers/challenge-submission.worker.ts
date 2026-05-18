@@ -117,7 +117,7 @@ export function createChallengeSubmissionWorker() {
                   eq(userSubmission.challengeSlug, challengeSlug),
                 ),
               );
-            return row?.total ?? 0;
+            return Number(row?.total ?? 0);
           },
           // Fire-and-forget — must not propagate errors or the job retries and re-awards XP
           async _analytics() {
