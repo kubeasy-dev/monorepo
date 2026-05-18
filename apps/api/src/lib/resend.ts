@@ -99,7 +99,6 @@ export async function getContactSubscriptions(
     log.error({
       message: "resend.getContactSubscriptions failed",
       error: error instanceof Error ? error.stack : String(error),
-      contactId,
     });
     throw error;
   }
