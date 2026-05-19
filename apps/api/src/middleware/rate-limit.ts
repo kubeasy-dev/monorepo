@@ -19,7 +19,7 @@ interface RateLimitOptions {
  * 3. Count entries in the window
  * 4. Set TTL on the key for auto-cleanup
  *
- * If count > max, return 429 Too Many Requests.
+ * If count >= max, return 429 Too Many Requests.
  */
 export function slidingWindowRateLimit(
   redis: Redis,
@@ -41,7 +41,7 @@ export function slidingWindowRateLimit(
     // results[2] is the ZCARD result: [error, count]
     const requestCount = (results?.[2]?.[1] as number) ?? 0;
 
-    if (requestCount > options.max) {
+    if (requestCount >= options.max) {
       c.header("Retry-After", String(Math.ceil(options.windowMs / 1000)));
       return c.json({ error: "Too Many Requests" }, 429);
     }
