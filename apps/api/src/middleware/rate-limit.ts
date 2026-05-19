@@ -4,7 +4,10 @@ import type { Redis } from "ioredis";
 interface RateLimitOptions {
   /** Sliding window duration in milliseconds */
   windowMs: number;
-  /** Maximum requests per window */
+  /**
+   * Block threshold: the request whose in-window count reaches this value is
+   * rejected with 429. In practice `max - 1` requests are allowed per window.
+   */
   max: number;
   /** Function to derive the rate limit key from the request context */
   keyFn: (c: Parameters<MiddlewareHandler>[0]) => string;
