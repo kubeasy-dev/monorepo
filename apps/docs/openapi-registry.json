@@ -2,7 +2,11 @@
   "components": {
     "schemas": {
       "ChallengeDifficulty": {
-        "enum": ["easy", "medium", "hard"],
+        "enum": [
+          "easy",
+          "medium",
+          "hard"
+        ],
         "type": "string"
       },
       "ChallengeTheme": {
@@ -20,7 +24,11 @@
         "type": "string"
       },
       "ChallengeType": {
-        "enum": ["fix", "build", "migrate"],
+        "enum": [
+          "fix",
+          "build",
+          "migrate"
+        ],
         "type": "string"
       },
       "ConditionCheck": {
@@ -32,7 +40,10 @@
             "type": "string"
           }
         },
-        "required": ["type", "status"],
+        "required": [
+          "type",
+          "status"
+        ],
         "type": "object"
       },
       "ConditionSpec": {
@@ -47,7 +58,10 @@
             "$ref": "#/components/schemas/Target"
           }
         },
-        "required": ["target", "checks"],
+        "required": [
+          "target",
+          "checks"
+        ],
         "type": "object"
       },
       "ConnectivityCheck": {
@@ -68,7 +82,10 @@
             "type": "string"
           }
         },
-        "required": ["url", "expectedStatusCode"],
+        "required": [
+          "url",
+          "expectedStatusCode"
+        ],
         "type": "object"
       },
       "ConnectivitySpec": {
@@ -86,7 +103,10 @@
             "type": "array"
           }
         },
-        "required": ["sourcePod", "targets"],
+        "required": [
+          "sourcePod",
+          "targets"
+        ],
         "type": "object"
       },
       "Error": {
@@ -95,7 +115,9 @@
             "type": "string"
           }
         },
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "type": "object"
       },
       "EventSpec": {
@@ -119,7 +141,10 @@
             "$ref": "#/components/schemas/Target"
           }
         },
-        "required": ["target", "forbiddenReasons"],
+        "required": [
+          "target",
+          "forbiddenReasons"
+        ],
         "type": "object"
       },
       "LogSpec": {
@@ -146,11 +171,17 @@
             "$ref": "#/components/schemas/Target"
           }
         },
-        "required": ["target", "expectedStrings"],
+        "required": [
+          "target",
+          "expectedStrings"
+        ],
         "type": "object"
       },
       "MatchMode": {
-        "enum": ["allOf", "anyOf"],
+        "enum": [
+          "allOf",
+          "anyOf"
+        ],
         "type": "string"
       },
       "ObjectiveType": {
@@ -184,7 +215,11 @@
             "type": "string"
           }
         },
-        "required": ["verb", "resource", "allowed"],
+        "required": [
+          "verb",
+          "resource",
+          "allowed"
+        ],
         "type": "object"
       },
       "RbacSpec": {
@@ -202,7 +237,11 @@
             "type": "string"
           }
         },
-        "required": ["serviceAccount", "namespace", "checks"],
+        "required": [
+          "serviceAccount",
+          "namespace",
+          "checks"
+        ],
         "type": "object"
       },
       "RegistryChallenge": {
@@ -269,7 +308,12 @@
             "type": "string"
           }
         },
-        "required": ["slug", "name", "description", "logo"],
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "logo"
+        ],
         "type": "object"
       },
       "RegistryMeta": {
@@ -293,7 +337,11 @@
             "type": "array"
           }
         },
-        "required": ["themes", "types", "difficulties"],
+        "required": [
+          "themes",
+          "types",
+          "difficulties"
+        ],
         "type": "object"
       },
       "RegistryObjective": {
@@ -342,7 +390,14 @@
             "$ref": "#/components/schemas/ObjectiveType"
           }
         },
-        "required": ["key", "title", "description", "order", "type", "spec"],
+        "required": [
+          "key",
+          "title",
+          "description",
+          "order",
+          "type",
+          "spec"
+        ],
         "type": "object"
       },
       "RegistryTheme": {
@@ -360,7 +415,12 @@
             "type": "string"
           }
         },
-        "required": ["slug", "name", "description", "logo"],
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "logo"
+        ],
         "type": "object"
       },
       "SourcePod": {
@@ -391,7 +451,9 @@
           },
           "value": {}
         },
-        "required": ["path"],
+        "required": [
+          "path"
+        ],
         "type": "object"
       },
       "SpecSpec": {
@@ -406,7 +468,10 @@
             "$ref": "#/components/schemas/Target"
           }
         },
-        "required": ["target", "checks"],
+        "required": [
+          "target",
+          "checks"
+        ],
         "type": "object"
       },
       "StatusCheck": {
@@ -419,7 +484,11 @@
           },
           "value": {}
         },
-        "required": ["field", "operator", "value"],
+        "required": [
+          "field",
+          "operator",
+          "value"
+        ],
         "type": "object"
       },
       "StatusSpec": {
@@ -434,7 +503,10 @@
             "$ref": "#/components/schemas/Target"
           }
         },
-        "required": ["target", "checks"],
+        "required": [
+          "target",
+          "checks"
+        ],
         "type": "object"
       },
       "TLSConfig": {
@@ -466,7 +538,9 @@
             "type": "string"
           }
         },
-        "required": ["kind"],
+        "required": [
+          "kind"
+        ],
         "type": "object"
       },
       "TriggerConfig": {
@@ -502,11 +576,19 @@
             "type": "integer"
           }
         },
-        "required": ["type"],
+        "required": [
+          "type"
+        ],
         "type": "object"
       },
       "TriggerType": {
-        "enum": ["load", "wait", "delete", "rollout", "scale"],
+        "enum": [
+          "load",
+          "wait",
+          "delete",
+          "rollout",
+          "scale"
+        ],
         "type": "string"
       },
       "TriggeredSpec": {
@@ -524,7 +606,11 @@
             "type": "integer"
           }
         },
-        "required": ["trigger", "waitAfterSeconds", "then"],
+        "required": [
+          "trigger",
+          "waitAfterSeconds",
+          "then"
+        ],
         "type": "object"
       }
     }
@@ -556,7 +642,9 @@
           }
         },
         "summary": "List all challenges",
-        "tags": ["Challenges"]
+        "tags": [
+          "Challenges"
+        ]
       }
     },
     "/challenges/{slug}": {
@@ -596,7 +684,9 @@
           }
         },
         "summary": "Get a single challenge",
-        "tags": ["Challenges"]
+        "tags": [
+          "Challenges"
+        ]
       }
     },
     "/challenges/{slug}/manifests": {
@@ -636,7 +726,9 @@
           }
         },
         "summary": "Download manifests",
-        "tags": ["Challenges"]
+        "tags": [
+          "Challenges"
+        ]
       }
     },
     "/challenges/{slug}/yaml": {
@@ -675,7 +767,9 @@
           }
         },
         "summary": "Get raw challenge.yaml",
-        "tags": ["Challenges"]
+        "tags": [
+          "Challenges"
+        ]
       }
     },
     "/meta": {
@@ -695,7 +789,9 @@
           }
         },
         "summary": "Get reference data",
-        "tags": ["Meta"]
+        "tags": [
+          "Meta"
+        ]
       }
     }
   },
