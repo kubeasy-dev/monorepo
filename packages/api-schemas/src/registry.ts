@@ -10,7 +10,7 @@ export const challengeDifficultyValues = ["easy", "medium", "hard"] as const;
 export const ChallengeDifficultySchema = z.enum(challengeDifficultyValues);
 export type ChallengeDifficulty = z.infer<typeof ChallengeDifficultySchema>;
 
-export const challengeTypeValues = ["fix", "build", "migrate"] as const;
+export const challengeTypeValues = ["fix", "operate", "improve", "migrate"] as const;
 export const ChallengeTypeSchema = z.enum(challengeTypeValues);
 export type ChallengeType = z.infer<typeof ChallengeTypeSchema>;
 
