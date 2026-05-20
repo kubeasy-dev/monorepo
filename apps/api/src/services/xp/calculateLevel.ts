@@ -1,6 +1,3 @@
-import { eq, sql } from "drizzle-orm";
-import { db } from "../../db/index";
-import { userXpTransaction } from "../../db/schema/index";
 import { RANK_THRESHOLDS } from "./constants";
 import type { RankInfo } from "./types";
 
@@ -36,15 +33,4 @@ export function getRankFromXp(totalXp: number): RankInfo {
     nextRankXp,
     progress,
   };
-}
-
-export async function calculateLevel(userId: string): Promise<RankInfo> {
-  const result = await db
-    .select({
-      totalXp: sql<number>`COALESCE(SUM(${userXpTransaction.xpAmount}), 0)`,
-    })
-    .from(userXpTransaction)
-    .where(eq(userXpTransaction.userId, userId));
-
-  return getRankFromXp(result[0]?.totalXp ?? 0);
 }
