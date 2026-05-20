@@ -15,7 +15,7 @@ This guide walks you through creating a complete Kubeasy challenge. By the end, 
 Before writing any YAML, answer these questions:
 
 1. **What Kubernetes concept does this teach?** (e.g., resource limits, RBAC, probes)
-2. **What challenge type fits?** `fix` (something is broken), `build` (create from scratch), or `migrate` (transform an existing setup)
+2. **What challenge type fits?** `fix` (something is broken), `operate` (run an operational task), `improve` (harden a working setup), or `migrate` (transform an existing setup)
 3. **What is the broken/initial scenario?** (e.g., pod gets OOMKilled due to a low memory limit)
 4. **How do you verify it's fixed?** (e.g., pod runs stably, no OOM events)
 5. **Is this realistic?** Does this problem occur in production?
@@ -44,7 +44,7 @@ In interactive mode, you'll be prompted for each field:
 ```
 Challenge name: Memory Pressure
 Slug [memory-pressure]:
-Type (fix/build/migrate): fix
+Type (fix/operate/improve/migrate): fix
 Theme: resources-scaling
 Difficulty (easy/medium/hard): easy
 Estimated time (minutes) [30]: 15

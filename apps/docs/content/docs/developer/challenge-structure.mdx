@@ -34,9 +34,10 @@ The `type` field defines the nature of the problem:
 
 | Type | Starting state | What the user does |
 |------|---------------|-------------------|
-| `fix` | Broken setup | Investigate and repair |
-| `build` | Empty or minimal | Create the required resources |
-| `migrate` | Working but outdated | Transform to a new pattern |
+| `fix` | Broken setup | Diagnose the root cause and repair it |
+| `operate` | Running infrastructure | Execute a specific operational task |
+| `improve` | Working but incomplete | Strengthen reliability, security, or observability |
+| `migrate` | Working but outdated | Transition to a new configuration or pattern |
 
 See [Challenge Types](/user/challenge-types) for a detailed explanation of each.
 
