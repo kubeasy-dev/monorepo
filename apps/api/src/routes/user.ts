@@ -21,7 +21,7 @@ import {
   sessionSecurity,
 } from "../lib/openapi-shared";
 import { type AppEnv, requireAuth } from "../middleware/session";
-import { calculateLevel, calculateStreak } from "../services/xp/index";
+import { calculateStreak, getRankFromXp } from "../services/xp/index";
 
 const updateNameSchema = z.object({
   firstName: z.string().min(1),
@@ -121,7 +121,7 @@ export const userRouter = new Hono<AppEnv>()
             .where(eq(userXpTransaction.userId, userId));
 
           const xpEarned = result[0]?.totalXp ?? 0;
-          const rankInfo = await calculateLevel(userId);
+          const rankInfo = getRankFromXp(xpEarned);
 
           return { xpEarned, rank: rankInfo.name, rankInfo };
         },
